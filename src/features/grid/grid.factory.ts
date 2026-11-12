@@ -107,9 +107,9 @@ const y =
 const childRow = row + 1;
 const childCol = col + 1;
 
+// id của ô con cấp 2, ví dụ: 61 12, ô vuông 61 ô dòng 1 cột 2
 const childId = `${id}-${childRow}${childCol}`;;
 
-console.log("Tạo ô cấp 2:", childId);
       features.push(
         createRectangle(
           x,
