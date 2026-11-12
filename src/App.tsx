@@ -1,4 +1,5 @@
-import MapTiler from "./components/MapTiler/MapTiler";
+import MapTiler from "./app/MapTiler";
+
 
 function App() {
   return (
