@@ -16,7 +16,7 @@ export const MAP_CONFIG = {
 export const MAP_GRID_CONFIG = {
   COLS: 7,
   ROWS: 6,
-  CELL_SIZE: 2000,
+  CELL_SIZE: 20000, // 20km
 
   LEVEL_2_ROWS: 5,
   LEVEL_2_COLS: 5,
