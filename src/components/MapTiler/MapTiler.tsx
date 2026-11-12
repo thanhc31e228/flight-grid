@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
-
+import circle from "@turf/circle";
 import {
   Map as MapLibreMap,
   Marker,
@@ -20,11 +20,15 @@ setWorkerUrl(
     import.meta.url
   ).toString()
 );
+// sân bay kép
+// 106.263569 | Latitude: 21.394697
+const CENTER: [number, number] = [
+  106.263569,
+  21.394697
+];
 
-const CENTER: [number, number] = [105.8342, 21.0278];
-
-const GRID_WIDTH = 0.06;
-const GRID_HEIGHT = 0.04;
+// const GRID_WIDTH = 0.06;
+// const GRID_HEIGHT = 0.04;
 
 const COLS = 7;
 const ROWS = 6;
@@ -33,25 +37,37 @@ type Point = {
   lng: number;
   lat: number;
 };
+const CELL_SIZE = 2000; // 2.000 mét
 
 function createGrid() {
   const [centerLng, centerLat] = CENTER;
 
-  const minLng = centerLng - GRID_WIDTH / 2;
-  const minLat = centerLat - GRID_HEIGHT / 2;
+  // Chuyển đổi mét sang độ tại vĩ độ trung tâm
+  const metersPerDegreeLat = 111320;
 
-  const cellWidth = GRID_WIDTH / COLS;
-  const cellHeight = GRID_HEIGHT / ROWS;
+  const metersPerDegreeLng =
+    111320 * Math.cos((centerLat * Math.PI) / 180);
+
+  // Kích thước toàn bộ vùng lưới
+  const cellWidthLng = CELL_SIZE / metersPerDegreeLng;
+  const cellHeightLat = CELL_SIZE / metersPerDegreeLat;
+
+  // Tổng kích thước vùng lưới 42 ô
+  const totalWidth = cellWidthLng * COLS;
+  const totalHeight = cellHeightLat * ROWS;
+
+  const minLng = centerLng - totalWidth / 2;
+  const minLat = centerLat - totalHeight / 2;
 
   const features = [];
 
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
-      const west = minLng + col * cellWidth;
-      const east = west + cellWidth;
+      const west = minLng + col * cellWidthLng;
+      const east = west + cellWidthLng;
 
-      const south = minLat + row * cellHeight;
-      const north = south + cellHeight;
+      const south = minLat + row * cellHeightLat;
+      const north = south + cellHeightLat;
 
       features.push({
         type: "Feature",
@@ -63,6 +79,8 @@ function createGrid() {
           east,
           south,
           north,
+          widthMeters: CELL_SIZE,
+          heightMeters: CELL_SIZE,
         },
         geometry: {
           type: "Polygon",
@@ -280,13 +298,47 @@ export default function MapTiler() {
       });
 
       // =========================
-      // 4. MARKER HÀ NỘI
+      // 4. MARKER SÂN BAY KÉP
       // =========================
 
-      new Marker({ color: "red" })
-        .setLngLat(CENTER)
-        .setPopup(new Popup().setText("Hà Nội"))
-        .addTo(map);
+     
+// Tạo vòng tròn bán kính 1500 mét
+const airportCircle = circle(
+  CENTER,
+  1.5,
+  {
+    steps: 128,
+    units: "kilometers"
+  }
+);
+
+      // Thêm GeoJSON source
+      map.addSource("kep-airport", {
+        type: "geojson",
+        data: airportCircle
+      });
+
+      // Vẽ nền trong suốt
+      map.addLayer({
+        id: "kep-airport-fill",
+        type: "fill",
+        source: "kep-airport",
+        paint: {
+          "fill-color": "#000000",
+          "fill-opacity": 0
+        }
+      });
+
+      // Vẽ đường viền màu đen
+      map.addLayer({
+        id: "kep-airport-outline",
+        type: "line",
+        source: "kep-airport",
+        paint: {
+          "line-color": "#bca2a2",
+          "line-width": 3
+        }
+      });
 
       // =========================
       // 5. CLICK VÀO Ô LƯỚI
