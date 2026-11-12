@@ -22,7 +22,7 @@ export const emptyGrid = (): GridCollection => ({
 });
 
 // ========================================
-// LEVEL 1
+// LEVEL 1 ô vuông lớn chứa 25 ô vuông nhỏ
 // ========================================
 
 export function createGrid(): GridCollection {
@@ -78,7 +78,7 @@ export function createGrid(): GridCollection {
 }
 
 // ========================================
-// LEVEL 2
+// LEVEL 2 ô vuông nhỏ bên trong ô lớn, mỗi ô lớn có 25 ô nhỏ
 // ========================================
 
 export function createLevel2(
@@ -146,7 +146,7 @@ const childId = `${id}-${childRow}${childCol}`;
 }
 
 // ========================================
-// LEVEL 3
+// LEVEL 3 ô vuông nhỏ bên trong ô nhỏ cấp 2, mỗi ô nhỏ cấp 2 có 5 ô nhỏ cấp 3
 // ========================================
 
 export function createLevel3(
