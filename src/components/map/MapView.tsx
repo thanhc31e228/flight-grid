@@ -59,7 +59,7 @@ export default function MapView({
       console.error("Không tìm thấy MapTiler API Key");
       return;
     }
-
+    // Khởi tạo bản đồ
     const map = new MapLibreMap({
       container: containerRef.current,
       style: `${MAP_CONFIG.STYLE_URL}?key=${API_KEY}`,
@@ -75,7 +75,7 @@ export default function MapView({
     );
 
     let cleanupEvents: (() => void) | undefined;
-
+    // Khi bản đồ đã tải xong, khởi tạo các layer và đăng ký sự kiện
     const handleLoad = () => {
       initializeMapLayers(map);
 

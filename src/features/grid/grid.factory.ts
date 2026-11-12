@@ -43,7 +43,6 @@ export function createGrid(): GridCollection {
         (ROWS - 1 - row) * CELL_SIZE;
 
       const id = `R${row + 1}-C${col + 1}`;
-
       features.push(
         createRectangle(
           xMin,
@@ -101,11 +100,16 @@ export function createLevel2(
   for (let row = 0; row < LEVEL_2_ROWS; row++) {
     for (let col = 0; col < LEVEL_2_COLS; col++) {
       const x = xMin + col * cellWidth;
-      const y = yMin + row * cellHeight;
 
-      const childId =
-        `${id}-L2-R${row + 1}-C${col + 1}`;
+const y =
+  yMin + (LEVEL_2_ROWS - 1 - row) * cellHeight;
 
+const childRow = row + 1;
+const childCol = col + 1;
+
+const childId = `${id}-${childRow}${childCol}`;;
+
+console.log("Tạo ô cấp 2:", childId);
       features.push(
         createRectangle(
           x,
@@ -156,39 +160,38 @@ export function createLevel3(
     heightMeters,
     id,
   } = parent.properties;
-
   const size = Math.min(
     widthMeters,
     heightMeters
   ) / 2;
 
   const positions = [
-    {
-      name: "NW",
-      x: xMin,
-      y: yMin + heightMeters - size,
-    },
-    {
-      name: "NE",
-      x: xMin + widthMeters - size,
-      y: yMin + heightMeters - size,
-    },
-    {
-      name: "SW",
-      x: xMin,
-      y: yMin,
-    },
-    {
-      name: "SE",
-      x: xMin + widthMeters - size,
-      y: yMin,
-    },
-    {
-      name: "CENTER",
-      x: xMin + (widthMeters - size) / 2,
-      y: yMin + (heightMeters - size) / 2,
-    },
-  ];
+  {
+    name: "1", // TOP LEFT
+    x: xMin,
+    y: yMin + heightMeters - size,
+  },
+  {
+    name: "2", // TOP RIGHT
+    x: xMin + widthMeters - size,
+    y: yMin + heightMeters - size,
+  },
+  {
+    name: "3", // BOTTOM RIGHT
+    x: xMin + widthMeters - size,
+    y: yMin,
+  },
+  {
+    name: "4", // BOTTOM LEFT
+    x: xMin,
+    y: yMin,
+  },
+  {
+    name: "5", // CENTER
+    x: xMin + (widthMeters - size) / 2,
+    y: yMin + (heightMeters - size) / 2,
+  },
+];
 
   return {
     type: "FeatureCollection",

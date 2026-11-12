@@ -9,13 +9,15 @@ export const MAP_CONFIG = {
 
   ROUTE: {
     COLOR: "#ff2222",
-    WIDTH: 4,
+    WIDTH: 2,
   },
 };
 
+// cấu hình lưới bản đồ
 export const MAP_GRID_CONFIG = {
   COLS: 7,
   ROWS: 6,
+  // mỗi ô lưới cấp 1 có kích thước 20km x 20km
   CELL_SIZE: 20000, // 20km
 
   LEVEL_2_ROWS: 5,
