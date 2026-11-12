@@ -108,8 +108,7 @@ const childRow = row + 1;
 const childCol = col + 1;
 
 // id của ô con cấp 2, ví dụ: 61 12, ô vuông 61 ô dòng 1 cột 2
-const childId = `${id}-${childRow}${childCol}`;;
-
+const childId = `${id}-${childRow}${childCol}`;
       features.push(
         createRectangle(
           x,
@@ -203,7 +202,7 @@ export function createLevel3(
         size,
         size,
         {
-          id: `${id}-L3-${pos.name}`,
+          id: `${id}${pos.name}`,
           level: 3,
           parentId: id,
 
