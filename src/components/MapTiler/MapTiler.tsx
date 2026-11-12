@@ -106,7 +106,93 @@ function metersToLngLat(
     CENTER[1] + y / meters.lat,
   ];
 }
+function createRoundedRoute(
+  points: Point[],
+  radius = 0.25,
+  steps = 12
+): [number, number][] {
 
+  if (points.length < 3) {
+    return points.map(p => [p.lng, p.lat]);
+  }
+
+  const result: [number, number][] = [];
+
+  const toXY = (p: Point) => ({
+    x: (p.lng - CENTER[0]) *
+      getMetersPerDegree().lng,
+    y: (p.lat - CENTER[1]) *
+      getMetersPerDegree().lat,
+  });
+
+  const toLngLat = (p: {x: number; y: number}):
+    [number, number] => metersToLngLat(p.x, p.y);
+
+  const xy = points.map(toXY);
+
+  result.push(toLngLat(xy[0]));
+
+  for (let i = 1; i < xy.length - 1; i++) {
+
+    const A = xy[i - 1];
+    const B = xy[i];
+    const C = xy[i + 1];
+
+    const dx1 = A.x - B.x;
+    const dy1 = A.y - B.y;
+
+    const dx2 = C.x - B.x;
+    const dy2 = C.y - B.y;
+
+    const len1 = Math.hypot(dx1, dy1);
+    const len2 = Math.hypot(dx2, dy2);
+
+    if (len1 === 0 || len2 === 0) continue;
+
+    const cut = Math.min(
+      len1 * radius,
+      len2 * radius,
+      200
+    );
+
+    const P1 = {
+      x: B.x + dx1 / len1 * cut,
+      y: B.y + dy1 / len1 * cut,
+    };
+
+    const P2 = {
+      x: B.x + dx2 / len2 * cut,
+      y: B.y + dy2 / len2 * cut,
+    };
+
+    result.push(toLngLat(P1));
+
+    // Quadratic Bezier
+    for (let j = 1; j <= steps; j++) {
+
+      const t = j / steps;
+      const mt = 1 - t;
+
+      const x =
+        mt * mt * P1.x +
+        2 * mt * t * B.x +
+        t * t * P2.x;
+
+      const y =
+        mt * mt * P1.y +
+        2 * mt * t * B.y +
+        t * t * P2.y;
+
+      result.push(toLngLat({x, y}));
+    }
+  }
+
+  result.push(
+    toLngLat(xy[xy.length - 1])
+  );
+
+  return result;
+}
 // ========================================
 // CREATE RECTANGLE
 // ========================================
@@ -350,7 +436,25 @@ function createLevel3(
 // ========================================
 // MAP COMPONENT
 // ========================================
+function createLevel3Index(): Map<string, GridFeature> {
+  const index = new Map<string, GridFeature>();
 
+  const level1 = createGrid();
+
+  level1.features.forEach((parent) => {
+    const level2 = createLevel2(parent);
+
+    level2.features.forEach((child) => {
+      const level3 = createLevel3(child);
+
+      level3.features.forEach((feature) => {
+        index.set(feature.properties.id, feature);
+      });
+    });
+  });
+
+  return index;
+}
 export default function MapTiler() {
   const mapContainer = useRef<HTMLDivElement>(null);
 
@@ -359,7 +463,60 @@ export default function MapTiler() {
   const pointsRef = useRef<Point[]>([]);
 
   const [points, setPoints] = useState<Point[]>([]);
+const level3IndexRef = useRef<Map<string, GridFeature>>(
+  new Map()
+);
 
+const [cellIdsInput, setCellIdsInput] = useState("");
+function getCellCenter(
+  feature: GridFeature
+): Point {
+  const {
+    xMin,
+    yMin,
+    widthMeters,
+    heightMeters,
+  } = feature.properties;
+
+  const [lng, lat] = metersToLngLat(
+    xMin + widthMeters / 2,
+    yMin + heightMeters / 2
+  );
+
+  return { lng, lat };
+}
+const connectCellsById = () => {
+  const ids = cellIdsInput
+    .split(/[\n,;]+/)
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  if (ids.length < 2) {
+    alert("Cần nhập ít nhất 2 ID ô cấp 3");
+    return;
+  }
+
+  const selectedCells: GridFeature[] = [];
+
+  for (const id of ids) {
+    const cell = level3IndexRef.current.get(id);
+
+    if (!cell) {
+      alert(`Không tìm thấy ô: ${id}`);
+      return;
+    }
+
+    selectedCells.push(cell);
+  }
+
+  // Lấy tâm từng ô
+  const routePoints = selectedCells.map(
+    (cell) => getCellCenter(cell)
+  );
+
+  // Cập nhật tuyến đường
+  commitPoints(routePoints);
+};
   // ======================================
   // UPDATE ROUTE
   // ======================================
@@ -379,24 +536,25 @@ export default function MapTiler() {
     if (!routeSource || !pointsSource) return;
 
     routeSource.setData({
-      type: "FeatureCollection",
-      features:
-        newPoints.length >= 2
-          ? [
-              {
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "LineString",
-                  coordinates: newPoints.map((p) => [
-                    p.lng,
-                    p.lat,
-                  ]),
-                },
-              },
-            ]
-          : [],
-    });
+  type: "FeatureCollection",
+  features:
+    newPoints.length >= 2
+      ? [
+          {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates: createRoundedRoute(
+                newPoints,
+                0.25,
+                12
+              ),
+            },
+          },
+        ]
+      : [],
+});
 
     pointsSource.setData({
       type: "FeatureCollection",
@@ -525,7 +683,7 @@ export default function MapTiler() {
       // ----------------------------------
       // LEVEL 1
       // ----------------------------------
-
+level3IndexRef.current = createLevel3Index();
       map.addSource("grid-source", {
         type: "geojson",
         data: createGrid() as any,
@@ -684,7 +842,7 @@ map.addLayer({
           "circle-radius": 7,
           "circle-color": "#ff2222",
           "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": 2,
+          "circle-stroke-width": 1,
         },
       });
 
@@ -982,7 +1140,51 @@ map.addLayer({
         >
           Xóa tất cả
         </button>
+<div style={{
+  marginTop: 15,
+  borderTop: "1px solid #ddd",
+  paddingTop: 12,
+}}>
 
+  <strong>NỐI Ô GRID CẤP 3</strong>
+
+  <textarea
+    value={cellIdsInput}
+    onChange={(e) =>
+      setCellIdsInput(e.target.value)
+    }
+    placeholder={`Nhập ID từng ô:
+
+R1-C1-L2-R1-C1-L3-NW
+R1-C1-L2-R1-C1-L3-CENTER`}
+    style={{
+      width: "100%",
+      height: 120,
+      marginTop: 8,
+      padding: 8,
+      boxSizing: "border-box",
+      fontSize: 11,
+      resize: "vertical",
+    }}
+  />
+
+  <button
+    onClick={connectCellsById}
+    style={{
+      width: "100%",
+      padding: 9,
+      marginTop: 8,
+      background: "#2563eb",
+      color: "#fff",
+      border: "none",
+      borderRadius: 5,
+      cursor: "pointer",
+    }}
+  >
+    NỐI CÁC Ô THÀNH TUYẾN
+  </button>
+
+</div>
         <div
           style={{
             marginTop: 12,
