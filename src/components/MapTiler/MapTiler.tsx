@@ -1,14 +1,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import circle from "@turf/circle";
+
 import {
   Map as MapLibreMap,
-  Marker,
   Popup,
   NavigationControl,
   setWorkerUrl,
   GeoJSONSource,
 } from "maplibre-gl";
+
+import type {
+  Feature,
+  FeatureCollection,
+  Polygon,
+} from "geojson";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -20,79 +26,172 @@ setWorkerUrl(
     import.meta.url
   ).toString()
 );
-// sân bay kép
-// 106.263569 | Latitude: 21.394697
+
+// ========================================
+// CONFIG
+// ========================================
+// CENTER của sân bay Kép
 const CENTER: [number, number] = [
   106.263569,
-  21.394697
+  21.394697,
 ];
-
-// const GRID_WIDTH = 0.06;
-// const GRID_HEIGHT = 0.04;
 
 const COLS = 7;
 const ROWS = 6;
+
+const CELL_SIZE = 2000;
+
+// Kích thước ô cấp 2 tùy chỉnh
+const LEVEL_2_SIZE = 500;
 
 type Point = {
   lng: number;
   lat: number;
 };
-const CELL_SIZE = 2000; // 2.000 mét
 
-function createGrid() {
-  const [centerLng, centerLat] = CENTER;
+type GridProperties = {
+  id: string;
+  level: 1 | 2 | 3;
+  parentId?: string;
 
-  // Chuyển đổi mét sang độ tại vĩ độ trung tâm
-  const metersPerDegreeLat = 111320;
+  row?: number;
+  col?: number;
 
-  const metersPerDegreeLng =
-    111320 * Math.cos((centerLat * Math.PI) / 180);
+  west: number;
+  east: number;
+  south: number;
+  north: number;
 
-  // Kích thước toàn bộ vùng lưới
-  const cellWidthLng = CELL_SIZE / metersPerDegreeLng;
-  const cellHeightLat = CELL_SIZE / metersPerDegreeLat;
+  widthMeters: number;
+  heightMeters: number;
 
-  // Tổng kích thước vùng lưới 42 ô
-  const totalWidth = cellWidthLng * COLS;
-  const totalHeight = cellHeightLat * ROWS;
+  xMin: number;
+  yMin: number;
+};
 
-  const minLng = centerLng - totalWidth / 2;
-  const minLat = centerLat - totalHeight / 2;
+type GridFeature = Feature<Polygon, GridProperties>;
 
-  const features = [];
+type GridCollection = FeatureCollection<
+  Polygon,
+  GridProperties
+>;
+
+const emptyGrid = (): GridCollection => ({
+  type: "FeatureCollection",
+  features: [],
+});
+
+// ========================================
+// GEO CONVERSION
+// ========================================
+
+function getMetersPerDegree() {
+  const lat = CENTER[1];
+
+  return {
+    lat: 111320,
+    lng:
+      111320 * Math.cos((lat * Math.PI) / 180),
+  };
+}
+
+function metersToLngLat(
+  x: number,
+  y: number
+): [number, number] {
+  const meters = getMetersPerDegree();
+
+  return [
+    CENTER[0] + x / meters.lng,
+    CENTER[1] + y / meters.lat,
+  ];
+}
+
+// ========================================
+// CREATE RECTANGLE
+// ========================================
+
+function createRectangle(
+  xMin: number,
+  yMin: number,
+  width: number,
+  height: number,
+  properties: GridProperties
+): GridFeature {
+  const xMax = xMin + width;
+  const yMax = yMin + height;
+
+  const coordinates = [
+    metersToLngLat(xMin, yMin),
+    metersToLngLat(xMax, yMin),
+    metersToLngLat(xMax, yMax),
+    metersToLngLat(xMin, yMax),
+    metersToLngLat(xMin, yMin),
+  ];
+
+  const west = coordinates[0][0];
+  const south = coordinates[0][1];
+  const east = coordinates[2][0];
+  const north = coordinates[2][1];
+
+  return {
+    type: "Feature",
+    properties: {
+      ...properties,
+      west,
+      east,
+      south,
+      north,
+    },
+    geometry: {
+      type: "Polygon",
+      coordinates: [coordinates],
+    },
+  };
+}
+
+// ========================================
+// LEVEL 1: CREATE 42 CELLS
+// ========================================
+
+function createGrid(): GridCollection {
+  const totalWidth = COLS * CELL_SIZE;
+  const totalHeight = ROWS * CELL_SIZE;
+
+  const startX = -totalWidth / 2;
+  const startY = -totalHeight / 2;
+
+  const features: GridFeature[] = [];
 
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
-      const west = minLng + col * cellWidthLng;
-      const east = west + cellWidthLng;
+      const xMin = startX + col * CELL_SIZE;
+      const yMin = startY + (ROWS - 1 - row) * CELL_SIZE;
 
-      const south = minLat + row * cellHeightLat;
-      const north = south + cellHeightLat;
+      const id = `R${row + 1}-C${col + 1}`;
 
-      features.push({
-        type: "Feature",
-        properties: {
-          id: `R${row + 1}-C${col + 1}`,
-          row: row + 1,
-          col: col + 1,
-          west,
-          east,
-          south,
-          north,
-          widthMeters: CELL_SIZE,
-          heightMeters: CELL_SIZE,
-        },
-        geometry: {
-          type: "Polygon",
-          coordinates: [[
-            [west, south],
-            [east, south],
-            [east, north],
-            [west, north],
-            [west, south],
-          ]],
-        },
-      });
+      features.push(
+        createRectangle(
+          xMin,
+          yMin,
+          CELL_SIZE,
+          CELL_SIZE,
+          {
+            id,
+            level: 1,
+            row: row + 1,
+            col: col + 1,
+            west: 0,
+            east: 0,
+            south: 0,
+            north: 0,
+            widthMeters: CELL_SIZE,
+            heightMeters: CELL_SIZE,
+            xMin,
+            yMin,
+          }
+        )
+      );
     }
   }
 
@@ -102,29 +201,183 @@ function createGrid() {
   };
 }
 
+// ========================================
+// LEVEL 2: DIVIDE LEVEL 1
+// ========================================
+
+
+function createLevel2(
+  parent: GridFeature
+): GridCollection {
+  const {
+    xMin,
+    yMin,
+    widthMeters,
+    heightMeters,
+    id,
+  } = parent.properties;
+
+  const features: GridFeature[] = [];
+
+  const ROWS = 5;
+  const COLS = 5;
+
+  // Tự động tính kích thước mỗi ô
+  const cellWidth = widthMeters / COLS;
+  const cellHeight = heightMeters / ROWS;
+
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const x = xMin + col * cellWidth;
+      const y = yMin + row * cellHeight;
+
+      const childId =
+        `${id}-L2-R${row + 1}-C${col + 1}`;
+
+      features.push(
+        createRectangle(
+          x,
+          y,
+          cellWidth,
+          cellHeight,
+          {
+            id: childId,
+            level: 2,
+            parentId: id,
+            row: row + 1,
+            col: col + 1,
+            west: 0,
+            east: 0,
+            south: 0,
+            north: 0,
+            widthMeters: cellWidth,
+            heightMeters: cellHeight,
+            xMin: x,
+            yMin: y,
+          }
+        )
+      );
+    }
+  }
+
+  return {
+    type: "FeatureCollection",
+    features,
+  };
+}
+
+
+// ========================================
+// LEVEL 3: 4 CORNERS + CENTER
+// ========================================
+
+
+function createLevel3(
+  parent: GridFeature
+): GridCollection {
+  const {
+    xMin,
+    yMin,
+    widthMeters,
+    heightMeters,
+    id,
+  } = parent.properties;
+
+  // Mỗi ô góc chiếm 1/2 chiều rộng và chiều cao
+  const size = Math.min(
+    widthMeters,
+    heightMeters
+  ) / 2;
+
+  const positions = [
+    // 4 góc
+    {
+      name: "NW",
+      x: xMin,
+      y: yMin + heightMeters - size,
+    },
+    {
+      name: "NE",
+      x: xMin + widthMeters - size,
+      y: yMin + heightMeters - size,
+    },
+    {
+      name: "SW",
+      x: xMin,
+      y: yMin,
+    },
+    {
+      name: "SE",
+      x: xMin + widthMeters - size,
+      y: yMin,
+    },
+
+    // Chính giữa
+    {
+      name: "CENTER",
+      x: xMin + (widthMeters - size) / 2,
+      y: yMin + (heightMeters - size) / 2,
+    },
+  ];
+
+  return {
+    type: "FeatureCollection",
+    features: positions.map((pos) =>
+      createRectangle(
+        pos.x,
+        pos.y,
+        size,
+        size,
+        {
+          id: `${id}-L3-${pos.name}`,
+          level: 3,
+          parentId: id,
+          west: 0,
+          east: 0,
+          south: 0,
+          north: 0,
+          widthMeters: size,
+          heightMeters: size,
+          xMin: pos.x,
+          yMin: pos.y,
+        }
+      )
+    ),
+  };
+}
+
+
+// ========================================
+// MAP COMPONENT
+// ========================================
+
 export default function MapTiler() {
   const mapContainer = useRef<HTMLDivElement>(null);
 
   const mapRef = useRef<MapLibreMap | null>(null);
 
+  const pointsRef = useRef<Point[]>([]);
+
   const [points, setPoints] = useState<Point[]>([]);
 
-  // Cập nhật đường nối và các điểm trên bản đồ
+  // ======================================
+  // UPDATE ROUTE
+  // ======================================
+
   const updateRoute = (
     map: MapLibreMap,
     newPoints: Point[]
   ) => {
-    const routeSource = map.getSource("route-source") as
-      | GeoJSONSource
-      | undefined;
+    const routeSource = map.getSource(
+      "route-source"
+    ) as GeoJSONSource | undefined;
 
-    const pointsSource = map.getSource("points-source") as
-      | GeoJSONSource
-      | undefined;
+    const pointsSource = map.getSource(
+      "points-source"
+    ) as GeoJSONSource | undefined;
 
     if (!routeSource || !pointsSource) return;
 
-    // Đường nối các điểm
     routeSource.setData({
       type: "FeatureCollection",
       features:
@@ -145,7 +398,6 @@ export default function MapTiler() {
           : [],
     });
 
-    // Các điểm đánh dấu
     pointsSource.setData({
       type: "FeatureCollection",
       features: newPoints.map((p, index) => ({
@@ -163,27 +415,30 @@ export default function MapTiler() {
     });
   };
 
-  // Hoàn tác điểm cuối
-  const undoPoint = () => {
-    setPoints((prev) => {
-      const updated = prev.slice(0, -1);
+  // ======================================
+  // UPDATE POINTS
+  // ======================================
 
-      if (mapRef.current) {
-        updateRoute(mapRef.current, updated);
-      }
-
-      return updated;
-    });
-  };
-
-  // Xóa toàn bộ điểm
-  const clearPoints = () => {
-    setPoints([]);
+  const commitPoints = (updated: Point[]) => {
+    pointsRef.current = updated;
+    setPoints(updated);
 
     if (mapRef.current) {
-      updateRoute(mapRef.current, []);
+      updateRoute(mapRef.current, updated);
     }
   };
+
+  const undoPoint = () => {
+    commitPoints(pointsRef.current.slice(0, -1));
+  };
+
+  const clearPoints = () => {
+    commitPoints([]);
+  };
+
+  // ======================================
+  // INITIALIZE MAP
+  // ======================================
 
   useEffect(() => {
     if (!mapContainer.current || !API_KEY) {
@@ -200,41 +455,195 @@ export default function MapTiler() {
 
     mapRef.current = map;
 
-    map.addControl(new NavigationControl(), "top-right");
+    map.addControl(
+      new NavigationControl(),
+      "top-right"
+    );
 
-    map.on("load", () => {
-      // =========================
-      // 1. TẠO LƯỚI 42 Ô
-      // =========================
+    // Hover state
+    let activeParentId: string | null = null;
+    let activeChildId: string | null = null;
+
+    const getSource = (id: string) =>
+      map.getSource(id) as GeoJSONSource | undefined;
+
+    const setSourceData = (
+      id: string,
+      data: GridCollection
+    ) => {
+      getSource(id)?.setData(data);
+    };
+
+    const clearLevel2 = () => {
+      activeParentId = null;
+      activeChildId = null;
+
+      setSourceData("grid-level-2", emptyGrid());
+      setSourceData("grid-level-3", emptyGrid());
+    };
+
+    const clearLevel3 = () => {
+      activeChildId = null;
+
+      setSourceData("grid-level-3", emptyGrid());
+    };
+
+    const showLevel2 = (parent: GridFeature) => {
+      const parentId = parent.properties.id;
+
+      if (activeParentId === parentId) return;
+
+      activeParentId = parentId;
+      activeChildId = null;
+
+      setSourceData(
+        "grid-level-2",
+        createLevel2(parent)
+      );
+
+      clearLevel3();
+    };
+
+    const showLevel3 = (child: GridFeature) => {
+      const childId = child.properties.id;
+
+      if (activeChildId === childId) return;
+
+      activeChildId = childId;
+
+      setSourceData(
+        "grid-level-3",
+        createLevel3(child)
+      );
+    };
+
+    // ====================================
+    // LOAD
+    // ====================================
+
+    const handleLoad = () => {
+      // ----------------------------------
+      // LEVEL 1
+      // ----------------------------------
 
       map.addSource("grid-source", {
         type: "geojson",
         data: createGrid() as any,
       });
 
-      map.addLayer({
-        id: "grid-fill",
-        type: "fill",
-        source: "grid-source",
-        paint: {
-          "fill-color": "#3388ff",
-          "fill-opacity": 0.12,
-        },
-      });
+     map.addLayer({
+  id: "grid-fill",
+  type: "fill",
+  source: "grid-source",
+  paint: {
+    "fill-color": "#ffffff",
+    "fill-opacity": 0,
+  },
+});
 
       map.addLayer({
-        id: "grid-outline",
-        type: "line",
-        source: "grid-source",
-        paint: {
-          "line-color": "#0066ff",
-          "line-width": 2,
-        },
+    id: "grid-outline",
+    type: "line",
+    source: "grid-source",
+    layout:{
+      
+    },
+    paint: {
+      "line-color": "#64748b",
+      "line-width": 1,
+      "line-opacity": 0.45,
+    },
+  });
+
+map.addLayer({
+  id: "grid-label",
+  type: "symbol",
+  source: "grid-source",
+  layout: {
+    "text-field": [
+      "concat",
+      "R",
+      ["get", "row"],
+      "-C",
+      ["get", "col"],
+    ],
+    "text-size": 11,
+    "text-font": ["Open Sans Regular"],
+    "text-anchor": "center",
+    "text-allow-overlap": true,
+  },
+  paint: {
+    "text-color": "#050e1c",
+    "text-halo-color": "#ffffff",
+    "text-halo-width": 1.2,
+    "text-opacity": 0.8,
+  },
+});
+
+      // ----------------------------------
+      // LEVEL 2
+      // ----------------------------------
+
+      map.addSource("grid-level-2", {
+        type: "geojson",
+        data: emptyGrid(),
       });
 
-      // =========================
-      // 2. SOURCE ĐƯỜNG NỐI
-      // =========================
+     map.addLayer({
+  id: "grid-level-2-fill",
+  type: "fill",
+  source: "grid-level-2",
+  paint: {
+    "fill-color": "#ffffff",
+    "fill-opacity": 0,
+  },
+});
+
+map.addLayer({
+  id: "grid-level-2-outline",
+  type: "line",
+  source: "grid-level-2",
+  paint: {
+    "line-color": "#94a3b8",
+    "line-width": 0.8,
+    "line-opacity": 0.5,
+  },
+});
+
+
+      // ----------------------------------
+      // LEVEL 3
+      // ----------------------------------
+
+      map.addSource("grid-level-3", {
+        type: "geojson",
+        data: emptyGrid(),
+      });
+
+     map.addLayer({
+  id: "grid-level-3-fill",
+  type: "fill",
+  source: "grid-level-3",
+  paint: {
+    "fill-color": "#ffffff",
+    "fill-opacity": 0,
+  },
+});
+
+map.addLayer({
+  id: "grid-level-3-outline",
+  type: "line",
+  source: "grid-level-3",
+  paint: {
+    "line-color": "#64748b",
+    "line-width": 0.7,
+    "line-opacity": 0.55,
+  },
+});
+
+      // ----------------------------------
+      // ROUTE SOURCE
+      // ----------------------------------
 
       map.addSource("route-source", {
         type: "geojson",
@@ -255,9 +664,9 @@ export default function MapTiler() {
         },
       });
 
-      // =========================
-      // 3. SOURCE CÁC ĐIỂM
-      // =========================
+      // ----------------------------------
+      // POINTS SOURCE
+      // ----------------------------------
 
       map.addSource("points-source", {
         type: "geojson",
@@ -279,7 +688,6 @@ export default function MapTiler() {
         },
       });
 
-      // Tên P1, P2, P3...
       map.addLayer({
         id: "points-label",
         type: "symbol",
@@ -297,55 +705,124 @@ export default function MapTiler() {
         },
       });
 
-      // =========================
-      // 4. MARKER SÂN BAY KÉP
-      // =========================
+      // ----------------------------------
+      // AIRPORT CIRCLE
+      // ----------------------------------
 
-     
-// Tạo vòng tròn bán kính 1500 mét
-const airportCircle = circle(
-  CENTER,
-  1.5,
-  {
-    steps: 128,
-    units: "kilometers"
-  }
-);
+      const airportCircle = circle(
+        CENTER,
+        1.5,
+        {
+          steps: 128,
+          units: "kilometers",
+        }
+      );
 
-      // Thêm GeoJSON source
       map.addSource("kep-airport", {
         type: "geojson",
-        data: airportCircle
+        data: airportCircle,
       });
 
-      // Vẽ nền trong suốt
       map.addLayer({
         id: "kep-airport-fill",
         type: "fill",
         source: "kep-airport",
         paint: {
           "fill-color": "#000000",
-          "fill-opacity": 0
-        }
+          "fill-opacity": 0,
+        },
       });
 
-      // Vẽ đường viền màu đen
       map.addLayer({
         id: "kep-airport-outline",
         type: "line",
         source: "kep-airport",
         paint: {
           "line-color": "#bca2a2",
-          "line-width": 3
-        }
+          "line-width": 3,
+        },
       });
 
-      // =========================
-      // 5. CLICK VÀO Ô LƯỚI
-      // =========================
+      // ==================================
+      // HOVER LOGIC
+      // ==================================
 
-      map.on("click", "grid-fill", (event) => {
-        const feature = event.features?.[0];
+      const handleMouseMove = (event: any) => {
+        const features = map.queryRenderedFeatures(
+          event.point,
+          {
+            layers: [
+              "grid-level-3-fill",
+              "grid-level-2-fill",
+              "grid-fill",
+            ],
+          }
+        );
+
+        // Ưu tiên cấp 3 trước, sau đó cấp 2
+        // và cuối cùng cấp 1.
+        const level2Feature = features.find(
+          (f) => f.layer.id === "grid-level-2-fill"
+        );
+
+        if (level2Feature) {
+         const child =
+  level2Feature as unknown as GridFeature;
+
+          const parentId = child.properties.parentId;
+
+          if (activeParentId !== parentId) {
+            activeParentId = parentId ?? null;
+            clearLevel3();
+          }
+
+          showLevel3(child);
+
+          map.getCanvas().style.cursor = "pointer";
+          return;
+        }
+
+        // Cấp 1
+        const level1Feature = features.find(
+          (f) => f.layer.id === "grid-fill"
+        );
+
+        if (level1Feature) {
+         showLevel2(
+  level1Feature as unknown as GridFeature
+);
+
+          map.getCanvas().style.cursor = "pointer";
+          return;
+        }
+
+        clearLevel2();
+
+        map.getCanvas().style.cursor = "crosshair";
+      };
+
+      map.on("mousemove", handleMouseMove);
+
+      // ==================================
+      // CLICK GRID
+      // ==================================
+
+      map.on("click", (event) => {
+        const features = map.queryRenderedFeatures(
+          event.point,
+          {
+            layers: [
+              "grid-level-3-fill",
+              "grid-level-2-fill",
+              "grid-fill",
+            ],
+          }
+        );
+
+        // Ưu tiên ô sâu nhất
+       const feature = features[0]
+  ? (features[0] as unknown as GridFeature)
+  : undefined;
 
         if (!feature) return;
 
@@ -355,70 +832,86 @@ const airportCircle = circle(
           .setLngLat(event.lngLat)
           .setHTML(`
             <div style="font-size:14px">
-              <strong>Ô: ${props?.id}</strong>
+              <strong>Ô: ${props.id}</strong>
               <hr/>
-              Hàng: ${props?.row}<br/>
-              Cột: ${props?.col}<br/>
-              Kinh độ Tây: ${Number(props?.west).toFixed(6)}<br/>
-              Kinh độ Đông: ${Number(props?.east).toFixed(6)}<br/>
-              Vĩ độ Nam: ${Number(props?.south).toFixed(6)}<br/>
-              Vĩ độ Bắc: ${Number(props?.north).toFixed(6)}
+              Cấp: ${props.level}<br/>
+              Hàng: ${props.row ?? "-"}<br/>
+              Cột: ${props.col ?? "-"}<br/>
+              Ô cha: ${props.parentId ?? "-"}<br/>
+              Kích thước: ${props.widthMeters}m × ${props.heightMeters}m<br/>
+              Kinh độ Tây: ${props.west.toFixed(6)}<br/>
+              Kinh độ Đông: ${props.east.toFixed(6)}<br/>
+              Vĩ độ Nam: ${props.south.toFixed(6)}<br/>
+              Vĩ độ Bắc: ${props.north.toFixed(6)}
             </div>
           `)
           .addTo(map);
       });
 
-      // =========================
-      // 6. CLICK BẢN ĐỒ TẠO ĐIỂM
-      // =========================
+      // ==================================
+      // CLICK MAP TO ADD POINT
+      // ==================================
 
       map.on("click", (event) => {
+        // Nếu click vào bất kỳ cấp grid nào
+        // thì không thêm điểm.
+        const gridFeatures = map.queryRenderedFeatures(
+          event.point,
+          {
+            layers: [
+              "grid-level-3-fill",
+              "grid-level-2-fill",
+              "grid-fill",
+            ],
+          }
+        );
+
+        // if (gridFeatures.length > 0) return;
+
         const newPoint: Point = {
           lng: event.lngLat.lng,
           lat: event.lngLat.lat,
         };
 
-        setPoints((prev) => {
-          const updated = [...prev, newPoint];
+        const updated = [
+          ...pointsRef.current,
+          newPoint,
+        ];
 
-          updateRoute(map, updated);
+        commitPoints(updated);
 
-          return updated;
-        });
-
-        // Popup thông tin điểm vừa chọn
         new Popup()
           .setLngLat(event.lngLat)
           .setText(
-            `P${points.length + 1} | Longitude: ${newPoint.lng.toFixed(6)} | Latitude: ${newPoint.lat.toFixed(6)}`
+            `P${updated.length} | Longitude: ${newPoint.lng.toFixed(6)} | Latitude: ${newPoint.lat.toFixed(6)}`
           )
           .addTo(map);
       });
 
-      // =========================
-      // 7. HOVER Ô LƯỚI
-      // =========================
+      // Cursor
+      map.getCanvas().style.cursor = "crosshair";
 
-      map.on("mouseenter", "grid-fill", () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
+      console.log(
+        "Đã khởi tạo grid 3 cấp, route, points và sân bay Kép."
+      );
+    };
 
-      map.on("mouseleave", "grid-fill", () => {
-        map.getCanvas().style.cursor = "crosshair";
-      });
-
-      console.log("Đã tạo 42 ô và chức năng nối điểm!");
-    });
+    map.on("load", handleLoad);
 
     map.on("error", (event) => {
       console.error("Map error:", event.error);
     });
 
     return () => {
+      map.off("load", handleLoad);
       map.remove();
       mapRef.current = null;
     };
   }, []);
+
+  // ======================================
+  // UI
+  // ======================================
 
   return (
     <div
@@ -428,7 +921,6 @@ const airportCircle = circle(
         height: "100vh",
       }}
     >
-      {/* BẢN ĐỒ */}
       <div
         ref={mapContainer}
         style={{
@@ -439,7 +931,8 @@ const airportCircle = circle(
         }}
       />
 
-      {/* BẢNG ĐIỀU KHIỂN */}
+      {/* CONTROL PANEL */}
+
       <div
         style={{
           position: "absolute",
@@ -459,6 +952,12 @@ const airportCircle = circle(
 
         <div style={{ marginBottom: 12 }}>
           Số điểm: <strong>{points.length}</strong>
+        </div>
+
+        <div style={{ marginBottom: 12, fontSize: 12 }}>
+          <div>Grid cấp 1: 2.000m</div>
+          <div>Grid cấp 2: {LEVEL_2_SIZE}m</div>
+          <div>Grid cấp 3: 5 ô / ô cấp 2</div>
         </div>
 
         <button
@@ -484,7 +983,6 @@ const airportCircle = circle(
           Xóa tất cả
         </button>
 
-        {/* DANH SÁCH TỌA ĐỘ */}
         <div
           style={{
             marginTop: 12,
