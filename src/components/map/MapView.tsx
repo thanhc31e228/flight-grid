@@ -90,7 +90,7 @@ export default function MapView({
       updateRoute(map, pointsRef.current);
     };
 
-    map.on("load", handleLoad);
+      map.on("load", handleLoad);
 
     map.on("error", (event) => {
       console.error("Map error:", event.error);
@@ -158,10 +158,10 @@ function updateRoute(
     "points-source"
   ) as GeoJSONSource | undefined;
 
-  if (!routeSource || !pointsSource) return;
+  if (      !routeSource || !pointsSource) return;
 
-  routeSource.setData({
-    type: "FeatureCollection",
+         routeSource.setData({
+        type: "FeatureCollection",
     features:
       points.length >= 2
         ? [

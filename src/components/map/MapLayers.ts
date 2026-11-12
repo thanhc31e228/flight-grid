@@ -1,14 +1,10 @@
-
 import circle from "@turf/circle";
 
 import type { Map as MapLibreMap } from "maplibre-gl";
 
 import { MAP_CONFIG } from "../../config/map.config";
 
-import {
-  createGrid,
-  emptyGrid,
-} from "../../features/grid/grid.factory";
+import { createGrid, emptyGrid } from "../../features/grid/grid.factory";
 
 export function addGridLayers(map: MapLibreMap) {
   map.addSource("grid-source", {
@@ -42,13 +38,7 @@ export function addGridLayers(map: MapLibreMap) {
     type: "symbol",
     source: "grid-source",
     layout: {
-      "text-field": [
-        "concat",
-        "R",
-        ["get", "row"],
-        "-C",
-        ["get", "col"],
-      ],
+      "text-field": ["concat", "R", ["get", "row"], "-C", ["get", "col"]],
       "text-size": 11,
       "text-font": ["Open Sans Regular"],
       "text-anchor": "center",
@@ -174,7 +164,7 @@ export function addAirportLayer(map: MapLibreMap) {
     {
       steps: 128,
       units: "kilometers",
-    }
+    },
   );
 
   map.addSource("kep-airport", {
