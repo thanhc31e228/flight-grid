@@ -5,6 +5,8 @@ import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import { MAP_CONFIG } from "../../config/map.config";
 
 import { createGrid, emptyGrid } from "../../features/grid/grid.factory";
+import { lineString } from "@turf/helpers";
+import bezierSpline from "@turf/bezier-spline";
 
 // hàm thêm các ô vuông
 export function addGridLayers(map: MapLibreMap) {
@@ -117,50 +119,127 @@ export function addRouteLayers(map: MapLibreMap) {
     data: emptyGrid(),
   });
 
+  // Lớp viền ngoài đường bay
+  map.addLayer({
+    id: "route-line-casing",
+    type: "line",
+    source: "route-source",
+    layout: {
+      "line-cap": "round",
+      "line-join": "round",
+    },
+    paint: {
+      "line-color": "#0369a1",
+      "line-width": 7,
+      "line-opacity": 0.3,
+    },
+  });
+
+  // Đường bay liên tục
   map.addLayer({
     id: "route-line",
     type: "line",
     source: "route-source",
+    layout: {
+      "line-cap": "round",
+      "line-join": "round",
+    },
     paint: {
-      "line-color": MAP_CONFIG.ROUTE.COLOR,
-      "line-width": MAP_CONFIG.ROUTE.WIDTH,
-      "line-opacity": 0.9,
+      "line-color": "#00bfff",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 5, 2, 10, 3, 15, 4],
+      "line-opacity": 1,
     },
   });
 
+  // Source các waypoint
   map.addSource("points-source", {
     type: "geojson",
     data: emptyGrid(),
   });
 
+  // Viền waypoint
+  map.addLayer({
+    id: "points-casing",
+    type: "circle",
+    source: "points-source",
+    paint: {
+      "circle-radius": 7,
+      "circle-color": "#ffffff",
+      "circle-stroke-color": "#0284c7",
+      "circle-stroke-width": 1.5,
+    },
+  });
+
+  // Tâm waypoint
   map.addLayer({
     id: "points-layer",
     type: "circle",
     source: "points-source",
     paint: {
-      "circle-radius": 7,
-      "circle-color": "#ff2222",
-      "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 1,
+      "circle-radius": 3.5,
+      "circle-color": "#0284c7",
     },
   });
 
+  // Nhãn waypoint
   map.addLayer({
     id: "points-label",
     type: "symbol",
     source: "points-source",
     layout: {
       "text-field": ["get", "name"],
-      "text-size": 13,
+      "text-size": 12,
+      "text-font": ["Open Sans Semibold"],
       "text-offset": [0, 1.5],
+      "text-anchor": "top",
       "text-allow-overlap": true,
     },
     paint: {
-      "text-color": "#ff2222",
+      "text-color": "#0f172a",
       "text-halo-color": "#ffffff",
       "text-halo-width": 2,
     },
   });
+}
+
+export function updateFlightRoute(
+  map: MapLibreMap,
+  coordinates: [number, number][],
+) {
+  const source = map.getSource("route-source") as GeoJSONSource | undefined;
+
+  if (!source) return;
+
+  if (coordinates.length < 2) {
+    source.setData(emptyGrid());
+    return;
+  }
+
+  // Hai điểm thì chưa có khúc cua để nội suy
+  if (coordinates.length === 2) {
+    source.setData({
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "LineString",
+        coordinates,
+      },
+    });
+
+    return;
+  }
+
+  // Tạo đường bay gốc qua các waypoint
+  const originalRoute = lineString(coordinates);
+
+  // Nội suy đường cong Bezier
+  const smoothRoute = bezierSpline(originalRoute, {
+    sharpness: 0.75,
+    resolution: 1000,
+  });
+
+  // Cập nhật đường bay
+  source.setData(smoothRoute);
 }
 
 export function addAirportLayer(map: MapLibreMap) {
@@ -178,23 +257,27 @@ export function addAirportLayer(map: MapLibreMap) {
     data: airportCircle,
   });
 
+  // Vùng sân bay
   map.addLayer({
     id: "kep-airport-fill",
     type: "fill",
     source: "kep-airport",
     paint: {
-      "fill-color": "#000000",
-      "fill-opacity": 0,
+      "fill-color": "#38bdf8",
+      "fill-opacity": 0.06,
     },
   });
 
+  // Đường biên vùng sân bay
   map.addLayer({
     id: "kep-airport-outline",
     type: "line",
     source: "kep-airport",
     paint: {
-      "line-color": "#bca2a2",
-      "line-width": 3,
+      "line-color": "#0284c7",
+      "line-width": 2,
+      "line-opacity": 0.85,
+      "line-dasharray": [2, 2],
     },
   });
 }
