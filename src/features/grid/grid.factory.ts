@@ -29,7 +29,6 @@ export function createGrid(labels?: string[]): GridCollection {
       const xMin = startX + col * CELL_SIZE;
 
       const yMin = startY + (ROWS - 1 - row) * CELL_SIZE;
-
       const index = row * COLS + col;
       const id = labels?.[index] ?? `R${row + 1}-C${col + 1}`;
       features.push(
@@ -83,6 +82,7 @@ export function createLevel2(parent: GridFeature): GridCollection {
 
       // id của ô con cấp 2, ví dụ: 61 12, ô vuông 61 ô dòng 1 cột 2
       const childId = `${id} ${childRow}${childCol}`;
+      console.log("child id", childId);
       features.push(
         createRectangle(x, y, cellWidth, cellHeight, {
           id: childId,

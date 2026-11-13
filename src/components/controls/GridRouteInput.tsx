@@ -13,30 +13,42 @@ export default function GridRouteInput({ gridIndex, onCreateRoute }: Props) {
   const [value, setValue] = useState("");
 
   const handleSubmit = () => {
-    console.log("value", value);
-    const ids = value.split("\n");
-    console.log("id", ids);
-    console.log("gridindex", gridIndex);
+    // Tách danh sách ID, hỗ trợ xuống dòng, dấu phẩy
+    const ids = value
+      .split(/[\n,;]+/)
+      .map((id) => id.trim())
+      .filter(Boolean);
+
     if (ids.length < 2) {
-      alert("Cần nhập ít nhất 2 ID ô cấp 3");
+      alert("Cần nhập ít nhất 2 ID ô Grid cấp 3");
       return;
     }
 
+    // Tìm các Grid theo key của Map
     const cells: GridFeature[] = [];
+    const missingIds: string[] = [];
 
     for (const id of ids) {
       const cell = gridIndex.get(id);
 
       if (!cell) {
-        alert(`Không tìm thấy ô: ${id}`);
-        return;
+        missingIds.push(id);
+        continue;
       }
 
       cells.push(cell);
     }
 
-    const routePoints = cells.map(getGridCenter);
+    // Báo các ID không tồn tại
+    if (missingIds.length > 0) {
+      alert(`Không tìm thấy các ô Grid:\n${missingIds.join("\n")}`);
+      return;
+    }
 
+    // Lấy tâm từng ô Grid
+    const routePoints = cells.map((cell) => getGridCenter(cell));
+
+    // Tạo tuyến theo thứ tự nhập
     onCreateRoute(routePoints);
   };
 
@@ -47,13 +59,13 @@ export default function GridRouteInput({ gridIndex, onCreateRoute }: Props) {
       <textarea
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder={`Nhập ID từng ô:
-
-R1-C1-L2-R1-C1-L3-NW
-R1-C1-L2-R1-C1-L3-CENTER`}
+        placeholder={`Nhập ID Grid:
+          R1-C1 111
+          R1-C1 112
+          R1-C1 113`}
       />
 
-      <button onClick={handleSubmit}>NỐI CÁC Ô THÀNH TUYẾN</button>
+      <button onClick={handleSubmit}>NỐI CÁC TỌA ĐỘ THÀNH TUYẾN</button>
     </div>
   );
 }

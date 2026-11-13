@@ -116,6 +116,7 @@ export default function MapTiler() {
   ];
   const [labelInput, setLabelInput] = useState(DEFAULT_GRID_LABELS.join(" "));
 
+  // danh sách các labels
   const gridLabels = useMemo(() => {
     return labelInput.trim().split(/\s+/).filter(Boolean);
   }, [labelInput]);
@@ -128,6 +129,7 @@ export default function MapTiler() {
     y: number;
   } | null>(null);
 
+  // ham xu ly khi chuot phai vao grid
   const handleOpenGridContextMenu = (data: {
     cell: GridCell;
     x: number;
@@ -135,7 +137,6 @@ export default function MapTiler() {
   }) => {
     setContextMenu(data);
   };
-
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Backspace") {

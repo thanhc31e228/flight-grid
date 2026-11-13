@@ -33,7 +33,6 @@ export default function MapControlPanel({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [editingLabels, setEditingLabels] = useState<string[]>([]);
-
   const gridLabels = useMemo(() => {
     return labelInput.trim().split(/\s+/).filter(Boolean);
   }, [labelInput]);

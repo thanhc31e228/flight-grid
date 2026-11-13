@@ -1,4 +1,3 @@
-
 import type { GridFeature, GridProperties } from "./grid.types";
 import { metersToLngLat } from "../../utils/geo.utils";
 
@@ -7,7 +6,7 @@ export function createRectangle(
   yMin: number,
   width: number,
   height: number,
-  properties: GridProperties
+  properties: GridProperties,
 ): GridFeature {
   const xMax = xMin + width;
   const yMax = yMin + height;
@@ -24,7 +23,7 @@ export function createRectangle(
   const south = coordinates[0][1];
   const east = coordinates[2][0];
   const north = coordinates[2][1];
-
+  // console.log("properties", properties.id);
   return {
     type: "Feature",
     properties: {
@@ -41,19 +40,12 @@ export function createRectangle(
   };
 }
 
-export function getGridCenter(
-  feature: GridFeature
-) {
-  const {
-    xMin,
-    yMin,
-    widthMeters,
-    heightMeters,
-  } = feature.properties;
+export function getGridCenter(feature: GridFeature) {
+  const { xMin, yMin, widthMeters, heightMeters } = feature.properties;
 
   const [lng, lat] = metersToLngLat(
     xMin + widthMeters / 2,
-    yMin + heightMeters / 2
+    yMin + heightMeters / 2,
   );
 
   return { lng, lat };

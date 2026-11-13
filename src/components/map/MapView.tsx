@@ -256,6 +256,7 @@ function updateRoute(map: MapLibreMap, points: Point[]) {
         : [],
   });
 
+  // thêm đánh dấu điểm
   pointsSource.setData({
     type: "FeatureCollection",
     features: points.map((point, index) => ({

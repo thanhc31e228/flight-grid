@@ -1,4 +1,3 @@
-
 import { createGrid, createLevel2, createLevel3 } from "./grid.factory";
 
 import type { GridFeature } from "./grid.types";
@@ -25,7 +24,7 @@ export function createLevel3Index(): Map<string, GridFeature> {
 
 export function findGridCellsByIds(
   ids: string[],
-  index: Map<string, GridFeature>
+  index: Map<string, GridFeature>,
 ): GridFeature[] {
   return ids.map((id) => {
     const cell = index.get(id);
