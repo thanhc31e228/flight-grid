@@ -1,3 +1,5 @@
+import { COLS, ROWS } from "../components/MapTiler/map.constants";
+
 export const MAP_CONFIG = {
   CENTER: [106.263569, 21.394697] as [number, number],
   INITIAL_ZOOM: 12,
@@ -14,8 +16,8 @@ export const MAP_CONFIG = {
 
 // cấu hình lưới bản đồ
 export const MAP_GRID_CONFIG = {
-  COLS: 7,
-  ROWS: 6,
+  COLS: COLS,
+  ROWS: ROWS,
   // mỗi ô lưới cấp 1 có kích thước 20km x 20km
   CELL_SIZE: 20000, // 20km
 

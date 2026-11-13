@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 
 import MapView from "../components/map/MapView";
-
 import MapControlPanel from "../components/controls/MapControlPanel";
 
 import { useRoutePoints } from "../hooks/useRoutePoints";
@@ -12,9 +11,12 @@ import "../styles/map.css";
 import { GridCell } from "../components/MapTiler/types/map.types";
 
 export default function MapTiler() {
+  const [labelInput, setLabelInput] = useState("");
   const { points, addPoint, undoPoint, clearPoints, setRoute } =
     useRoutePoints();
-
+  const gridLabels = useMemo(() => {
+    return labelInput.trim().split(/\s+/).filter(Boolean);
+  }, [labelInput]);
   // Chỉ tạo index một lần.
   const gridIndex = useMemo(() => createLevel3Index(), []);
   const [contextMenu, setContextMenu] = useState<{
@@ -32,7 +34,20 @@ export default function MapTiler() {
   };
   return (
     <div className="map-container">
+      <div className="grid-label-control">
+        <label>Nhập label cho các ô lưới</label>
+
+        <input
+          type="text"
+          value={labelInput}
+          onChange={(e) => setLabelInput(e.target.value)}
+          placeholder="Ví dụ: 101 102 103 104 105"
+        />
+
+        <div>Số label đã nhập: {gridLabels.length}</div>
+      </div>
       <MapView
+        gridLabels={gridLabels}
         points={points}
         onAddPoint={addPoint}
         onOpenGridContextMenu={handleOpenGridContextMenu}

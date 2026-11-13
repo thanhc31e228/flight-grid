@@ -1,11 +1,12 @@
 import circle from "@turf/circle";
 
-import type { Map as MapLibreMap } from "maplibre-gl";
+import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 
 import { MAP_CONFIG } from "../../config/map.config";
 
 import { createGrid, emptyGrid } from "../../features/grid/grid.factory";
 
+// hàm thêm các ô vuông
 export function addGridLayers(map: MapLibreMap) {
   map.addSource("grid-source", {
     type: "geojson",
@@ -42,7 +43,7 @@ export function addGridLayers(map: MapLibreMap) {
       "text-field": [
         "coalesce",
         ["get", "label"],
-        ["concat", ["get", "row"], ["get", "col"]],
+        ["to-string", ["*", ["get", "row"], ["get", "col"]]],
       ],
       "text-size": 11,
       "text-font": ["Open Sans Regular"],
@@ -198,8 +199,52 @@ export function addAirportLayer(map: MapLibreMap) {
   });
 }
 
+// hàm khởi tạo các thành phần trên map như grid, router, sân bay kép
 export function initializeMapLayers(map: MapLibreMap) {
   addGridLayers(map);
   addRouteLayers(map);
   addAirportLayer(map);
+}
+// Cập nhật label cho các ô lưới
+export function updateGridLabels(map: MapLibreMap, labels: string[]) {
+  const source = map.getSource("grid-source") as GeoJSONSource | undefined;
+
+  if (!source) return;
+
+  // Lấy lại dữ liệu grid gốc
+  const gridData = createGrid();
+
+  // Sắp xếp từ trên xuống dưới, trái sang phải
+  const sortedFeatures = [...gridData.features].sort((a, b) => {
+    const rowA = Number(a.properties?.row);
+    const rowB = Number(b.properties?.row);
+
+    if (rowA !== rowB) {
+      return rowA - rowB;
+    }
+
+    const colA = Number(a.properties?.col);
+    const colB = Number(b.properties?.col);
+
+    return colA - colB;
+  });
+
+  // Gán label theo thứ tự đã sắp xếp
+  sortedFeatures.forEach((feature, index) => {
+    const properties = {
+      ...(feature.properties ?? {}),
+    };
+
+    if (index < labels.length) {
+      properties.label = labels[index];
+    } else {
+      // Xóa label tùy chỉnh để quay về label mặc định
+      delete properties.label;
+    }
+
+    feature.properties = properties;
+  });
+
+  // Cập nhật dữ liệu GeoJSON
+  source.setData(gridData);
 }

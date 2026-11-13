@@ -13,7 +13,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import { MAP_CONFIG, MAP_GRID_CONFIG } from "../../config/map.config";
 
-import { initializeMapLayers } from "./MapLayers";
+import { initializeMapLayers, updateGridLabels } from "./MapLayers";
 import { registerMapEvents } from "./MapEvents";
 
 import { createRoundedRoute } from "../../features/route/route.geometry";
@@ -28,6 +28,7 @@ type MapViewProps = {
     x: number;
     y: number;
   }) => void;
+  gridLabels: string[];
 };
 
 // MapTiler API Key
@@ -44,14 +45,25 @@ export default function MapView({
   points,
   onAddPoint,
   onOpenGridContextMenu,
+  gridLabels,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const gridLabelsRef = useRef(gridLabels);
 
+  useEffect(() => {
+    gridLabelsRef.current = gridLabels;
+  }, [gridLabels]);
   // Giữ callback mới nhất
   const onAddPointRef = useRef(onAddPoint);
   const onOpenGridContextMenuRef = useRef(onOpenGridContextMenu);
+  useEffect(() => {
+    const map = mapRef.current;
 
+    if (!map || !map.isStyleLoaded()) return;
+
+    updateGridLabels(map, gridLabels);
+  }, [gridLabels]);
   // Giữ points mới nhất
   const pointsRef = useRef(points);
 
@@ -73,23 +85,18 @@ export default function MapView({
 
   const handleGridContextMenu = (e: MapMouseEvent) => {
     e.preventDefault();
-
     console.log("1. Đã bắt được chuột phải");
-
     const map = mapRef.current;
     if (!map) {
       console.log("Không tìm thấy map");
       return;
     }
-
     // Kiểm tra feature tại vị trí chuột
     const features = map.queryRenderedFeatures(e.point);
-
     console.log(
       "2. Các layer tại vị trí chuột:",
       features.map((feature) => feature.layer.id),
     );
-
     const gridFeature = features.find(
       (feature) => feature.layer.id === "grid-fill",
     );
@@ -150,6 +157,8 @@ export default function MapView({
     const handleLoad = () => {
       initializeMapLayers(map);
 
+      // Áp dụng label hiện tại sau khi grid được tạo
+      updateGridLabels(map, gridLabelsRef.current);
       cleanupEvents = registerMapEvents(map, (point) =>
         onAddPointRef.current(point),
       );
