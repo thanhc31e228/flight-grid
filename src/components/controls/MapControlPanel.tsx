@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 import type { Point } from "../../features/route/route.types";
 import type { GridFeature } from "../../features/grid/grid.types";
@@ -6,6 +6,99 @@ import type { GridFeature } from "../../features/grid/grid.types";
 import RouteControls from "./RouteControls";
 import GridRouteInput from "./GridRouteInput";
 import PointList from "./PointList";
+
+const DEFAULT_GRID_LABELS = [
+  "43",
+  "45",
+  "49",
+  "40",
+  "44",
+  "41",
+  "42",
+  "48",
+  "46",
+  "47",
+  "13",
+  "15",
+  "19",
+  "10",
+  "14",
+  "11",
+  "12",
+  "18",
+  "16",
+  "17",
+  "93",
+  "95",
+  "99",
+  "90",
+  "94",
+  "91",
+  "92",
+  "98",
+  "96",
+  "97",
+  "33",
+  "35",
+  "39",
+  "30",
+  "34",
+  "31",
+  "35",
+  "38",
+  "36",
+  "37",
+  "63",
+  "65",
+  "69",
+  "60",
+  "64",
+  "61",
+  "62",
+  "68",
+  "66",
+  "67",
+  "03",
+  "05",
+  "09",
+  "00",
+  "04",
+  "01",
+  "02",
+  "08",
+  "06",
+  "07",
+  "85",
+  "83",
+  "89",
+  "80",
+  "84",
+  "81",
+  "82",
+  "88",
+  "86",
+  "87",
+  "25",
+  "23",
+  "29",
+  "20",
+  "24",
+  "21",
+  "22",
+  "28",
+  "26",
+  "27",
+  "53",
+  "55",
+  "59",
+  "50",
+  "54",
+  "51",
+  "52",
+  "58",
+  "56",
+  "57",
+];
 
 type Props = {
   points: Point[];
@@ -28,75 +121,59 @@ export default function MapControlPanel({
   onClear,
   onCreateRoute,
 }: Props) {
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
 
-  const labels = labelInput.trim().split(/\s+/).filter(Boolean);
+  const [editingLabels, setEditingLabels] = useState<string[]>([]);
 
-  const handleConfirm = () => {
-    if (labels.length === 0) return;
-    setShowConfirm(true);
+  const gridLabels = useMemo(() => {
+    return labelInput.trim().split(/\s+/).filter(Boolean);
+  }, [labelInput]);
+
+  // Mở bảng chỉnh sửa
+  const handleOpenEditor = () => {
+    setEditingLabels(
+      Array.from({ length: 100 }, (_, index) => {
+        return gridLabels[index] ?? "";
+      }),
+    );
+
+    setShowEditor(true);
   };
-  const handleAccept = () => {
-    setShowConfirm(false);
 
-    // Thực hiện hành động xác nhận label tại đây
-    console.log("Confirmed labels:", labels);
+  // Thay đổi tọa độ từng ô
+  const handleLabelChange = (index: number, value: string) => {
+    setEditingLabels((prev) =>
+      prev.map((label, i) => (i === index ? value : label)),
+    );
+  };
+
+  // Xác nhận tọa độ
+  const handleAccept = () => {
+    const newLabels = editingLabels.map((label) => label.trim());
+
+    // Cập nhật danh sách tọa độ
+    onLabelInputChange(newLabels.join(" "));
+
+    setShowEditor(false);
   };
   return (
     <>
       <div className="map-control-panel">
+        {/* Khu vực thay đổi tọa độ */}
         <div className="grid-label-control">
-          <label>Nhập tọa độ</label>
+          <label>Danh sách tọa độ</label>
 
-          <div className="grid-label-input-row">
-            <input
-              type="text"
-              value={labelInput}
-              onChange={(e) => onLabelInputChange(e.target.value)}
-              placeholder="Ví dụ: 101 102 103 104 105"
-            />
-
-            <button
-              type="button"
-              className="grid-label-confirm"
-              onClick={handleConfirm}
-              disabled={labels.length === 0}
-              title="Xác nhận tọa độ"
-            >
-              ✓
-            </button>
-
-            <div className="grid-label-info">
-              <button
-                type="button"
-                className="grid-label-info-icon"
-                aria-label="Xem cách sắp xếp label"
-              >
-                ⓘ
-              </button>
-
-              <div className="grid-label-tooltip">
-                <div className="grid-label-tooltip-title">
-                  Thứ tự hiển thị tọa độ
-                </div>
-
-                <div className="grid-label-preview">
-                  {Array.from({ length: 25 }, (_, index) => (
-                    <div className="grid-label-preview-cell" key={index}>
-                      {index + 1}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="grid-label-tooltip-description">
-                  Tọa độ được sắp xếp từ trái sang phải, từ trên xuống dưới.
-                </div>
-              </div>
-            </div>
-          </div>
+          <button
+            type="button"
+            className="grid-label-open"
+            onClick={handleOpenEditor}
+          >
+            <span>▦</span>
+            Thay đổi tọa độ
+          </button>
 
           <div className="grid-label-count">
-            Số tọa độ đã nhập: {labels.length}
+            Số tọa độ: {gridLabels.length}/100
           </div>
         </div>
 
@@ -111,38 +188,67 @@ export default function MapControlPanel({
         <PointList points={points} />
       </div>
 
-      {showConfirm && (
+      {/* Popup chỉnh sửa 100 tọa độ */}
+      {showEditor && (
         <div
           className="grid-label-modal-overlay"
-          onClick={() => setShowConfirm(false)}
+          onClick={() => setShowEditor(false)}
         >
           <div
-            className="grid-label-modal"
+            className="grid-label-editor"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3>Xác nhận tọa độ</h3>
-
-            <p>
-              Bạn có chắc chắn muốn sử dụng {labels.length} tọa độ đã nhập
-              không?
-            </p>
-
-            <div className="grid-label-modal-actions">
-              <button
-                type="button"
-                className="grid-label-cancel"
-                onClick={() => setShowConfirm(false)}
-              >
-                Hủy
-              </button>
+            <div className="grid-label-editor-header">
+              <div>
+                <h3>Thay đổi tọa độ</h3>
+                <p>Nhấn vào ô để chỉnh sửa tọa độ</p>
+              </div>
 
               <button
                 type="button"
-                className="grid-label-accept"
-                onClick={handleAccept}
+                className="grid-label-close"
+                onClick={() => setShowEditor(false)}
               >
-                Xác nhận
+                ×
               </button>
+            </div>
+
+            {/* Lưới 10 x 10 */}
+            <div className="grid-label-editor-grid">
+              {editingLabels.map((label, index) => (
+                <input
+                  key={index}
+                  type="text"
+                  className="grid-label-editor-cell"
+                  value={label}
+                  maxLength={10}
+                  onChange={(e) => handleLabelChange(index, e.target.value)}
+                />
+              ))}
+            </div>
+
+            <div className="grid-label-editor-footer">
+              <span>
+                {editingLabels.filter((label) => label.trim()).length}/100 ô
+              </span>
+
+              <div className="grid-label-modal-actions">
+                <button
+                  type="button"
+                  className="grid-label-cancel"
+                  onClick={() => setShowEditor(false)}
+                >
+                  Hủy
+                </button>
+
+                <button
+                  type="button"
+                  className="grid-label-accept"
+                  onClick={handleAccept}
+                >
+                  ✓ Xác nhận
+                </button>
+              </div>
             </div>
           </div>
         </div>
