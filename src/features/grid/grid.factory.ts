@@ -15,7 +15,7 @@ export const emptyGrid = (): GridCollection => ({
 // LEVEL 1 ô vuông lớn chứa 25 ô vuông nhỏ
 // ========================================
 
-export function createGrid(): GridCollection {
+export function createGrid(labels?: string[]): GridCollection {
   const totalWidth = COLS * CELL_SIZE;
   const totalHeight = ROWS * CELL_SIZE;
 
@@ -30,7 +30,8 @@ export function createGrid(): GridCollection {
 
       const yMin = startY + (ROWS - 1 - row) * CELL_SIZE;
 
-      const id = `R${row + 1}-C${col + 1}`;
+      const index = row * COLS + col;
+      const id = labels?.[index] ?? `R${row + 1}-C${col + 1}`;
       features.push(
         createRectangle(xMin, yMin, CELL_SIZE, CELL_SIZE, {
           id,
@@ -81,8 +82,7 @@ export function createLevel2(parent: GridFeature): GridCollection {
       const childCol = col + 1;
 
       // id của ô con cấp 2, ví dụ: 61 12, ô vuông 61 ô dòng 1 cột 2
-      const childId = `${id}-${childRow}${childCol}`;
-      // console.log("id", id);
+      const childId = `${id} ${childRow}${childCol}`;
       features.push(
         createRectangle(x, y, cellWidth, cellHeight, {
           id: childId,

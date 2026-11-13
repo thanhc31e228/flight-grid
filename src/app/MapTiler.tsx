@@ -103,6 +103,16 @@ export default function MapTiler() {
     "58",
     "56",
     "57",
+    "123",
+    "12312",
+    "35t",
+    "rtg",
+    "k4",
+    "h5",
+    "545",
+    "t4",
+    "h5jy",
+    "5gk5",
   ];
   const [labelInput, setLabelInput] = useState(DEFAULT_GRID_LABELS.join(" "));
 

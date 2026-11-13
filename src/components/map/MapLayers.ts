@@ -256,28 +256,27 @@ export function addAirportLayer(map: MapLibreMap) {
     type: "geojson",
     data: airportCircle,
   });
-
-  // Vùng sân bay
+  // Vùng sân bay - vùng cấm / nguy hiểm
   map.addLayer({
     id: "kep-airport-fill",
     type: "fill",
     source: "kep-airport",
     paint: {
-      "fill-color": "#38bdf8",
-      "fill-opacity": 0.06,
+      "fill-color": "#ef4444",
+      "fill-opacity": 0.22,
     },
   });
 
-  // Đường biên vùng sân bay
+  // Viền vùng cấm
   map.addLayer({
     id: "kep-airport-outline",
     type: "line",
     source: "kep-airport",
     paint: {
-      "line-color": "#0284c7",
+      "line-color": "#dc2626",
       "line-width": 2,
-      "line-opacity": 0.85,
-      "line-dasharray": [2, 2],
+      "line-opacity": 0.9,
+      "line-dasharray": [2, 1],
     },
   });
 }
@@ -295,7 +294,7 @@ export function updateGridLabels(map: MapLibreMap, labels: string[]) {
   if (!source) return;
 
   // Lấy lại dữ liệu grid gốc
-  const gridData = createGrid();
+  const gridData = createGrid(labels);
 
   // Sắp xếp từ trên xuống dưới, trái sang phải
   const sortedFeatures = [...gridData.features].sort((a, b) => {
