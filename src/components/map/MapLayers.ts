@@ -113,13 +113,12 @@ export function addGridLayers(map: MapLibreMap) {
   });
 }
 export function addRouteLayers(map: MapLibreMap) {
-  // Đường bay
   map.addSource("route-source", {
     type: "geojson",
     data: emptyGrid(),
   });
 
-  // Vùng glow bên ngoài
+  // Glow rất nhẹ bên dưới đường bay
   map.addLayer({
     id: "route-glow",
     type: "line",
@@ -129,14 +128,14 @@ export function addRouteLayers(map: MapLibreMap) {
       "line-join": "round",
     },
     paint: {
-      "line-color": "#ef4444",
-      "line-width": 13,
-      "line-blur": 7,
-      "line-opacity": 0.35,
+      "line-color": "#f87171",
+      "line-width": 6,
+      "line-blur": 3,
+      "line-opacity": 0.18,
     },
   });
 
-  // Đường bay chính
+  // Đường bay chính - mảnh và rõ nét
   map.addLayer({
     id: "route-line",
     type: "line",
@@ -147,12 +146,24 @@ export function addRouteLayers(map: MapLibreMap) {
     },
     paint: {
       "line-color": "#ef4444",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 5, 2, 10, 3, 15, 4],
-      "line-opacity": 0.95,
+      "line-width": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        4,
+        1,
+        8,
+        1.5,
+        12,
+        2,
+        16,
+        2.5,
+      ],
+      "line-opacity": 0.9,
     },
   });
 
-  // Hiệu ứng nét đứt chuyển động
+  // Vệt chuyển động trên đường bay
   map.addLayer({
     id: "route-line-animation",
     type: "line",
@@ -163,13 +174,13 @@ export function addRouteLayers(map: MapLibreMap) {
     },
     paint: {
       "line-color": "#fecaca",
-      "line-width": 2,
-      "line-opacity": 1,
-      "line-dasharray": [0.5, 3],
+      "line-width": 1,
+      "line-opacity": 0.9,
+      "line-dasharray": [0.5, 4],
     },
   });
 
-  // Source máy bay địch
+  // Source máy bay
   map.addSource("enemy-aircraft-source", {
     type: "geojson",
     data: {
@@ -178,22 +189,7 @@ export function addRouteLayers(map: MapLibreMap) {
     },
   });
 
-  // Vòng radar cảnh báo
-  map.addLayer({
-    id: "enemy-radar",
-    type: "circle",
-    source: "enemy-aircraft-source",
-    paint: {
-      "circle-radius": 18,
-      "circle-color": "#ef4444",
-      "circle-opacity": 0.12,
-      "circle-stroke-color": "#ef4444",
-      "circle-stroke-width": 2,
-      "circle-stroke-opacity": 0.8,
-    },
-  });
-
-  // Điểm máy bay địch
+  // Icon máy bay
   map.addLayer({
     id: "enemy-aircraft-icon",
     type: "symbol",
@@ -201,16 +197,16 @@ export function addRouteLayers(map: MapLibreMap) {
     layout: {
       "text-field": "✈",
       "text-font": ["Open Sans Regular"],
-      "text-size": ["interpolate", ["linear"], ["zoom"], 5, 20, 10, 28, 15, 36],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 5, 20, 10, 25, 15, 30],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
       "text-rotation-alignment": "map",
       "text-rotate": ["get", "bearing"],
     },
     paint: {
-      "text-color": "#ef4444",
+      "text-color": "#f87171",
       "text-halo-color": "#450a0a",
-      "text-halo-width": 2,
+      "text-halo-width": 1.5,
       "text-opacity": 1,
     },
   });
@@ -222,16 +218,16 @@ export function addRouteLayers(map: MapLibreMap) {
     source: "enemy-aircraft-source",
     layout: {
       "text-field": "ENEMY AIRCRAFT",
-      "text-size": 10,
+      "text-size": 9,
       "text-font": ["Open Sans Semibold"],
-      "text-offset": [0, 2.2],
+      "text-offset": [0, 2],
       "text-anchor": "top",
       "text-allow-overlap": true,
     },
     paint: {
-      "text-color": "#ef4444",
+      "text-color": "#f87171",
       "text-halo-color": "#0f172a",
-      "text-halo-width": 2,
+      "text-halo-width": 1.5,
     },
   });
 
@@ -246,10 +242,10 @@ export function addRouteLayers(map: MapLibreMap) {
     type: "circle",
     source: "points-source",
     paint: {
-      "circle-radius": 7,
+      "circle-radius": 5,
       "circle-color": "#450a0a",
       "circle-stroke-color": "#ef4444",
-      "circle-stroke-width": 2,
+      "circle-stroke-width": 1.5,
     },
   });
 
@@ -258,8 +254,8 @@ export function addRouteLayers(map: MapLibreMap) {
     type: "circle",
     source: "points-source",
     paint: {
-      "circle-radius": 3,
-      "circle-color": "#fca5a5",
+      "circle-radius": 2,
+      "circle-color": "#fecaca",
     },
   });
 
@@ -269,7 +265,7 @@ export function addRouteLayers(map: MapLibreMap) {
     source: "points-source",
     layout: {
       "text-field": ["get", "name"],
-      "text-size": 11,
+      "text-size": 10,
       "text-offset": [0, 1.5],
       "text-anchor": "top",
       "text-allow-overlap": true,
@@ -277,10 +273,11 @@ export function addRouteLayers(map: MapLibreMap) {
     paint: {
       "text-color": "#fecaca",
       "text-halo-color": "#450a0a",
-      "text-halo-width": 2,
+      "text-halo-width": 1.5,
     },
   });
 }
+
 export function updateFlightRoute(
   map: MapLibreMap,
   coordinates: [number, number][],
