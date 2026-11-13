@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import MapView from "../components/map/MapView";
 import MapControlPanel from "../components/controls/MapControlPanel";
@@ -135,6 +135,21 @@ export default function MapTiler() {
   }) => {
     setContextMenu(data);
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Backspace") {
+        undoPoint();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [undoPoint]);
+
   // hàm thêm tọa độ
   const handleSaveLabels = async (labels: string[]) => {
     // lưu tọa độ mới tại đây
