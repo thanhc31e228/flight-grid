@@ -1,4 +1,3 @@
-
 import { Popup } from "maplibre-gl";
 
 import type { GridFeature } from "../../features/grid/grid.types";
@@ -7,7 +6,7 @@ import type { Map as MapLibreMap } from "maplibre-gl";
 export function showGridPopup(
   feature: GridFeature,
   lngLat: [number, number],
-  map: MapLibreMap
+  map: MapLibreMap,
 ) {
   const props = feature.properties;
 
@@ -22,7 +21,6 @@ export function showGridPopup(
 
   details.innerHTML = `
     <hr/>
-    Cấp: ${props.level}<br/>
     Hàng: ${props.row ?? "-"}<br/>
     Cột: ${props.col ?? "-"}<br/>
     Ô cha: ${props.parentId ?? "-"}<br/>
@@ -35,21 +33,18 @@ export function showGridPopup(
 
   container.append(title, details);
 
-  new Popup()
-    .setLngLat(lngLat)
-    .setDOMContent(container)
-    .addTo(map);
+  new Popup().setLngLat(lngLat).setDOMContent(container).addTo(map);
 }
 
 export function showPointPopup(
   point: { lng: number; lat: number },
   index: number,
-  map: MapLibreMap
+  map: MapLibreMap,
 ) {
   new Popup()
     .setLngLat([point.lng, point.lat])
     .setText(
-      `P${index} | Longitude: ${point.lng.toFixed(6)} | Latitude: ${point.lat.toFixed(6)}`
+      `P${index} | Longitude: ${point.lng.toFixed(6)} | Latitude: ${point.lat.toFixed(6)}`,
     )
     .addTo(map);
 }
