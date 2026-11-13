@@ -125,7 +125,21 @@ export default function MapTiler() {
   }) => {
     setContextMenu(data);
   };
-
+  const handleSaveLabels = async (labels: string[]) => {
+    // lưu tọa độ mới tại đây
+    // const response = await fetch("/api/grid-labels", {
+    //   method: "PUT",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //   },
+    //   body: JSON.stringify({
+    //     labels,
+    //   }),
+    // });
+    // if (!response.ok) {
+    //   throw new Error("Lưu tọa độ thất bại.");
+    // }
+  };
   return (
     <div className="map-container">
       <MapView
@@ -136,6 +150,7 @@ export default function MapTiler() {
       />
 
       <MapControlPanel
+        onSaveLabels={handleSaveLabels}
         points={points}
         gridIndex={gridIndex}
         labelInput={labelInput}

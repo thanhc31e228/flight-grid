@@ -106,7 +106,7 @@ type Props = {
 
   labelInput: string;
   onLabelInputChange: (value: string) => void;
-
+  onSaveLabels: (labels: string[]) => Promise<void>;
   onUndo: () => void;
   onClear: () => void;
   onCreateRoute: (points: Point[]) => void;
@@ -117,12 +117,14 @@ export default function MapControlPanel({
   gridIndex,
   labelInput,
   onLabelInputChange,
+  onSaveLabels,
   onUndo,
   onClear,
   onCreateRoute,
 }: Props) {
   const [showEditor, setShowEditor] = useState(false);
-
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [editingLabels, setEditingLabels] = useState<string[]>([]);
 
   const gridLabels = useMemo(() => {
@@ -148,13 +150,28 @@ export default function MapControlPanel({
   };
 
   // Xác nhận tọa độ
-  const handleAccept = () => {
+  const handleAccept = async () => {
     const newLabels = editingLabels.map((label) => label.trim());
 
-    // Cập nhật danh sách tọa độ
-    onLabelInputChange(newLabels.join(" "));
+    if (newLabels.some((label) => !label)) {
+      setError("Vui lòng nhập đầy đủ 100 tọa độ.");
+      return;
+    }
 
-    setShowEditor(false);
+    try {
+      setSaving(true);
+      setError("");
+
+      await onSaveLabels(newLabels);
+
+      onLabelInputChange(newLabels.join(" "));
+
+      setShowEditor(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể lưu tọa độ.");
+    } finally {
+      setSaving(false);
+    }
   };
   return (
     <>
@@ -245,9 +262,11 @@ export default function MapControlPanel({
                   type="button"
                   className="grid-label-accept"
                   onClick={handleAccept}
+                  disabled={saving}
                 >
-                  ✓ Xác nhận
+                  {saving ? "Đang lưu..." : "✓ Xác nhận"}
                 </button>
+                {error && <div className="grid-label-error">{error}</div>}
               </div>
             </div>
           </div>
