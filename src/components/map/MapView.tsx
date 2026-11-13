@@ -153,9 +153,9 @@ export default function MapView({
     map.addControl(new NavigationControl(), "top-right");
 
     let cleanupEvents: (() => void) | undefined;
-
+    let cleanupAnimation: (() => void) | undefined;
     const handleLoad = () => {
-      initializeMapLayers(map);
+      cleanupAnimation = initializeMapLayers(map);
 
       // Áp dụng label hiện tại sau khi grid được tạo
       updateGridLabels(map, gridLabelsRef.current);
@@ -186,6 +186,10 @@ export default function MapView({
 
       cleanupEvents?.();
 
+      // Dừng animation đường bay và máy bay địch
+      cleanupAnimation?.();
+
+      // Xóa bản đồ
       map.remove();
       mapRef.current = null;
     };
