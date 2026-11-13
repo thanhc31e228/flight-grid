@@ -135,6 +135,7 @@ export default function MapTiler() {
   }) => {
     setContextMenu(data);
   };
+  // hàm thêm tọa độ
   const handleSaveLabels = async (labels: string[]) => {
     // lưu tọa độ mới tại đây
     // const response = await fetch("/api/grid-labels", {

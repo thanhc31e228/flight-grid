@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 
 import type { GridFeature } from "../../features/grid/grid.types";
@@ -7,23 +6,17 @@ import { getGridCenter } from "../../features/grid/grid.geometry";
 
 type Props = {
   gridIndex: Map<string, GridFeature>;
-  onCreateRoute: (
-    points: { lng: number; lat: number }[]
-  ) => void;
+  onCreateRoute: (points: { lng: number; lat: number }[]) => void;
 };
 
-export default function GridRouteInput({
-  gridIndex,
-  onCreateRoute,
-}: Props) {
+export default function GridRouteInput({ gridIndex, onCreateRoute }: Props) {
   const [value, setValue] = useState("");
 
   const handleSubmit = () => {
-    const ids = value
-      .split(/[\n,;]+/)
-      .map((id) => id.trim())
-      .filter(Boolean);
-
+    console.log("value", value);
+    const ids = value.split("\n");
+    console.log("id", ids);
+    console.log("gridindex", gridIndex);
     if (ids.length < 2) {
       alert("Cần nhập ít nhất 2 ID ô cấp 3");
       return;
@@ -53,18 +46,14 @@ export default function GridRouteInput({
 
       <textarea
         value={value}
-        onChange={(event) =>
-          setValue(event.target.value)
-        }
+        onChange={(event) => setValue(event.target.value)}
         placeholder={`Nhập ID từng ô:
 
 R1-C1-L2-R1-C1-L3-NW
 R1-C1-L2-R1-C1-L3-CENTER`}
       />
 
-      <button onClick={handleSubmit}>
-        NỐI CÁC Ô THÀNH TUYẾN
-      </button>
+      <button onClick={handleSubmit}>NỐI CÁC Ô THÀNH TUYẾN</button>
     </div>
   );
 }
