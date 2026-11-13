@@ -1,4 +1,3 @@
-
 export const MAP_CONFIG = {
   CENTER: [106.263569, 21.394697] as [number, number],
   INITIAL_ZOOM: 12,

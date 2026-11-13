@@ -6,11 +6,6 @@ export type Point = {
 
 // Thông tin của một ô lưới
 export type GridCell = {
-  id: string;
   row: number;
   col: number;
-  west: number;
-  east: number;
-  south: number;
-  north: number;
 };

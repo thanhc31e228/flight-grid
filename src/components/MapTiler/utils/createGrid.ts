@@ -1,10 +1,4 @@
-import {
-  CENTER,
-  GRID_WIDTH,
-  GRID_HEIGHT,
-  COLS,
-  ROWS,
-} from "../map.constants";
+import { CENTER, GRID_WIDTH, GRID_HEIGHT, COLS, ROWS } from "../map.constants";
 
 // Tạo dữ liệu GeoJSON cho toàn bộ lưới
 export function createGrid() {
@@ -22,10 +16,8 @@ export function createGrid() {
 
   // Duyệt từng hàng
   for (let row = 0; row < ROWS; row++) {
-
     // Duyệt từng cột
     for (let col = 0; col < COLS; col++) {
-
       // Tính tọa độ 4 cạnh của ô
       const west = minLng + col * cellWidth;
       const east = west + cellWidth;
@@ -39,7 +31,7 @@ export function createGrid() {
 
         // Thông tin của ô
         properties: {
-          id: `R${row + 1}-C${col + 1}`,
+          id: `${row + 1}${col + 1}`,
           row: row + 1,
           col: col + 1,
           west,
@@ -51,13 +43,15 @@ export function createGrid() {
         // Hình học của ô
         geometry: {
           type: "Polygon",
-          coordinates: [[
-            [west, south],
-            [east, south],
-            [east, north],
-            [west, north],
-            [west, south],
-          ]],
+          coordinates: [
+            [
+              [west, south],
+              [east, south],
+              [east, north],
+              [west, north],
+              [west, south],
+            ],
+          ],
         },
       });
     }

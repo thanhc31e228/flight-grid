@@ -1,9 +1,4 @@
-
-import type {
-  Feature,
-  FeatureCollection,
-  Polygon,
-} from "geojson";
+import type { Feature, FeatureCollection, Polygon } from "geojson";
 
 export type GridLevel = 1 | 2 | 3;
 
@@ -19,7 +14,7 @@ export type GridProperties = {
   east: number;
   south: number;
   north: number;
-
+  label?: string;
   widthMeters: number;
   heightMeters: number;
 
@@ -27,15 +22,9 @@ export type GridProperties = {
   yMin: number;
 };
 
-export type GridFeature = Feature<
-  Polygon,
-  GridProperties
->;
+export type GridFeature = Feature<Polygon, GridProperties>;
 
-export type GridCollection = FeatureCollection<
-  Polygon,
-  GridProperties
->;
+export type GridCollection = FeatureCollection<Polygon, GridProperties>;
 
 export type GridPoint = {
   lng: number;

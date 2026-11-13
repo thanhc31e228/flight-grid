@@ -33,12 +33,17 @@ export function addGridLayers(map: MapLibreMap) {
     },
   });
 
+  // hiển thị tọa độ của ô vuông
   map.addLayer({
     id: "grid-label",
     type: "symbol",
     source: "grid-source",
     layout: {
-      "text-field": ["concat", "R", ["get", "row"], "-C", ["get", "col"]],
+      "text-field": [
+        "coalesce",
+        ["get", "label"],
+        ["concat", ["get", "row"], ["get", "col"]],
+      ],
       "text-size": 11,
       "text-font": ["Open Sans Regular"],
       "text-anchor": "center",

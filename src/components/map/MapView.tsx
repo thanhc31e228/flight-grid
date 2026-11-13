@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from "react";
 
 import {
@@ -6,52 +5,127 @@ import {
   NavigationControl,
   GeoJSONSource,
   setWorkerUrl,
+  type MapMouseEvent,
+  type ErrorEvent,
 } from "maplibre-gl";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
-import {
-  MAP_CONFIG,
-  MAP_GRID_CONFIG,
-} from "../../config/map.config";
+import { MAP_CONFIG, MAP_GRID_CONFIG } from "../../config/map.config";
 
 import { initializeMapLayers } from "./MapLayers";
 import { registerMapEvents } from "./MapEvents";
 
 import { createRoundedRoute } from "../../features/route/route.geometry";
 import type { Point } from "../../features/route/route.types";
+import type { GridCell } from "../MapTiler/types/map.types";
 
 type MapViewProps = {
   points: Point[];
   onAddPoint: (point: Point) => number;
+  onOpenGridContextMenu: (data: {
+    cell: GridCell;
+    x: number;
+    y: number;
+  }) => void;
 };
 
-// Nếu dùng Vite:
+// MapTiler API Key
 const API_KEY = process.env.REACT_APP_MAPTILER_API_KEY;
 
 setWorkerUrl(
   new URL(
     "maplibre-gl/dist/maplibre-gl-worker.mjs",
-    import.meta.url
-  ).toString()
+    import.meta.url,
+  ).toString(),
 );
 
 export default function MapView({
   points,
   onAddPoint,
+  onOpenGridContextMenu,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
 
+  // Giữ callback mới nhất
   const onAddPointRef = useRef(onAddPoint);
+  const onOpenGridContextMenuRef = useRef(onOpenGridContextMenu);
 
-  // Luôn cập nhật callback mới nhất, không cần tạo lại map.
+  // Giữ points mới nhất
+  const pointsRef = useRef(points);
+
   useEffect(() => {
     onAddPointRef.current = onAddPoint;
   }, [onAddPoint]);
 
+  useEffect(() => {
+    onOpenGridContextMenuRef.current = onOpenGridContextMenu;
+  }, [onOpenGridContextMenu]);
+
+  useEffect(() => {
+    pointsRef.current = points;
+  }, [points]);
+
   // ======================================
-  // INITIALIZE MAP - CHỈ CHẠY MỘT LẦN
+  // HANDLE GRID CONTEXT MENU
+  // ======================================
+
+  const handleGridContextMenu = (e: MapMouseEvent) => {
+    e.preventDefault();
+
+    console.log("1. Đã bắt được chuột phải");
+
+    const map = mapRef.current;
+    if (!map) {
+      console.log("Không tìm thấy map");
+      return;
+    }
+
+    // Kiểm tra feature tại vị trí chuột
+    const features = map.queryRenderedFeatures(e.point);
+
+    console.log(
+      "2. Các layer tại vị trí chuột:",
+      features.map((feature) => feature.layer.id),
+    );
+
+    const gridFeature = features.find(
+      (feature) => feature.layer.id === "grid-fill",
+    );
+
+    if (!gridFeature) {
+      console.log("Không tìm thấy grid-fill tại vị trí chuột");
+      return;
+    }
+
+    const properties = gridFeature.properties;
+
+    console.log("3. Grid properties:", properties);
+
+    if (properties?.row === undefined || properties?.col === undefined) {
+      console.log("Grid không có row hoặc col");
+      return;
+    }
+
+    const cell: GridCell = {
+      row: Number(properties.row),
+      col: Number(properties.col),
+    };
+
+    console.log("4. Cell được chọn:", cell);
+
+    onOpenGridContextMenuRef.current({
+      cell,
+      x: e.originalEvent.clientX,
+      y: e.originalEvent.clientY,
+    });
+
+    console.log("5. Đã gọi onOpenGridContextMenu");
+  };
+
+  // ======================================
+  // INITIALIZE MAP
   // ======================================
 
   useEffect(() => {
@@ -59,7 +133,7 @@ export default function MapView({
       console.error("Không tìm thấy MapTiler API Key");
       return;
     }
-    // Khởi tạo bản đồ
+
     const map = new MapLibreMap({
       container: containerRef.current,
       style: `${MAP_CONFIG.STYLE_URL}?key=${API_KEY}`,
@@ -69,56 +143,47 @@ export default function MapView({
 
     mapRef.current = map;
 
-    map.addControl(
-      new NavigationControl(),
-      "top-right"
-    );
+    map.addControl(new NavigationControl(), "top-right");
 
     let cleanupEvents: (() => void) | undefined;
-    // Khi bản đồ đã tải xong, khởi tạo các layer và đăng ký sự kiện
+
     const handleLoad = () => {
       initializeMapLayers(map);
 
-      cleanupEvents = registerMapEvents(
-        map,
-        (point) => onAddPointRef.current(point)
+      cleanupEvents = registerMapEvents(map, (point) =>
+        onAddPointRef.current(point),
       );
+
+      // Đăng ký sự kiện chuột phải trên ô lưới
+      map.on("contextmenu", "grid-fill", handleGridContextMenu);
 
       map.getCanvas().style.cursor = "crosshair";
 
-      // Cập nhật dữ liệu route sau khi các layer đã sẵn sàng.
       updateRoute(map, pointsRef.current);
     };
 
-      map.on("load", handleLoad);
-
-    map.on("error", (event) => {
+    const handleError = (event: ErrorEvent) => {
       console.error("Map error:", event.error);
-    });
+    };
+
+    map.on("load", handleLoad);
+    map.on("error", handleError);
 
     return () => {
       map.off("load", handleLoad);
+      map.off("error", handleError);
+
+      map.off("contextmenu", "grid-fill", handleGridContextMenu);
 
       cleanupEvents?.();
 
       map.remove();
-
       mapRef.current = null;
     };
   }, []);
 
   // ======================================
-  // KEEP LATEST POINTS
-  // ======================================
-
-  const pointsRef = useRef(points);
-
-  useEffect(() => {
-    pointsRef.current = points;
-  }, [points]);
-
-  // ======================================
-  // UPDATE ROUTE - KHÔNG RELOAD MAP
+  // UPDATE ROUTE
   // ======================================
 
   useEffect(() => {
@@ -146,22 +211,19 @@ export default function MapView({
 // UPDATE ROUTE DATA
 // ======================================
 
-function updateRoute(
-  map: MapLibreMap,
-  points: Point[]
-) {
-  const routeSource = map.getSource(
-    "route-source"
-  ) as GeoJSONSource | undefined;
+function updateRoute(map: MapLibreMap, points: Point[]) {
+  const routeSource = map.getSource("route-source") as
+    | GeoJSONSource
+    | undefined;
 
-  const pointsSource = map.getSource(
-    "points-source"
-  ) as GeoJSONSource | undefined;
+  const pointsSource = map.getSource("points-source") as
+    | GeoJSONSource
+    | undefined;
 
-  if (      !routeSource || !pointsSource) return;
+  if (!routeSource || !pointsSource) return;
 
-         routeSource.setData({
-        type: "FeatureCollection",
+  routeSource.setData({
+    type: "FeatureCollection",
     features:
       points.length >= 2
         ? [
@@ -173,7 +235,7 @@ function updateRoute(
                 coordinates: createRoundedRoute(
                   points,
                   MAP_GRID_CONFIG.ROUTE_RADIUS,
-                  MAP_GRID_CONFIG.ROUTE_STEPS
+                  MAP_GRID_CONFIG.ROUTE_STEPS,
                 ),
               },
             },
