@@ -87,7 +87,7 @@ body {
 
 .stats span {
   font-size: 11px;
-  margin-top: 5px;
+  /* margin-top: 5px; */
 }
 
 .route-input textarea {

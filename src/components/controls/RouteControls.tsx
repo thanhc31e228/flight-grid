@@ -1,15 +1,10 @@
-
 type Props = {
   count: number;
   onUndo: () => void;
   onClear: () => void;
 };
 
-export default function RouteControls({
-  count,
-  onUndo,
-  onClear,
-}: Props) {
+export default function RouteControls({ count, onUndo, onClear }: Props) {
   return (
     <div className="route-controls">
       <strong>QUẢN LÝ TUYẾN ĐƯỜNG</strong>
@@ -19,23 +14,17 @@ export default function RouteControls({
       </p>
 
       <div className="grid-info">
-        <div>Grid cấp 1: 2.000m</div>
-        <div>Grid cấp 2: 400m × 400m</div>
+        <div>Grid cấp 1: 20.000m</div>
+        <div>Grid cấp 2: 2000m × 2000m</div>
         <div>Grid cấp 3: 5 ô / ô cấp 2</div>
       </div>
 
       <div className="route-buttons">
-        <button
-          onClick={onUndo}
-          disabled={count === 0}
-        >
+        <button onClick={onUndo} disabled={count === 0}>
           Hoàn tác
         </button>
 
-        <button
-          onClick={onClear}
-          disabled={count === 0}
-        >
+        <button onClick={onClear} disabled={count === 0}>
           Xóa tất cả
         </button>
       </div>
