@@ -19,10 +19,10 @@ export default function GridRouteInput({ gridIndex, onCreateRoute }: Props) {
       .map((id) => id.trim())
       .filter(Boolean);
 
-    if (ids.length < 2) {
-      alert("Cần nhập ít nhất 2 ID ô Grid cấp 3");
-      return;
-    }
+    // if (ids.length < 2) {
+    //   alert("Cần nhập ít nhất 2 ID ô Grid cấp 3");
+    //   return;
+    // }
 
     // Tìm các Grid theo key của Map
     const cells: GridFeature[] = [];
@@ -59,13 +59,18 @@ export default function GridRouteInput({ gridIndex, onCreateRoute }: Props) {
       <textarea
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder={`Nhập ID Grid:
-                      61 112
-                      61 125
-                      61 225`}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            // Vẫn xuống dòng và đồng thời submit
+            setTimeout(() => {
+              handleSubmit();
+            }, 0);
+          }
+        }}
+        placeholder={`Nhập tọa độ`}
       />
 
-      <button onClick={handleSubmit}>NỐI CÁC TỌA ĐỘ THÀNH TUYẾN</button>
+      {/* <button onClick={handleSubmit}>NỐI CÁC TỌA ĐỘ THÀNH TUYẾN</button> */}
     </div>
   );
 }
