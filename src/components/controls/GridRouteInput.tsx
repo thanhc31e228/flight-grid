@@ -19,11 +19,6 @@ export default function GridRouteInput({ gridIndex, onCreateRoute }: Props) {
       .map((id) => id.trim())
       .filter(Boolean);
 
-    // if (ids.length < 2) {
-    //   alert("Cần nhập ít nhất 2 ID ô Grid cấp 3");
-    //   return;
-    // }
-
     // Tìm các Grid theo key của Map
     const cells: GridFeature[] = [];
     const missingIds: string[] = [];
@@ -69,8 +64,6 @@ export default function GridRouteInput({ gridIndex, onCreateRoute }: Props) {
         }}
         placeholder={`Nhập tọa độ`}
       />
-
-      {/* <button onClick={handleSubmit}>NỐI CÁC TỌA ĐỘ THÀNH TUYẾN</button> */}
     </div>
   );
 }
