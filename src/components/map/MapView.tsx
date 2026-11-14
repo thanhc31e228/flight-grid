@@ -57,17 +57,10 @@ export default function MapView({
   // Giữ callback mới nhất
   const onAddPointRef = useRef(onAddPoint);
   const onOpenGridContextMenuRef = useRef(onOpenGridContextMenu);
-  let cleanupEvents: (() => void) | undefined;
-  let cleanupAnimation: (() => void) | undefined;
-  let cleanupHover: (() => void) | undefined;
   useEffect(() => {
     const map = mapRef.current;
 
     if (!map || !map.isStyleLoaded()) return;
-    // map.on("mouseenter", "points-casing", (e) => {
-    //   console.log("ádasdasdas");
-    //   map.getCanvas().style.cursor = "pointer";
-    // });
     updateGridLabels(map, gridLabels);
   }, [gridLabels]);
   // Giữ points mới nhất
@@ -158,14 +151,16 @@ export default function MapView({
 
     map.addControl(new NavigationControl(), "top-right");
 
+    // Khai báo bên trong useEffect
     let cleanupEvents: (() => void) | undefined;
     let cleanupAnimation: (() => void) | undefined;
+    let cleanupHover: (() => void) | undefined;
+
     const handleLoad = () => {
       cleanupAnimation = initializeMapLayers(map);
 
       updateGridLabels(map, gridLabelsRef.current);
 
-      // Đăng ký hover sau khi layer đã được tạo
       cleanupHover = registerWaypointHoverEvents(map);
 
       cleanupEvents = registerMapEvents(map, (point) =>
