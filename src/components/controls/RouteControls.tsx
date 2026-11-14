@@ -1,6 +1,6 @@
 type Props = {
   count: number;
-  onUndo: () => void;
+  onUndo: () => number;
   onClear: () => void;
 };
 

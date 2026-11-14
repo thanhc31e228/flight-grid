@@ -1,4 +1,3 @@
-
 import { useCallback, useRef, useState } from "react";
 
 import type { Point } from "../features/route/route.types";
@@ -8,34 +7,34 @@ export function useRoutePoints() {
 
   const [points, setPoints] = useState<Point[]>([]);
 
-  const commitPoints = useCallback(
-    (updated: Point[]) => {
-      pointsRef.current = updated;
-      setPoints(updated);
+  const commitPoints = useCallback((updated: Point[]) => {
+    pointsRef.current = updated;
+    setPoints(updated);
+  }, []);
+
+  const addPoint = useCallback(
+    (point: Point) => {
+      const updated = [...pointsRef.current, point];
+
+      commitPoints(updated);
+
+      return updated.length;
     },
-    []
+    [commitPoints],
   );
-
- const addPoint = useCallback(
-  (point: Point) => {
-    const updated = [...pointsRef.current, point];
-
-    commitPoints(updated);
-
-    return updated.length;
-  },
-  [commitPoints]
-);
 
   const setRoute = useCallback(
     (updated: Point[]) => {
       commitPoints(updated);
     },
-    [commitPoints]
+    [commitPoints],
   );
 
   const undoPoint = useCallback(() => {
-    commitPoints(pointsRef.current.slice(0, -1));
+    const newPoints = pointsRef.current.slice(0, -1);
+    commitPoints(newPoints);
+
+    return newPoints.length;
   }, [commitPoints]);
 
   const clearPoints = useCallback(() => {

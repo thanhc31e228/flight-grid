@@ -15,7 +15,7 @@ type Props = {
   labelInput: string;
   onLabelInputChange: (value: string) => void;
   onSaveLabels: (labels: string[]) => Promise<void>;
-  onUndo: () => void;
+  onUndo: () => number;
   onClear: () => void;
   onCreateRoute: (points: Point[]) => void;
 };

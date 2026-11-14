@@ -103,27 +103,27 @@ export function showPointPopup(point: PointPopupData, map: MapLibreMap) {
     bg-slate-50 px-3 py-3
   `;
 
-  const timeLabel = document.createElement("span");
+  // const timeLabel = document.createElement("span");
 
-  timeLabel.className = "text-xs font-semibold text-slate-500";
-  timeLabel.textContent = "THỜI GIAN XUẤT HIỆN";
+  // timeLabel.className = "text-xs font-semibold text-slate-500";
+  // timeLabel.textContent = "THỜI GIAN XUẤT HIỆN";
 
-  const timeValue = document.createElement("span");
+  // const timeValue = document.createElement("span");
 
-  timeValue.className = `
-    font-mono text-sm font-semibold
-    text-emerald-600
-  `;
+  // timeValue.className = `
+  //   font-mono text-sm font-semibold
+  //   text-emerald-600
+  // `;
 
-  const appearedAt = new Date();
+  // const appearedAt = new Date();
 
-  timeValue.textContent = appearedAt.toLocaleTimeString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  // timeValue.textContent = appearedAt.toLocaleTimeString("vi-VN", {
+  //   hour: "2-digit",
+  //   minute: "2-digit",
+  //   second: "2-digit",
+  // });
 
-  timeBox.append(timeLabel, timeValue);
+  // timeBox.append(timeLabel, timeValue);
 
   content.append(topBox, timeBox);
 
