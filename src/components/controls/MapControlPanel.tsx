@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 import type { Point } from "../../features/route/route.types";
 import type { GridFeature } from "../../features/grid/grid.types";
@@ -30,6 +31,7 @@ export default function MapControlPanel({
   onCreateRoute,
 }: Props) {
   const [showEditor, setShowEditor] = useState(false);
+  const [editorAnimated, setEditorAnimated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -41,12 +43,19 @@ export default function MapControlPanel({
     return labelInput.trim().split(/\s+/).filter(Boolean);
   }, [labelInput]);
 
-  // Tự động tạo 100 tọa độ
-  const generatedLabels = useMemo(() => {
-    return rowLabels.flatMap((row) =>
-      colLabels.map((col) => `${row.trim()}${col.trim()}`),
-    );
-  }, [rowLabels, colLabels]);
+  // Hiệu ứng mở modal bằng Tailwind
+  useEffect(() => {
+    if (!showEditor) {
+      setEditorAnimated(false);
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      setEditorAnimated(true);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [showEditor]);
 
   // Mở bảng chỉnh sửa
   const handleOpenEditor = () => {
@@ -140,7 +149,17 @@ export default function MapControlPanel({
           <button
             type="button"
             onClick={handleOpenEditor}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 transition hover:border-blue-400 hover:bg-blue-100 active:scale-[0.98]"
+            className="
+              flex w-full items-center justify-center gap-2
+              rounded-lg border border-blue-200
+              bg-blue-50 px-4 py-3
+              text-sm font-semibold text-blue-700
+              transition-all duration-200
+              hover:-translate-y-0.5
+              hover:border-blue-400 hover:bg-blue-100
+              hover:shadow-sm
+              active:scale-[0.98]
+            "
           >
             <span className="text-lg">▦</span>
             Thay đổi tọa độ
@@ -148,6 +167,7 @@ export default function MapControlPanel({
 
           <div className="flex items-center justify-between text-xs text-gray-500">
             <span>Số tọa độ hiện tại</span>
+
             <span className="font-medium text-gray-700">
               {gridLabels.length} / 100
             </span>
@@ -167,9 +187,7 @@ export default function MapControlPanel({
 
         <RouteControls
           count={points.length}
-          onUndo={() => {
-            onUndo();
-          }}
+          onUndo={onUndo}
           onClear={onClear}
         />
 
@@ -178,150 +196,236 @@ export default function MapControlPanel({
         <PointList points={points} />
       </div>
 
-      {/* Popup chỉnh sửa */}
-      {showEditor && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 backdrop-blur-sm sm:p-6"
-          onClick={() => !saving && setShowEditor(false)}
-        >
+      {/* Popup thiết lập tọa độ */}
+      {showEditor &&
+        createPortal(
           <div
-            className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className={`
+              fixed inset-0 z-[99999]
+              flex items-center justify-center
+              bg-black/50 backdrop-blur-sm
+              p-4 sm:p-6
+              transition-opacity duration-200 ease-out
+              ${editorAnimated ? "opacity-100" : "opacity-0"}
+            `}
+            onClick={() => !saving && setShowEditor(false)}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">
+            {/* Modal */}
+            <div
+              className={`
+                flex w-full max-w-5xl
+                max-h-[85vh] flex-col
+                overflow-hidden rounded-2xl
+                bg-white shadow-2xl
+                transition-all duration-200 ease-out
+                ${
+                  editorAnimated
+                    ? "translate-y-0 scale-100 opacity-100"
+                    : "translate-y-3 scale-95 opacity-0"
+                }
+              `}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4 sm:px-6">
+                <h3 className="text-lg font-bold text-gray-900 sm:text-xl">
                   Thiết lập tọa độ
                 </h3>
-                {/* <p className="mt-1 text-xs text-gray-500">
-                  Nhập 10 label hàng và 10 label cột để tự động tạo 100 tọa độ.
-                </p> */}
-              </div>
 
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => setShowEditor(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xl text-gray-500 hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Nội dung */}
-
-            {/* Nội dung */}
-            <div className="overflow-y-auto p-4 sm:p-6">
-              {/* Label hàng bên trái + lưới bên phải */}
-
-              {/* Label hàng + Preview */}
-              <div className="mt-6">
-                <h4 className="mb-3 text-sm font-bold text-gray-800">
-                  Label hàng và xem trước tọa độ
-                </h4>
-
-                {/* Grid 11 cột: 1 cột label hàng + 10 cột tọa độ */}
-                <div className="grid grid-cols-[48px_repeat(10,minmax(0,1fr))] gap-2">
-                  {/* Góc trên bên trái */}
-                  <div className="flex h-10 items-center justify-center text-xs text-gray-400">
-                    Hàng
-                  </div>
-
-                  {/* Label cột nằm ngang */}
-                  {colLabels.map((label, index) => (
-                    <div key={index} className="min-w-0">
-                      <input
-                        type="text"
-                        value={label}
-                        maxLength={10}
-                        disabled={saving}
-                        onChange={(e) => handleColChange(index, e.target.value)}
-                        placeholder={`${index + 1}`}
-                        className="h-10 w-full min-w-0 rounded-lg border border-gray-200 bg-gray-50 px-0.5 text-center text-xs font-medium outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
-                      />
-                    </div>
-                  ))}
-
-                  {/* Label hàng + tọa độ */}
-                  {rowLabels.map((rowLabel, rowIndex) => (
-                    <>
-                      {/* Label hàng */}
-                      <div key={`row-${rowIndex}`} className="min-w-0">
-                        <input
-                          type="text"
-                          value={rowLabel}
-                          maxLength={10}
-                          disabled={saving}
-                          onChange={(e) =>
-                            handleRowChange(rowIndex, e.target.value)
-                          }
-                          placeholder={`${rowIndex + 1}`}
-                          className="h-10 w-full min-w-0 rounded-lg border border-gray-200 bg-gray-50 px-0.5 text-center text-xs font-medium outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
-                        />
-                      </div>
-
-                      {/* 10 ô tọa độ tương ứng */}
-                      {colLabels.map((colLabel, colIndex) => {
-                        const coordinate = `${rowLabel.trim()}${colLabel.trim()}`;
-
-                        return (
-                          <div
-                            key={`cell-${rowIndex}-${colIndex}`}
-                            className={`flex h-10 min-w-0 items-center justify-center overflow-hidden rounded-lg border px-0.5 text-[10px] font-semibold sm:text-xs ${
-                              coordinate.length > 0
-                                ? "border-blue-100 bg-blue-50 text-blue-700"
-                                : "border-gray-200 bg-gray-50 text-gray-300"
-                            }`}
-                          >
-                            <span className="truncate">
-                              {coordinate || "—"}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </>
-                  ))}
-                </div>
-              </div>
-
-              {/* Error */}
-              {error && (
-                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                  ⚠ {error}
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="flex flex-col gap-3 border-t border-gray-100 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <span className="text-xs font-medium text-gray-500">
-                {filledRows + filledCols}/20 label đã nhập
-              </span>
-
-              <div className="flex gap-2">
                 <button
                   type="button"
                   disabled={saving}
                   onClick={() => setShowEditor(false)}
-                  className="flex-1 rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                  className="
+                    flex h-9 w-9 items-center justify-center
+                    rounded-full bg-gray-100
+                    text-2xl text-gray-500
+                    transition-all duration-200
+                    hover:rotate-90
+                    hover:bg-red-50 hover:text-red-500
+                    disabled:opacity-50
+                  "
                 >
-                  Hủy
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleAccept}
-                  disabled={saving}
-                  className="flex-1 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {saving ? "Đang lưu..." : "✓ Xác nhận"}
+                  ×
                 </button>
               </div>
+
+              {/* Nội dung */}
+              <div className="min-h-0 flex-1 overflow-auto p-4 sm:p-6">
+                <div className="mb-5">
+                  <h4 className="text-base font-bold text-gray-800">
+                    Label hàng và xem trước tọa độ
+                  </h4>
+                </div>
+
+                {/* Bảng tọa độ */}
+                <div className="w-full overflow-x-auto">
+                  <div className="min-w-[900px]">
+                    <div className="grid grid-cols-[70px_repeat(10,minmax(0,1fr))] gap-2">
+                      {/* Góc trên bên trái */}
+                      <div className="flex h-12 items-center justify-center text-sm text-gray-400">
+                        Hàng
+                      </div>
+
+                      {/* Label cột */}
+                      {colLabels.map((label, index) => (
+                        <div key={index} className="min-w-0">
+                          <input
+                            type="text"
+                            value={label}
+                            maxLength={10}
+                            disabled={saving}
+                            onChange={(e) =>
+                              handleColChange(index, e.target.value)
+                            }
+                            placeholder={`${index + 1}`}
+                            className="
+                              h-12 w-full min-w-0
+                              rounded-lg border border-gray-200
+                              bg-gray-50 px-2 text-center
+                              text-sm font-medium outline-none
+                              transition-all duration-200
+                              focus:border-blue-500
+                              focus:bg-white focus:ring-2
+                              focus:ring-blue-100
+                              disabled:cursor-not-allowed
+                              disabled:opacity-60
+                            "
+                          />
+                        </div>
+                      ))}
+
+                      {/* Label hàng và các ô tọa độ */}
+                      {rowLabels.map((rowLabel, rowIndex) => (
+                        <div key={`row-group-${rowIndex}`} className="contents">
+                          {/* Label hàng */}
+                          <div className="min-w-0">
+                            <input
+                              type="text"
+                              value={rowLabel}
+                              maxLength={10}
+                              disabled={saving}
+                              onChange={(e) =>
+                                handleRowChange(rowIndex, e.target.value)
+                              }
+                              placeholder={`${rowIndex + 1}`}
+                              className="
+                                h-12 w-full min-w-0
+                                rounded-lg border border-gray-200
+                                bg-gray-50 px-2 text-center
+                                text-sm font-medium outline-none
+                                transition-all duration-200
+                                focus:border-blue-500
+                                focus:bg-white focus:ring-2
+                                focus:ring-blue-100
+                                disabled:cursor-not-allowed
+                                disabled:opacity-60
+                              "
+                            />
+                          </div>
+
+                          {/* 10 ô tọa độ */}
+                          {colLabels.map((colLabel, colIndex) => {
+                            const coordinate = `${rowLabel.trim()}${colLabel.trim()}`;
+
+                            return (
+                              <div
+                                key={`cell-${rowIndex}-${colIndex}`}
+                                className={`
+                                  flex h-12 min-w-0
+                                  items-center justify-center
+                                  overflow-hidden rounded-lg
+                                  border px-2
+                                  text-sm font-semibold
+                                  transition-colors duration-200
+                                  ${
+                                    coordinate.length > 0
+                                      ? "border-blue-100 bg-blue-50 text-blue-700"
+                                      : "border-gray-200 bg-gray-50 text-gray-300"
+                                  }
+                                `}
+                              >
+                                <span className="truncate">
+                                  {coordinate || "—"}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Thông báo lỗi */}
+                {error && (
+                  <div
+                    className="
+                    mt-6 rounded-lg border border-red-200
+                    bg-red-50 px-4 py-3
+                    text-sm text-red-600
+                  "
+                  >
+                    ⚠ {error}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div
+                className="
+                flex shrink-0 flex-col gap-3
+                border-t border-gray-100
+                bg-gray-50 px-5 py-4
+                sm:flex-row sm:items-center
+                sm:justify-between sm:px-6
+              "
+              >
+                <span className="text-sm font-medium text-gray-500">
+                  {filledRows + filledCols}/20 label đã nhập
+                </span>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => setShowEditor(false)}
+                    className="
+                      rounded-lg border border-gray-300
+                      bg-white px-5 py-2.5
+                      text-sm font-semibold text-gray-600
+                      transition-colors duration-200
+                      hover:bg-gray-100
+                      disabled:opacity-50
+                    "
+                  >
+                    Hủy
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleAccept}
+                    disabled={saving}
+                    className="
+                      rounded-lg bg-blue-600
+                      px-5 py-2.5
+                      text-sm font-semibold text-white
+                      shadow-sm
+                      transition-all duration-200
+                      hover:-translate-y-0.5
+                      hover:bg-blue-700 hover:shadow-md
+                      disabled:cursor-not-allowed
+                      disabled:opacity-60
+                    "
+                  >
+                    {saving ? "Đang lưu..." : "✓ Xác nhận"}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

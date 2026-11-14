@@ -82,7 +82,7 @@ export function createLevel2(parent: GridFeature): GridCollection {
       const childCol = col + 1;
 
       // id của ô con cấp 2, ví dụ: 61 12, ô vuông 61 ô dòng 1 cột 2
-      const childId = `${id} ${childRow}${childCol}`;
+      const childId = `${id}${childRow}${childCol}`;
       // console.log("child id", childId);
       //child id 00 21
       features.push(
