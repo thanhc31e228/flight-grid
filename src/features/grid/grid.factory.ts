@@ -14,12 +14,12 @@ export const emptyGrid = (): GridCollection => ({
 // ========================================
 // LEVEL 1 ô vuông lớn chứa 25 ô vuông nhỏ
 // ========================================
-
 export function createGrid(labels?: string[]): GridCollection {
   const totalWidth = COLS * CELL_SIZE;
   const totalHeight = ROWS * CELL_SIZE;
 
-  const startX = -totalWidth / 2;
+  // Dịch toàn bộ lưới sang trái 1 ô, nằm ở góc 4 ô 61,62,01,02
+  const startX = -totalWidth / 2 - CELL_SIZE;
   const startY = -totalHeight / 2;
 
   const features: GridFeature[] = [];
@@ -27,10 +27,11 @@ export function createGrid(labels?: string[]): GridCollection {
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
       const xMin = startX + col * CELL_SIZE;
-
       const yMin = startY + (ROWS - 1 - row) * CELL_SIZE;
+
       const index = row * COLS + col;
       const id = labels?.[index] ?? `R${row + 1}-C${col + 1}`;
+
       features.push(
         createRectangle(xMin, yMin, CELL_SIZE, CELL_SIZE, {
           id,
