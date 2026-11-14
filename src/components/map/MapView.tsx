@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-
+import { registerWaypointHoverEvents } from "./MapHoverEvents";
 import {
   Map as MapLibreMap,
   NavigationControl,
@@ -57,11 +57,17 @@ export default function MapView({
   // Giữ callback mới nhất
   const onAddPointRef = useRef(onAddPoint);
   const onOpenGridContextMenuRef = useRef(onOpenGridContextMenu);
+  let cleanupEvents: (() => void) | undefined;
+  let cleanupAnimation: (() => void) | undefined;
+  let cleanupHover: (() => void) | undefined;
   useEffect(() => {
     const map = mapRef.current;
 
     if (!map || !map.isStyleLoaded()) return;
-
+    // map.on("mouseenter", "points-casing", (e) => {
+    //   console.log("ádasdasdas");
+    //   map.getCanvas().style.cursor = "pointer";
+    // });
     updateGridLabels(map, gridLabels);
   }, [gridLabels]);
   // Giữ points mới nhất
@@ -157,13 +163,15 @@ export default function MapView({
     const handleLoad = () => {
       cleanupAnimation = initializeMapLayers(map);
 
-      // Áp dụng label hiện tại sau khi grid được tạo
       updateGridLabels(map, gridLabelsRef.current);
+
+      // Đăng ký hover sau khi layer đã được tạo
+      cleanupHover = registerWaypointHoverEvents(map);
+
       cleanupEvents = registerMapEvents(map, (point) =>
         onAddPointRef.current(point),
       );
 
-      // Đăng ký sự kiện chuột phải trên ô lưới
       map.on("contextmenu", "grid-fill", handleGridContextMenu);
 
       map.getCanvas().style.cursor = "crosshair";
@@ -184,12 +192,10 @@ export default function MapView({
 
       map.off("contextmenu", "grid-fill", handleGridContextMenu);
 
+      cleanupHover?.();
       cleanupEvents?.();
-
-      // Dừng animation đường bay và máy bay địch
       cleanupAnimation?.();
 
-      // Xóa bản đồ
       map.remove();
       mapRef.current = null;
     };

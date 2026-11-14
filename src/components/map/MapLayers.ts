@@ -278,6 +278,7 @@ export function addRouteLayers(map: MapLibreMap) {
   });
 }
 
+//Hàm này nhận danh sách tọa độ và cập nhật đường bay, vị trí máy bay.
 export function updateFlightRoute(
   map: MapLibreMap,
   coordinates: [number, number][],

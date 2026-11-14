@@ -64,6 +64,31 @@
   border-top: 1px solid #ddd;
 }
 
+.point-popup .maplibregl-popup-content {
+  padding: 0;
+  overflow: visible;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 8px 25px rgb(15 23 42 / 0.12);
+}
+
+.point-popup .maplibregl-popup-tip {
+  border-top-color: white;
+  border-bottom-color: white;
+}
+
+.point-popup .maplibregl-popup-close-button {
+  top: 5px;
+  right: 7px;
+  color: #64748b;
+  font-size: 18px;
+}
+
+.point-popup .maplibregl-popup-close-button:hover {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
 .grid-popup .maplibregl-popup-content,
 .point-popup .maplibregl-popup-content {
   padding: 0;

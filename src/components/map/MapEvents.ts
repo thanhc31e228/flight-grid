@@ -1,5 +1,8 @@
-
-import type { Map as MapLibreMap, MapMouseEvent, GeoJSONSource } from "maplibre-gl";
+import type {
+  Map as MapLibreMap,
+  MapMouseEvent,
+  GeoJSONSource,
+} from "maplibre-gl";
 
 import {
   createLevel2,
@@ -14,31 +17,19 @@ import type {
 
 import type { Point } from "../../features/route/route.types";
 
-import {
-  showGridPopup,
-  showPointPopup,
-} from "./MapPopup";
+import { showPointPopup } from "./MapPopup";
 
-const GRID_LAYERS = [
-  "grid-level-3-fill",
-  "grid-level-2-fill",
-  "grid-fill",
-];
+const GRID_LAYERS = ["grid-level-3-fill", "grid-level-2-fill", "grid-fill"];
 
 export function registerMapEvents(
   map: MapLibreMap,
-  onAddPoint: (point: Point) => number
+  onAddPoint: (point: Point) => number,
 ) {
   let activeParentId: string | null = null;
   let activeChildId: string | null = null;
 
-  const setSourceData = (
-    id: string,
-    data: GridCollection
-  ) => {
-    const source = map.getSource(id) as
-      | GeoJSONSource
-      | undefined;
+  const setSourceData = (id: string, data: GridCollection) => {
+    const source = map.getSource(id) as GeoJSONSource | undefined;
 
     source?.setData(data);
   };
@@ -65,10 +56,7 @@ export function registerMapEvents(
     activeParentId = parentId;
     activeChildId = null;
 
-    setSourceData(
-      "grid-level-2",
-      createLevel2(parent)
-    );
+    setSourceData("grid-level-2", createLevel2(parent));
 
     clearLevel3();
   };
@@ -80,10 +68,7 @@ export function registerMapEvents(
 
     activeChildId = childId;
 
-    setSourceData(
-      "grid-level-3",
-      createLevel3(child)
-    );
+    setSourceData("grid-level-3", createLevel3(child));
   };
 
   // ======================================
@@ -91,16 +76,11 @@ export function registerMapEvents(
   // ======================================
 
   const handleMouseMove = (event: MapMouseEvent) => {
-    const features = map.queryRenderedFeatures(
-      event.point,
-      {
-        layers: GRID_LAYERS,
-      }
-    );
+    const features = map.queryRenderedFeatures(event.point, {
+      layers: GRID_LAYERS,
+    });
 
-    const level2 = features.find(
-      (f) => f.layer.id === "grid-level-2-fill"
-    );
+    const level2 = features.find((f) => f.layer.id === "grid-level-2-fill");
 
     if (level2) {
       const child = level2 as unknown as GridFeature;
@@ -117,9 +97,7 @@ export function registerMapEvents(
       return;
     }
 
-    const level1 = features.find(
-      (f) => f.layer.id === "grid-fill"
-    );
+    const level1 = features.find((f) => f.layer.id === "grid-fill");
 
     if (level1) {
       showLevel2(level1 as unknown as GridFeature);
@@ -137,48 +115,28 @@ export function registerMapEvents(
   // CLICK
   // ======================================
 
-  
-const handleClick = (event: MapMouseEvent) => {
-  const features = map.queryRenderedFeatures(
-    event.point,
-    {
-      layers: GRID_LAYERS,
+  const handleClick = (event: MapMouseEvent) => {
+    const point: Point = {
+      lng: event.lngLat.lng,
+      lat: event.lngLat.lat,
+    };
+
+    const pointNumber = onAddPoint(point);
+
+    // Chỉ hiển thị popup tại điểm đầu tiên
+    if (pointNumber === 1) {
+      showPointPopup(
+        {
+          lng: point.lng,
+          lat: point.lat,
+          index: pointNumber,
+          topNumber: 1,
+          groupNumber: 1,
+        },
+        map,
+      );
     }
-  );
-
-  // Ưu tiên ô grid cấp sâu nhất.
-  const feature =
-    features.find(
-      (f) => f.layer.id === "grid-level-3-fill"
-    ) ??
-    features.find(
-      (f) => f.layer.id === "grid-level-2-fill"
-    ) ??
-    features.find(
-      (f) => f.layer.id === "grid-fill"
-    );
-
-  // Nếu click vào grid thì hiển thị popup,
-  // nhưng KHÔNG return.
-  if (feature) {
-    showGridPopup(
-      feature as unknown as GridFeature,
-      [event.lngLat.lng, event.lngLat.lat],
-      map
-    );
-  }
-
-  // Luôn thêm điểm tại vị trí click.
-  const point: Point = {
-    lng: event.lngLat.lng,
-    lat: event.lngLat.lat,
   };
-
-  const pointNumber = onAddPoint(point);
-
-  showPointPopup(point, pointNumber, map);
-};
-
 
   map.on("mousemove", handleMouseMove);
   map.on("click", handleClick);
