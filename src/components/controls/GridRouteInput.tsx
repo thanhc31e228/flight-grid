@@ -60,9 +60,9 @@ export default function GridRouteInput({ gridIndex, onCreateRoute }: Props) {
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder={`Nhập ID Grid:
-          R1-C1 111
-          R1-C1 112
-          R1-C1 113`}
+                      61 112
+                      61 125
+                      61 225`}
       />
 
       <button onClick={handleSubmit}>NỐI CÁC TỌA ĐỘ THÀNH TUYẾN</button>

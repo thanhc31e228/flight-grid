@@ -2,10 +2,12 @@ import { createGrid, createLevel2, createLevel3 } from "./grid.factory";
 
 import type { GridFeature } from "./grid.types";
 
-export function createLevel3Index(): Map<string, GridFeature> {
+export function createLevel3Index(
+  gridLabels: string[],
+): Map<string, GridFeature> {
   const index = new Map<string, GridFeature>();
 
-  const level1 = createGrid();
+  const level1 = createGrid(gridLabels);
 
   for (const parent of level1.features) {
     const level2 = createLevel2(parent);
@@ -14,7 +16,13 @@ export function createLevel3Index(): Map<string, GridFeature> {
       const level3 = createLevel3(child);
 
       for (const feature of level3.features) {
-        index.set(feature.properties.id, feature);
+        const id = feature.properties.id;
+
+        if (index.has(id)) {
+          throw new Error(`ID ô bị trùng: ${id}`);
+        }
+
+        index.set(id, feature);
       }
     }
   }

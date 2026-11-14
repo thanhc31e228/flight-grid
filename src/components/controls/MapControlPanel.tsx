@@ -40,7 +40,7 @@ export default function MapControlPanel({
   // Mở bảng chỉnh sửa
   const handleOpenEditor = () => {
     setEditingLabels(
-      Array.from({ length: 100 }, (_, index) => {
+      Array.from({ length: gridLabels.length }, (_, index) => {
         return gridLabels[index] ?? "";
       }),
     );

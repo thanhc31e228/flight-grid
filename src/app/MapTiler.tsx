@@ -44,7 +44,7 @@ export default function MapTiler() {
     "96",
     "97",
     "33",
-    "35",
+    "354",
     "39",
     "30",
     "34",
@@ -108,7 +108,7 @@ export default function MapTiler() {
     "35t",
     "rtg",
     "k4",
-    "h5",
+    "h52343",
     "545",
     "t4",
     "h5jy",
@@ -121,7 +121,7 @@ export default function MapTiler() {
     return labelInput.trim().split(/\s+/).filter(Boolean);
   }, [labelInput]);
 
-  const gridIndex = useMemo(() => createLevel3Index(), []);
+  const gridIndex = useMemo(() => createLevel3Index(gridLabels), [gridLabels]);
 
   const [contextMenu, setContextMenu] = useState<{
     cell: GridCell;
