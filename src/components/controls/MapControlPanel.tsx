@@ -125,7 +125,7 @@ export default function MapControlPanel({
   return (
     <>
       {/* Main control panel */}
-      <div className="absolute left-3 top-3 z-20 w-[280px] max-w-[calc(100%-24px)] rounded-xl bg-white p-4 shadow-lg">
+      <div className="relative h-full w-full overflow-y-auto bg-white p-4 shadow-lg">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-sm font-semibold text-gray-800">
@@ -167,7 +167,9 @@ export default function MapControlPanel({
 
         <RouteControls
           count={points.length}
-          onUndo={onUndo}
+          onUndo={() => {
+            onUndo();
+          }}
           onClear={onClear}
         />
 

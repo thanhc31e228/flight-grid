@@ -52,6 +52,7 @@ export default function GridRouteInput({ gridIndex, onCreateRoute }: Props) {
       <strong>NỐI Ô GRID CẤP 3</strong>
 
       <textarea
+        id="coordinates-ids"
         value={value}
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={(event) => {
