@@ -35,7 +35,13 @@ export default function RouteControls({ count, onUndo, onClear }: Props) {
           Hoàn tác
         </button>
 
-        <button onClick={clearPoints} disabled={count === 0}>
+        <button
+          onClick={() => {
+            clearPoints();
+            hidePointPopup();
+          }}
+          disabled={count === 0}
+        >
           Xóa tất cả
         </button>
       </div>
