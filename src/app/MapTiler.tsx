@@ -3,15 +3,15 @@ import { useEffect, useMemo, useState } from "react";
 import MapView from "../components/map/MapView";
 import MapControlPanel from "../components/controls/MapControlPanel";
 
-import { useRoutePoints } from "../hooks/useRoutePoints";
 import { createLevel3Index } from "../features/grid/grid.index";
 
 import "../styles/map.css";
 import { GridCell } from "../components/MapTiler/types/map.types";
+import { useMaker } from "../context/MakerContext";
+import { hidePointPopup } from "../components/map/MapPopup";
 
 export default function MapTiler() {
-  const { points, addPoint, undoPoint, clearPoints, setRoute } =
-    useRoutePoints();
+  const { points, addPoint, undoPoint, clearPoints, setRoute } = useMaker();
 
   // Danh sách tọa độ mặc định
   const DEFAULT_GRID_LABELS = [
@@ -161,7 +161,9 @@ export default function MapTiler() {
       }
 
       if (event.key === "Backspace") {
-        undoPoint();
+        if (undoPoint() === 0) {
+          hidePointPopup();
+        }
       }
 
       if (event.key === "Escape") {

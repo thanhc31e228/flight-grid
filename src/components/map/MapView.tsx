@@ -257,13 +257,19 @@ function updateRoute(map: MapLibreMap, points: Point[]) {
         : [],
   });
 
-  // thêm đánh dấu điểm
+  // Thêm đánh dấu điểm
   pointsSource.setData({
     type: "FeatureCollection",
     features: points.map((point, index) => ({
       type: "Feature",
       properties: {
-        name: `P${index + 1}`,
+        name:
+          point.time ??
+          new Date().toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }),
         lng: point.lng,
         lat: point.lat,
       },

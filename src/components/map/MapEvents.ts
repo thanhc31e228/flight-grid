@@ -119,6 +119,7 @@ export function registerMapEvents(
     const point: Point = {
       lng: event.lngLat.lng,
       lat: event.lngLat.lat,
+      time: new Date().toDateString(),
     };
 
     const pointNumber = onAddPoint(point);

@@ -7,7 +7,6 @@ import type { GridFeature } from "../../features/grid/grid.types";
 import RouteControls from "./RouteControls";
 import GridRouteInput from "./GridRouteInput";
 import PointList from "./PointList";
-import { useMap } from "../../context/MapContext";
 
 type Props = {
   points: Point[];
@@ -57,11 +56,8 @@ export default function MapControlPanel({
 
     return () => cancelAnimationFrame(frame);
   }, [showEditor]);
-  const { point } = useMap();
-
   // Mở bảng chỉnh sửa
   const handleOpenEditor = () => {
-    console.log("point", point);
     // Nếu đã có 100 tọa độ thì tách lại thành hàng/cột
     if (gridLabels.length === 100) {
       setRowLabels(

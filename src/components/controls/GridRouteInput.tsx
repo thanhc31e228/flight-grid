@@ -3,10 +3,11 @@ import { useState } from "react";
 import type { GridFeature } from "../../features/grid/grid.types";
 
 import { getGridCenter } from "../../features/grid/grid.geometry";
+import { Point } from "../../features/route/route.types";
 
 type Props = {
   gridIndex: Map<string, GridFeature>;
-  onCreateRoute: (points: { lng: number; lat: number }[]) => void;
+  onCreateRoute: (points: Point[]) => void;
 };
 
 export default function GridRouteInput({ gridIndex, onCreateRoute }: Props) {

@@ -1,3 +1,6 @@
+import { useMaker } from "../../context/MakerContext";
+import { hidePointPopup } from "../map/MapPopup";
+
 type Props = {
   count: number;
   onUndo: () => number;
@@ -5,6 +8,7 @@ type Props = {
 };
 
 export default function RouteControls({ count, onUndo, onClear }: Props) {
+  const { points, undoPoint, clearPoints } = useMaker();
   return (
     <div className="route-controls">
       <strong>QUẢN LÝ TUYẾN ĐƯỜNG</strong>
@@ -20,11 +24,18 @@ export default function RouteControls({ count, onUndo, onClear }: Props) {
       </div>
 
       <div className="route-buttons">
-        <button onClick={onUndo} disabled={count === 0}>
+        <button
+          onClick={() => {
+            if (undoPoint() === 0) {
+              hidePointPopup();
+            }
+          }}
+          disabled={count === 0}
+        >
           Hoàn tác
         </button>
 
-        <button onClick={onClear} disabled={count === 0}>
+        <button onClick={clearPoints} disabled={count === 0}>
           Xóa tất cả
         </button>
       </div>
