@@ -1,10 +1,11 @@
 import MapTiler from "./app/MapTiler";
+import MapProvider from "./context/MapContext";
 
 function App() {
   return (
-    <div>
+    <MapProvider>
       <MapTiler />
-    </div>
+    </MapProvider>
   );
 }
 
