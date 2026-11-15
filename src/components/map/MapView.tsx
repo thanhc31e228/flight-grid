@@ -84,33 +84,21 @@ export default function MapView({
 
   const handleGridContextMenu = (e: MapMouseEvent) => {
     e.preventDefault();
-    console.log("1. Đã bắt được chuột phải");
     const map = mapRef.current;
     if (!map) {
-      console.log("Không tìm thấy map");
       return;
     }
     // Kiểm tra feature tại vị trí chuột
     const features = map.queryRenderedFeatures(e.point);
-    console.log(
-      "2. Các layer tại vị trí chuột:",
-      features.map((feature) => feature.layer.id),
-    );
     const gridFeature = features.find(
       (feature) => feature.layer.id === "grid-fill",
     );
-
     if (!gridFeature) {
-      console.log("Không tìm thấy grid-fill tại vị trí chuột");
       return;
     }
-
     const properties = gridFeature.properties;
 
-    console.log("3. Grid properties:", properties);
-
     if (properties?.row === undefined || properties?.col === undefined) {
-      console.log("Grid không có row hoặc col");
       return;
     }
 
@@ -119,15 +107,11 @@ export default function MapView({
       col: Number(properties.col),
     };
 
-    console.log("4. Cell được chọn:", cell);
-
     onOpenGridContextMenuRef.current({
       cell,
       x: e.originalEvent.clientX,
       y: e.originalEvent.clientY,
     });
-
-    console.log("5. Đã gọi onOpenGridContextMenu");
   };
 
   // ======================================

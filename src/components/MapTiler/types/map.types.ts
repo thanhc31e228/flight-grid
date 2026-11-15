@@ -9,3 +9,9 @@ export type GridCell = {
   row: number;
   col: number;
 };
+type Aircraft = {
+  id: string;
+  name: string;
+  color: string;
+  points: Point[];
+};
