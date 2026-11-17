@@ -250,23 +250,6 @@ export function addRouteLayers(map: MapLibreMap) {
     data: EMPTY_FEATURE_COLLECTION,
   });
 
-  // Tam giác viền ngoài
-  // map.addLayer({
-  //   id: "points-casing",
-  //   type: "symbol",
-  //   source: "points-source",
-  //   layout: {
-  //     "icon-image": "waypoint-triangle",
-  //     "icon-size": 0.35,
-  //     "icon-allow-overlap": true,
-  //     "icon-ignore-placement": true,
-  //     "icon-anchor": "center",
-  //   },
-  //   paint: {
-  //     "icon-color": "#0f172a",
-  //   },
-  // });
-
   // Tam giác chính
   map.addLayer({
     id: "points-layer",
