@@ -122,7 +122,6 @@ export function registerMapEvents(
     // Chưa chọn máy bay thì không thêm điểm
     if (!selectedAircraftId) {
       // them top may bay moi
-      console.warn("Vui lòng chọn máy bay trước khi thêm waypoint");
       return;
     }
     const point: Point = {
