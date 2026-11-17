@@ -38,7 +38,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
       const airCraft: AirCraft = {
         id: idTop,
         name: idTop,
-        color: "red",
+        color: generateRandomHexColor(),
         points: [point],
       };
 
@@ -47,7 +47,6 @@ export default function GridRouteInput({ gridIndex }: Props) {
       addPoint(idTop, point);
     }
 
-    // Luôn chọn đúng aircraft vừa thao tác
     setSelectedAircraftId(idTop);
   };
 
@@ -71,3 +70,11 @@ export default function GridRouteInput({ gridIndex }: Props) {
     </div>
   );
 }
+const generateRandomHexColor = (): string => {
+  return (
+    "#" +
+    Math.floor(Math.random() * 0xffffff)
+      .toString(16)
+      .padStart(6, "0")
+  );
+};
