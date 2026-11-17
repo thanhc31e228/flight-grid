@@ -19,9 +19,10 @@ export function createGrid(labels?: string[]): GridCollection {
   const totalHeight = ROWS * CELL_SIZE;
 
   // Dịch toàn bộ lưới sang trái 1 ô, nằm ở góc 4 ô 61,62,01,02
-  const startX = -totalWidth / 2 - CELL_SIZE;
+  // const startX = -totalWidth / 2 - CELL_SIZE;
+  // const startY = -totalHeight / 2;
+  const startX = -totalWidth / 2 + CELL_SIZE;
   const startY = -totalHeight / 2;
-
   const features: GridFeature[] = [];
 
   for (let row = 0; row < ROWS; row++) {

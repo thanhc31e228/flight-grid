@@ -7,6 +7,7 @@ import { MAP_CONFIG } from "../../config/map.config";
 import { createGrid, emptyGrid } from "../../features/grid/grid.factory";
 import { lineString } from "@turf/helpers";
 import type { Feature, Point } from "geojson";
+import { AirCraft } from "../MapTiler/types/map.types";
 
 const EMPTY_FEATURE_COLLECTION = {
   type: "FeatureCollection" as const,
@@ -304,23 +305,17 @@ export function updateFlightRoute(
 
   if (!routeSource || !aircraftSource) return;
 
-  if (coordinates.length < 2) {
+  // Không có điểm: xóa cả máy bay và đường bay
+  if (coordinates.length === 0) {
     routeSource.setData(EMPTY_FEATURE_COLLECTION);
     aircraftSource.setData(EMPTY_FEATURE_COLLECTION);
     return;
   }
 
-  // Tạo đường bay thẳng, không sử dụng Bezier
-  const route = lineString(coordinates, {
-    color: "#ef4444",
-  });
-
-  routeSource.setData(route);
-
   // Lấy tọa độ cuối cùng
   const lastPoint = coordinates[coordinates.length - 1];
 
-  // Tạo icon máy bay
+  // Luôn hiển thị máy bay khi có ít nhất một điểm
   const aircraft: Feature<Point> = {
     type: "Feature",
     properties: {
@@ -338,6 +333,18 @@ export function updateFlightRoute(
     type: "FeatureCollection",
     features: [aircraft],
   });
+
+  // Chỉ vẽ đường bay khi có ít nhất 2 điểm
+  if (coordinates.length >= 2) {
+    const route = lineString(coordinates, {
+      color: "#ef4444",
+    });
+
+    routeSource.setData(route);
+  } else {
+    // Một điểm thì không có đường nối
+    routeSource.setData(EMPTY_FEATURE_COLLECTION);
+  }
 }
 
 export function addAirportLayer(map: MapLibreMap) {
@@ -387,6 +394,97 @@ export function initializeMapLayers(map: MapLibreMap) {
   addRouteLayers(map);
 
   addAirportLayer(map);
+}
+
+export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
+  const pointsSource = map.getSource("points-source") as
+    | GeoJSONSource
+    | undefined;
+
+  const routeSource = map.getSource("route-source") as
+    | GeoJSONSource
+    | undefined;
+
+  const aircraftSource = map.getSource("aircraft-source") as
+    | GeoJSONSource
+    | undefined;
+
+  if (!pointsSource || !routeSource || !aircraftSource) return;
+
+  const pointFeatures: Feature<Point>[] = [];
+  const aircraftFeatures: Feature<Point>[] = [];
+  const routeFeatures: Feature<GeoJSON.LineString>[] = [];
+
+  aircrafts.forEach((aircraft) => {
+    // Lấy tọa độ waypoint của từng máy bay
+    const coordinates: [number, number][] = aircraft.points.map(
+      (point, index) => {
+        pointFeatures.push({
+          type: "Feature",
+          properties: {
+            name: `${aircraft.id} - ${index + 1}`,
+            aircraftId: aircraft.id,
+            color: aircraft.color,
+          },
+          geometry: {
+            type: "Point",
+            coordinates: [point.lng, point.lat],
+          },
+        });
+
+        return [point.lng, point.lat];
+      },
+    );
+
+    // Máy bay luôn hiển thị nếu có ít nhất 1 waypoint
+    if (coordinates.length > 0) {
+      aircraftFeatures.push({
+        type: "Feature",
+        properties: {
+          type: "aircraft",
+          name: aircraft.id,
+          color: aircraft.color,
+        },
+        geometry: {
+          type: "Point",
+          coordinates: coordinates[coordinates.length - 1],
+        },
+      });
+    }
+
+    // Nối các waypoint nếu có từ 2 điểm trở lên
+    if (coordinates.length >= 2) {
+      routeFeatures.push({
+        type: "Feature",
+        properties: {
+          color: aircraft.color,
+          aircraftId: aircraft.id,
+        },
+        geometry: {
+          type: "LineString",
+          coordinates,
+        },
+      });
+    }
+  });
+
+  // Cập nhật waypoint
+  pointsSource.setData({
+    type: "FeatureCollection",
+    features: pointFeatures,
+  });
+
+  // Cập nhật đường bay
+  routeSource.setData({
+    type: "FeatureCollection",
+    features: routeFeatures,
+  });
+
+  // Cập nhật vị trí máy bay
+  aircraftSource.setData({
+    type: "FeatureCollection",
+    features: aircraftFeatures,
+  });
 }
 
 // Cập nhật label cho các ô lưới

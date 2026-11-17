@@ -28,7 +28,6 @@ export function useRoutePoints() {
       const updated = [...pointsRef.current, point];
 
       commitPoints(updated);
-      console.log("add point");
       return updated.length;
     },
     [commitPoints],

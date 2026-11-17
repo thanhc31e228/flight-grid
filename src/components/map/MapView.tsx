@@ -13,7 +13,11 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import { MAP_CONFIG, MAP_GRID_CONFIG } from "../../config/map.config";
 
-import { initializeMapLayers, updateGridLabels } from "./MapLayers";
+import {
+  initializeMapLayers,
+  updateGridLabels,
+  updateWaypoints,
+} from "./MapLayers";
 
 import { registerMapEvents } from "./MapEvents";
 
@@ -124,7 +128,11 @@ export default function MapView({
   // ======================================
   // UPDATE GRID LABELS
   // ======================================
+  useEffect(() => {
+    if (!mapRef.current) return;
 
+    updateWaypoints(mapRef.current, aircraftList);
+  }, [aircraftList]);
   useEffect(() => {
     const map = mapRef.current;
 
