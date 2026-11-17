@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 
-import type { Point } from "../../features/route/route.types";
 import type { GridFeature } from "../../features/grid/grid.types";
 
 import RouteControls from "./RouteControls";
@@ -26,14 +25,8 @@ export default function MapControlPanel({
   const [editorAnimated, setEditorAnimated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const {
-    aircrafts,
-    selectedAircraftId,
-    setRoute,
-    addPoint,
-    undoPoint,
-    clearPoints,
-  } = useAirCraftContext();
+  const { aircrafts, selectedAircraftId, undoPoint, clearPoints } =
+    useAirCraftContext();
   // Máy bay đang được chọn
   const selectedAircraft = useMemo(
     () =>
