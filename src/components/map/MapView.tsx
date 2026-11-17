@@ -224,7 +224,7 @@ export default function MapView({
       initialized = true;
 
       // Khởi tạo toàn bộ source và layer.
-      cleanupAnimation = initializeMapLayers(map);
+      initializeMapLayers(map);
 
       // Đồng bộ dữ liệu mới nhất.
       updateGridLabels(map, gridLabelsRef.current);
@@ -322,7 +322,6 @@ function updateAircraftRoutes(map: MapLibreMap, aircrafts: AirCraft[]) {
   // ROUTES GEOJSON
   // Mỗi máy bay là một LineString riêng.
   // ======================================
-
   routeSource.setData({
     type: "FeatureCollection",
 

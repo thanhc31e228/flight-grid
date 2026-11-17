@@ -9,9 +9,9 @@ export function registerWaypointHoverEvents(map: MapLibreMap) {
   let currentName = "";
 
   const handleMouseMove = (e: MapMouseEvent) => {
-    // Chỉ kiểm tra waypoint, không kiểm tra grid-fill
+    // Kiểm tra waypoint tam giác
     const features = map.queryRenderedFeatures(e.point, {
-      layers: ["points-casing"],
+      layers: ["points-layer"],
     });
 
     const feature = features[0];
@@ -24,6 +24,7 @@ export function registerWaypointHoverEvents(map: MapLibreMap) {
     }
 
     const coordinates = feature.geometry.coordinates as [number, number];
+
     const name = String(feature.properties?.name ?? "Waypoint");
 
     map.getCanvas().style.cursor = "pointer";
@@ -36,10 +37,10 @@ export function registerWaypointHoverEvents(map: MapLibreMap) {
       });
     }
 
-    // Chỉ cập nhật nội dung khi chuyển sang waypoint khác
     if (currentName !== name) {
       const content = document.createElement("div");
-      content.textContent = name; // An toàn hơn setHTML
+      content.textContent = name;
+
       popup.setDOMContent(content);
       currentName = name;
     }
@@ -63,6 +64,7 @@ export function registerWaypointHoverEvents(map: MapLibreMap) {
   return () => {
     map.off("mousemove", handleMouseMove);
     map.off("mouseout", handleMouseOut);
+
     popup?.remove();
     popup = null;
   };

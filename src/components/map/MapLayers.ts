@@ -6,9 +6,15 @@ import { MAP_CONFIG } from "../../config/map.config";
 
 import { createGrid, emptyGrid } from "../../features/grid/grid.factory";
 import { lineString } from "@turf/helpers";
-import bezierSpline from "@turf/bezier-spline";
 import type { Feature, Point } from "geojson";
+
+const EMPTY_FEATURE_COLLECTION = {
+  type: "FeatureCollection" as const,
+  features: [],
+};
+
 // hàm thêm các ô vuông
+
 export function addGridLayers(map: MapLibreMap) {
   map.addSource("grid-source", {
     type: "geojson",
@@ -112,40 +118,55 @@ export function addGridLayers(map: MapLibreMap) {
     },
   });
 }
+
+function addWaypointTriangleImage(map: MapLibreMap) {
+  if (map.hasImage("waypoint-triangle")) return;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 64;
+  canvas.height = 64;
+
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) return;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.moveTo(32, 4);
+  ctx.lineTo(60, 58);
+  ctx.lineTo(4, 58);
+  ctx.closePath();
+  ctx.fill();
+
+  const imageData = ctx.getImageData(0, 0, 64, 64);
+
+  map.addImage("waypoint-triangle", imageData, {
+    sdf: true,
+  });
+}
+
 export function addRouteLayers(map: MapLibreMap) {
+  // =========================
+  // ROUTE SOURCE
+  // =========================
+
   map.addSource("route-source", {
     type: "geojson",
-    data: emptyGrid(),
+    data: EMPTY_FEATURE_COLLECTION,
   });
 
-  // Glow rất nhẹ bên dưới đường bay
-  map.addLayer({
-    id: "route-glow",
-    type: "line",
-    source: "route-source",
-    layout: {
-      "line-cap": "round",
-      "line-join": "round",
-    },
-    paint: {
-      "line-color": "#f87171",
-      "line-width": 6,
-      "line-blur": 3,
-      "line-opacity": 0.18,
-    },
-  });
-
-  // Đường bay chính - mảnh và rõ nét
   map.addLayer({
     id: "route-line",
     type: "line",
     source: "route-source",
+
     layout: {
       "line-cap": "round",
       "line-join": "round",
     },
+
     paint: {
-      "line-color": ["coalesce", ["get", "color"], "#ef4444"],
+      "line-color": ["get", "color"],
       "line-width": [
         "interpolate",
         ["linear"],
@@ -163,106 +184,112 @@ export function addRouteLayers(map: MapLibreMap) {
     },
   });
 
-  // Vệt chuyển động trên đường bay
-  map.addLayer({
-    id: "route-line-animation",
-    type: "line",
-    source: "route-source",
-    layout: {
-      "line-cap": "round",
-      "line-join": "round",
-    },
-    paint: {
-      "line-color": "#fecaca",
-      "line-width": 1,
-      "line-opacity": 0.9,
-      "line-dasharray": [0.5, 4],
-    },
-  });
+  // =========================
+  // AIRCRAFT SOURCE
+  // =========================
 
-  // Source máy bay
-  map.addSource("enemy-aircraft-source", {
+  map.addSource("aircraft-source", {
     type: "geojson",
-    data: {
-      type: "FeatureCollection",
-      features: [],
-    },
+    data: EMPTY_FEATURE_COLLECTION,
   });
 
-  // Icon máy bay
   map.addLayer({
-    id: "enemy-aircraft-icon",
+    id: "aircraft-icon",
     type: "symbol",
-    source: "enemy-aircraft-source",
+    source: "aircraft-source",
+
     layout: {
       "text-field": "✈",
       "text-font": ["Open Sans Regular"],
       "text-size": ["interpolate", ["linear"], ["zoom"], 5, 20, 10, 25, 15, 30],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
-      "text-rotation-alignment": "map",
-      "text-rotate": ["get", "bearing"],
+      "text-rotation-alignment": "viewport",
     },
+
     paint: {
-      "text-color": "#f87171",
-      "text-halo-color": "#450a0a",
+      "text-color": ["get", "color"],
+      "text-halo-color": "#0f172a",
       "text-halo-width": 1.5,
-      "text-opacity": 1,
     },
   });
 
-  // Nhãn máy bay
   map.addLayer({
-    id: "enemy-aircraft-label",
+    id: "aircraft-label",
     type: "symbol",
-    source: "enemy-aircraft-source",
+    source: "aircraft-source",
+
     layout: {
-      "text-field": "ENEMY AIRCRAFT",
+      "text-field": ["get", "name"],
       "text-size": 9,
       "text-font": ["Open Sans Semibold"],
       "text-offset": [0, 2],
       "text-anchor": "top",
       "text-allow-overlap": true,
     },
+
     paint: {
-      "text-color": "#f87171",
+      "text-color": ["get", "color"],
       "text-halo-color": "#0f172a",
       "text-halo-width": 1.5,
     },
   });
 
-  // Waypoints
+  // =========================
+  // WAYPOINT SOURCE
+  // =========================
+
+  // =========================
+  // WAYPOINT SOURCE
+  // =========================
+
+  addWaypointTriangleImage(map);
+
   map.addSource("points-source", {
     type: "geojson",
-    data: emptyGrid(),
+    data: EMPTY_FEATURE_COLLECTION,
   });
 
-  map.addLayer({
-    id: "points-casing",
-    type: "circle",
-    source: "points-source",
-    paint: {
-      "circle-radius": 5,
-      "circle-color": "#450a0a",
-      "circle-stroke-color": "#ef4444",
-      "circle-stroke-width": 1.5,
-    },
-  });
+  // Tam giác viền ngoài
+  // map.addLayer({
+  //   id: "points-casing",
+  //   type: "symbol",
+  //   source: "points-source",
+  //   layout: {
+  //     "icon-image": "waypoint-triangle",
+  //     "icon-size": 0.35,
+  //     "icon-allow-overlap": true,
+  //     "icon-ignore-placement": true,
+  //     "icon-anchor": "center",
+  //   },
+  //   paint: {
+  //     "icon-color": "#0f172a",
+  //   },
+  // });
 
+  // Tam giác chính
   map.addLayer({
     id: "points-layer",
-    type: "circle",
+    type: "symbol",
     source: "points-source",
+    layout: {
+      "icon-image": "waypoint-triangle",
+      "icon-size": 0.2,
+      "icon-allow-overlap": true,
+      "icon-ignore-placement": true,
+      "icon-anchor": "center",
+    },
     paint: {
-      "circle-radius": 2,
-      "circle-color": "#fecaca",
+      "icon-color": ["get", "color"],
     },
   });
 
+  // Waypoint label
   map.addLayer({
     id: "points-label",
     type: "symbol",
     source: "points-source",
+
     layout: {
       "text-field": ["get", "name"],
       "text-size": 10,
@@ -270,15 +297,16 @@ export function addRouteLayers(map: MapLibreMap) {
       "text-anchor": "top",
       "text-allow-overlap": true,
     },
+
     paint: {
-      "text-color": "#fecaca",
-      "text-halo-color": "#450a0a",
+      "text-color": ["get", "color"],
+      "text-halo-color": "#0f172a",
       "text-halo-width": 1.5,
     },
   });
 }
-
 //Hàm này nhận danh sách tọa độ và cập nhật đường bay, vị trí máy bay.
+
 export function updateFlightRoute(
   map: MapLibreMap,
   coordinates: [number, number][],
@@ -287,52 +315,35 @@ export function updateFlightRoute(
     | GeoJSONSource
     | undefined;
 
-  const aircraftSource = map.getSource("enemy-aircraft-source") as
+  const aircraftSource = map.getSource("aircraft-source") as
     | GeoJSONSource
     | undefined;
 
   if (!routeSource || !aircraftSource) return;
 
   if (coordinates.length < 2) {
-    routeSource.setData(emptyGrid());
-
-    aircraftSource.setData({
-      type: "FeatureCollection",
-      features: [],
-    });
-
+    routeSource.setData(EMPTY_FEATURE_COLLECTION);
+    aircraftSource.setData(EMPTY_FEATURE_COLLECTION);
     return;
   }
 
-  const originalRoute = lineString(coordinates);
-
-  const smoothRoute = bezierSpline(originalRoute, {
-    sharpness: 0.75,
-    resolution: 1000,
+  // Tạo đường bay thẳng, không sử dụng Bezier
+  const route = lineString(coordinates, {
+    color: "#ef4444",
   });
 
-  routeSource.setData(smoothRoute);
+  routeSource.setData(route);
 
-  const routeCoordinates = smoothRoute.geometry.coordinates;
+  // Lấy tọa độ cuối cùng
+  const lastPoint = coordinates[coordinates.length - 1];
 
-  const lastIndex = routeCoordinates.length - 1;
-
-  const previousPoint = routeCoordinates[lastIndex - 1];
-  const lastPoint = routeCoordinates[lastIndex];
-
-  // Tính góc hướng máy bay
-  const bearing =
-    Math.atan2(
-      lastPoint[0] - previousPoint[0],
-      lastPoint[1] - previousPoint[1],
-    ) *
-    (180 / Math.PI);
-
+  // Tạo icon máy bay
   const aircraft: Feature<Point> = {
     type: "Feature",
     properties: {
-      bearing,
-      type: "enemy-aircraft",
+      type: "aircraft",
+      name: "Aircraft",
+      color: "#ef4444",
     },
     geometry: {
       type: "Point",
@@ -345,6 +356,7 @@ export function updateFlightRoute(
     features: [aircraft],
   });
 }
+
 export function addAirportLayer(map: MapLibreMap) {
   const airportCircle = circle(
     MAP_CONFIG.CENTER,
@@ -385,15 +397,15 @@ export function addAirportLayer(map: MapLibreMap) {
 }
 
 // hàm khởi tạo các thành phần trên map như grid, router, sân bay kép
+
 export function initializeMapLayers(map: MapLibreMap) {
   addGridLayers(map);
 
   addRouteLayers(map);
 
   addAirportLayer(map);
-
-  return animateFlightRoute(map);
 }
+
 // Cập nhật label cho các ô lưới
 export function updateGridLabels(map: MapLibreMap, labels: string[]) {
   const source = map.getSource("grid-source") as GeoJSONSource | undefined;
@@ -436,64 +448,4 @@ export function updateGridLabels(map: MapLibreMap, labels: string[]) {
 
   // Cập nhật dữ liệu GeoJSON
   source.setData(gridData);
-}
-export function animateFlightRoute(map: MapLibreMap) {
-  let animationId = 0;
-  let lastTime = 0;
-
-  let phase = 0;
-
-  const animate = (time: number) => {
-    if (time - lastTime >= 60) {
-      phase += 0.12;
-
-      // Chạy nét sáng dọc đường bay
-      if (map.getLayer("route-line-animation")) {
-        const patterns = [
-          [0.5, 3],
-          [1, 2.5],
-          [1.5, 2],
-          [2, 1.5],
-          [2.5, 1],
-          [3, 0.5],
-        ];
-
-        const index = Math.floor(phase * 2) % patterns.length;
-
-        map.setPaintProperty(
-          "route-line-animation",
-          "line-dasharray",
-          patterns[index],
-        );
-      }
-
-      // Nhấp nháy máy bay
-      if (map.getLayer("enemy-aircraft-icon")) {
-        const opacity = 0.5 + Math.abs(Math.sin(phase * 2)) * 0.5;
-
-        map.setPaintProperty("enemy-aircraft-icon", "text-opacity", opacity);
-      }
-
-      // Radar lan rộng
-      if (map.getLayer("enemy-radar")) {
-        const radius = 12 + (Math.sin(phase) + 1) * 10;
-
-        const opacity = 0.05 + (1 - Math.sin(phase)) * 0.1;
-
-        map.setPaintProperty("enemy-radar", "circle-radius", radius);
-
-        map.setPaintProperty("enemy-radar", "circle-opacity", opacity);
-      }
-
-      lastTime = time;
-    }
-
-    animationId = requestAnimationFrame(animate);
-  };
-
-  animationId = requestAnimationFrame(animate);
-
-  return () => {
-    cancelAnimationFrame(animationId);
-  };
 }
