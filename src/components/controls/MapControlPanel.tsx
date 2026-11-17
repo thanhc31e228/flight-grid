@@ -14,10 +14,6 @@ type Props = {
   labelInput: string;
   onLabelInputChange: (value: string) => void;
   onSaveLabels: (labels: string[]) => Promise<void>;
-
-  onUndo: (aircraftId: string) => number;
-  onClear: (aircraftId: string) => void;
-  onCreateRoute: (aircraftId: string, points: Point[]) => void;
 };
 
 export default function MapControlPanel({
@@ -25,15 +21,19 @@ export default function MapControlPanel({
   labelInput,
   onLabelInputChange,
   onSaveLabels,
-  onUndo,
-  onClear,
-  onCreateRoute,
 }: Props) {
   const [showEditor, setShowEditor] = useState(false);
   const [editorAnimated, setEditorAnimated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const { aircrafts, selectedAircraftId } = useAirCraftContext();
+  const {
+    aircrafts,
+    selectedAircraftId,
+    setRoute,
+    addPoint,
+    undoPoint,
+    clearPoints,
+  } = useAirCraftContext();
   // Máy bay đang được chọn
   const selectedAircraft = useMemo(
     () =>
@@ -102,19 +102,22 @@ export default function MapControlPanel({
   // Undo waypoint của máy bay đang chọn
   const handleUndo = () => {
     if (!selectedAircraftId) return 0;
-    return onUndo(selectedAircraftId);
+    return undoPoint(selectedAircraftId);
   };
 
   // Xóa waypoint của máy bay đang chọn
   const handleClear = () => {
     if (!selectedAircraftId) return;
-    onClear(selectedAircraftId);
+    clearPoints(selectedAircraftId);
   };
 
   // Tạo route cho máy bay đang chọn
   const handleCreateRoute = (routePoints: Point[]) => {
     if (!selectedAircraftId) return;
-    onCreateRoute(selectedAircraftId, routePoints);
+
+    routePoints.forEach((point) => {
+      addPoint(selectedAircraftId, point);
+    });
   };
 
   // Xác nhận và lưu tọa độ

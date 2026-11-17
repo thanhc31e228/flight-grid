@@ -14,7 +14,13 @@ type Props = {
 
 export default function GridRouteInput({ gridIndex, onCreateRoute }: Props) {
   const [value, setValue] = useState("");
-  const { addAircraft, addPoint, isExistsAir } = useAirCraftContext();
+  const {
+    addAircraft,
+    addPoint,
+    isExistsAir,
+    selectedAircraftId,
+    setSelectedAircraftId,
+  } = useAirCraftContext();
 
   const handleSubmit = () => {
     // Tách danh sách ID, hỗ trợ xuống dòng, dấu phẩy
@@ -44,13 +50,18 @@ export default function GridRouteInput({ gridIndex, onCreateRoute }: Props) {
         color: "red",
         points: [point],
       };
-      addAircraft(airCraft);
+      const result = addAircraft(airCraft);
+      if (result === 0) {
+        window.alert("Thêm ari craft thất bại!");
+      }
+      setSelectedAircraftId(idTop);
     } else {
       console.log("add point to air");
       addPoint(idTop, point);
     }
     // Tạo tuyến theo thứ tự nhập
     onCreateRoute([point]);
+    console.log("selectedAircraftId", selectedAircraftId);
   };
 
   return (

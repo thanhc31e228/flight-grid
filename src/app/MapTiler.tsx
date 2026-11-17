@@ -12,14 +12,8 @@ import { hidePointPopup } from "../components/map/MapPopup";
 import { useAirCraftContext } from "../context/MakerContext";
 
 export default function MapTiler() {
-  const {
-    aircrafts,
-    selectedAircraftId,
-    setSelectedAircraftId,
-    undoPoint,
-    clearPoints,
-    setRoute,
-  } = useAirCraftContext();
+  const { aircrafts, selectedAircraftId, setSelectedAircraftId, undoPoint } =
+    useAirCraftContext();
   // Máy bay đang được chọn
   // Danh sách tọa độ mặc định
   const DEFAULT_GRID_LABELS = [
@@ -310,9 +304,6 @@ export default function MapTiler() {
           labelInput={labelInput}
           onLabelInputChange={setLabelInput}
           onSaveLabels={handleSaveLabels}
-          onUndo={undoPoint}
-          onClear={clearPoints}
-          onCreateRoute={setRoute}
         />
 
         {/* Nút đóng panel */}
