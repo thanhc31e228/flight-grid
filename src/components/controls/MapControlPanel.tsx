@@ -7,21 +7,20 @@ import type { GridFeature } from "../../features/grid/grid.types";
 import RouteControls from "./RouteControls";
 import GridRouteInput from "./GridRouteInput";
 import PointList from "./PointList";
+import { useAirCraftContext } from "../../context/MakerContext";
 
 type Props = {
-  points: Point[];
   gridIndex: Map<string, GridFeature>;
-
   labelInput: string;
   onLabelInputChange: (value: string) => void;
   onSaveLabels: (labels: string[]) => Promise<void>;
-  onUndo: () => number;
-  onClear: () => void;
-  onCreateRoute: (points: Point[]) => void;
+
+  onUndo: (aircraftId: string) => number;
+  onClear: (aircraftId: string) => void;
+  onCreateRoute: (aircraftId: string, points: Point[]) => void;
 };
 
 export default function MapControlPanel({
-  points,
   gridIndex,
   labelInput,
   onLabelInputChange,
@@ -34,6 +33,16 @@ export default function MapControlPanel({
   const [editorAnimated, setEditorAnimated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { aircrafts, selectedAircraftId } = useAirCraftContext();
+  // Máy bay đang được chọn
+  const selectedAircraft = useMemo(
+    () =>
+      aircrafts.find((aircraft) => aircraft.id === selectedAircraftId) ?? null,
+    [aircrafts, selectedAircraftId],
+  );
+
+  // Waypoint của máy bay đang chọn
+  const points = selectedAircraft?.points ?? [];
 
   // 10 label hàng và 10 label cột
   const [rowLabels, setRowLabels] = useState<string[]>([]);
@@ -43,7 +52,7 @@ export default function MapControlPanel({
     return labelInput.trim().split(/\s+/).filter(Boolean);
   }, [labelInput]);
 
-  // Hiệu ứng mở modal bằng Tailwind
+  // Hiệu ứng mở modal
   useEffect(() => {
     if (!showEditor) {
       setEditorAnimated(false);
@@ -56,9 +65,9 @@ export default function MapControlPanel({
 
     return () => cancelAnimationFrame(frame);
   }, [showEditor]);
-  // Mở bảng chỉnh sửa
+
+  // Mở bảng chỉnh sửa tọa độ
   const handleOpenEditor = () => {
-    // Nếu đã có 100 tọa độ thì tách lại thành hàng/cột
     if (gridLabels.length === 100) {
       setRowLabels(
         Array.from({ length: 10 }, (_, i) => {
@@ -90,7 +99,25 @@ export default function MapControlPanel({
     setColLabels((prev) => prev.map((item, i) => (i === index ? value : item)));
   };
 
-  // Xác nhận và lưu
+  // Undo waypoint của máy bay đang chọn
+  const handleUndo = () => {
+    if (!selectedAircraftId) return 0;
+    return onUndo(selectedAircraftId);
+  };
+
+  // Xóa waypoint của máy bay đang chọn
+  const handleClear = () => {
+    if (!selectedAircraftId) return;
+    onClear(selectedAircraftId);
+  };
+
+  // Tạo route cho máy bay đang chọn
+  const handleCreateRoute = (routePoints: Point[]) => {
+    if (!selectedAircraftId) return;
+    onCreateRoute(selectedAircraftId, routePoints);
+  };
+
+  // Xác nhận và lưu tọa độ
   const handleAccept = async () => {
     const rows = rowLabels.map((label) => label.trim());
     const cols = colLabels.map((label) => label.trim());
@@ -184,15 +211,37 @@ export default function MapControlPanel({
 
         <div className="my-4 border-t border-gray-100" />
 
-        <RouteControls
-          count={points.length}
-          onUndo={onUndo}
-          onClear={onClear}
-        />
+        {/* Điều khiển route theo máy bay */}
+        <>
+          <div className="mb-3 flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+            <span
+              className="h-3 w-3 shrink-0 rounded-full"
+              style={{ backgroundColor: selectedAircraft?.color }}
+            />
 
-        <GridRouteInput gridIndex={gridIndex} onCreateRoute={onCreateRoute} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-gray-800">
+                {selectedAircraft?.name}
+              </p>
 
-        <PointList points={points} />
+              <p className="text-xs text-gray-500">{points.length} waypoint</p>
+            </div>
+          </div>
+
+          <RouteControls
+            count={selectedAircraft?.points.length ?? 0}
+            aircraftId={selectedAircraftId}
+            onUndo={handleUndo}
+            onClear={handleClear}
+          />
+
+          <GridRouteInput
+            gridIndex={gridIndex}
+            onCreateRoute={handleCreateRoute}
+          />
+
+          <PointList points={points} />
+        </>
       </div>
 
       {/* Popup thiết lập tọa độ */}
@@ -360,10 +409,10 @@ export default function MapControlPanel({
                 {error && (
                   <div
                     className="
-                    mt-6 rounded-lg border border-red-200
-                    bg-red-50 px-4 py-3
-                    text-sm text-red-600
-                  "
+                      mt-6 rounded-lg border border-red-200
+                      bg-red-50 px-4 py-3
+                      text-sm text-red-600
+                    "
                   >
                     ⚠ {error}
                   </div>
@@ -373,12 +422,12 @@ export default function MapControlPanel({
               {/* Footer */}
               <div
                 className="
-                flex shrink-0 flex-col gap-3
-                border-t border-gray-100
-                bg-gray-50 px-5 py-4
-                sm:flex-row sm:items-center
-                sm:justify-between sm:px-6
-              "
+                  flex shrink-0 flex-col gap-3
+                  border-t border-gray-100
+                  bg-gray-50 px-5 py-4
+                  sm:flex-row sm:items-center
+                  sm:justify-between sm:px-6
+                "
               >
                 <span className="text-sm font-medium text-gray-500">
                   {filledRows + filledCols}/20 label đã nhập

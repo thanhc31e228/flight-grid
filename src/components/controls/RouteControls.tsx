@@ -1,14 +1,35 @@
-import { useMaker } from "../../context/MakerContext";
 import { hidePointPopup } from "../map/MapPopup";
 
 type Props = {
   count: number;
-  onUndo: () => number;
-  onClear: () => void;
+  aircraftId: string | null;
+  onUndo: (aircraftId: string) => number;
+  onClear: (aircraftId: string) => void;
 };
 
-export default function RouteControls({ count, onUndo, onClear }: Props) {
-  const { points, undoPoint, clearPoints } = useMaker();
+export default function RouteControls({
+  count,
+  aircraftId,
+  onUndo,
+  onClear,
+}: Props) {
+  const handleUndo = () => {
+    if (!aircraftId) return;
+
+    const remainingPoints = onUndo(aircraftId);
+
+    if (remainingPoints === 0) {
+      hidePointPopup();
+    }
+  };
+
+  const handleClear = () => {
+    if (!aircraftId) return;
+
+    onClear(aircraftId);
+    hidePointPopup();
+  };
+
   return (
     <div className="route-controls">
       <strong>QUẢN LÝ TUYẾN ĐƯỜNG</strong>
@@ -25,22 +46,17 @@ export default function RouteControls({ count, onUndo, onClear }: Props) {
 
       <div className="route-buttons">
         <button
-          onClick={() => {
-            if (undoPoint() === 0) {
-              hidePointPopup();
-            }
-          }}
-          disabled={count === 0}
+          type="button"
+          onClick={handleUndo}
+          disabled={!aircraftId || count === 0}
         >
           Hoàn tác
         </button>
 
         <button
-          onClick={() => {
-            clearPoints();
-            hidePointPopup();
-          }}
-          disabled={count === 0}
+          type="button"
+          onClick={handleClear}
+          disabled={!aircraftId || count === 0}
         >
           Xóa tất cả
         </button>

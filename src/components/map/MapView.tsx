@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { registerWaypointHoverEvents } from "./MapHoverEvents";
+
 import {
   Map as MapLibreMap,
   NavigationControl,
@@ -14,24 +14,39 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { MAP_CONFIG, MAP_GRID_CONFIG } from "../../config/map.config";
 
 import { initializeMapLayers, updateGridLabels } from "./MapLayers";
+
 import { registerMapEvents } from "./MapEvents";
 
+import { registerWaypointHoverEvents } from "./MapHoverEvents";
+
 import { createRoundedRoute } from "../../features/route/route.geometry";
-import type { Point } from "../../features/route/route.types";
-import type { GridCell } from "../MapTiler/types/map.types";
+
+import type { GridCell, AirCraft } from "../MapTiler/types/map.types";
+
+import { useAirCraftContext } from "../../context/MakerContext";
+
+// ======================================
+// TYPES
+// ======================================
 
 type MapViewProps = {
-  points: Point[];
-  onAddPoint: (point: Point) => number;
+  // Giữ prop này để không làm hỏng component cha hiện tại.
+  // Dữ liệu từ Context được ưu tiên.
+  aircrafts: AirCraft[];
+
   onOpenGridContextMenu: (data: {
     cell: GridCell;
     x: number;
     y: number;
   }) => void;
+
   gridLabels: string[];
 };
 
-// MapTiler API Key
+// ======================================
+// CONFIG
+// ======================================
+
 const API_KEY = process.env.REACT_APP_MAPTILER_API_KEY;
 
 setWorkerUrl(
@@ -41,42 +56,94 @@ setWorkerUrl(
   ).toString(),
 );
 
+// ======================================
+// MAP VIEW
+// ======================================
+
 export default function MapView({
-  points,
-  onAddPoint,
+  aircrafts: propAircrafts,
   onOpenGridContextMenu,
   gridLabels,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+
   const mapRef = useRef<MapLibreMap | null>(null);
-  const gridLabelsRef = useRef(gridLabels);
+
+  // ======================================
+  // CONTEXT
+  // ======================================
+
+  const {
+    selectedAircraftId,
+    aircrafts: contextAircrafts,
+    addPoint,
+  } = useAirCraftContext();
+
+  // Context là nguồn dữ liệu chính.
+  // Props chỉ là phương án dự phòng.
+  const aircraftList = contextAircrafts ?? propAircrafts;
+
+  // ======================================
+  // LATEST VALUES REFS
+  // ======================================
+
+  const aircraftsRef = useRef<AirCraft[]>(aircraftList);
+
+  const selectedAircraftIdRef = useRef<string | null>(selectedAircraftId);
+
+  const addPointRef = useRef(addPoint);
+
+  const gridLabelsRef = useRef<string[]>(gridLabels);
+
+  const onOpenGridContextMenuRef = useRef(onOpenGridContextMenu);
+
+  // ======================================
+  // SYNC REFS
+  // ======================================
+
+  useEffect(() => {
+    aircraftsRef.current = aircraftList;
+  }, [aircraftList]);
+
+  useEffect(() => {
+    selectedAircraftIdRef.current = selectedAircraftId;
+  }, [selectedAircraftId]);
+
+  useEffect(() => {
+    addPointRef.current = addPoint;
+  }, [addPoint]);
 
   useEffect(() => {
     gridLabelsRef.current = gridLabels;
   }, [gridLabels]);
-  // Giữ callback mới nhất
-  const onAddPointRef = useRef(onAddPoint);
-  const onOpenGridContextMenuRef = useRef(onOpenGridContextMenu);
-  useEffect(() => {
-    const map = mapRef.current;
-
-    if (!map || !map.isStyleLoaded()) return;
-    updateGridLabels(map, gridLabels);
-  }, [gridLabels]);
-  // Giữ points mới nhất
-  const pointsRef = useRef(points);
-
-  useEffect(() => {
-    onAddPointRef.current = onAddPoint;
-  }, [onAddPoint]);
 
   useEffect(() => {
     onOpenGridContextMenuRef.current = onOpenGridContextMenu;
   }, [onOpenGridContextMenu]);
 
+  // ======================================
+  // UPDATE GRID LABELS
+  // ======================================
+
   useEffect(() => {
-    pointsRef.current = points;
-  }, [points]);
+    const map = mapRef.current;
+
+    if (!map || !map.isStyleLoaded()) return;
+
+    updateGridLabels(map, gridLabelsRef.current);
+  }, [gridLabels]);
+
+  // ======================================
+  // UPDATE AIRCRAFT ROUTES
+  // ======================================
+
+  useEffect(() => {
+    const map = mapRef.current;
+
+    if (!map || !map.isStyleLoaded()) return;
+
+    updateAircraftRoutes(map, aircraftList);
+  }, [aircraftList]);
 
   // ======================================
   // HANDLE GRID CONTEXT MENU
@@ -84,18 +151,21 @@ export default function MapView({
 
   const handleGridContextMenu = (e: MapMouseEvent) => {
     e.preventDefault();
+
     const map = mapRef.current;
-    if (!map) {
-      return;
-    }
-    // Kiểm tra feature tại vị trí chuột
-    const features = map.queryRenderedFeatures(e.point);
+
+    if (!map || !map.isStyleLoaded()) return;
+
+    const features = map.queryRenderedFeatures(e.point, {
+      layers: ["grid-fill"],
+    });
+
     const gridFeature = features.find(
       (feature) => feature.layer.id === "grid-fill",
     );
-    if (!gridFeature) {
-      return;
-    }
+
+    if (!gridFeature) return;
+
     const properties = gridFeature.properties;
 
     if (properties?.row === undefined || properties?.col === undefined) {
@@ -119,13 +189,22 @@ export default function MapView({
   // ======================================
 
   useEffect(() => {
-    if (!containerRef.current || !API_KEY) {
+    const container = containerRef.current;
+
+    if (!container || !API_KEY) {
       console.error("Không tìm thấy MapTiler API Key");
       return;
     }
 
+    let disposed = false;
+    let initialized = false;
+
+    let cleanupEvents: (() => void) | undefined;
+    let cleanupAnimation: (() => void) | undefined;
+    let cleanupHover: (() => void) | undefined;
+
     const map = new MapLibreMap({
-      container: containerRef.current,
+      container,
       style: `${MAP_CONFIG.STYLE_URL}?key=${API_KEY}`,
       center: MAP_CONFIG.CENTER,
       zoom: MAP_CONFIG.INITIAL_ZOOM,
@@ -133,30 +212,46 @@ export default function MapView({
 
     mapRef.current = map;
 
-    map.addControl(new NavigationControl(), "top-right");
+    map.addControl(new NavigationControl(), "bottom-right");
 
-    // Khai báo bên trong useEffect
-    let cleanupEvents: (() => void) | undefined;
-    let cleanupAnimation: (() => void) | undefined;
-    let cleanupHover: (() => void) | undefined;
+    // ======================================
+    // MAP LOAD
+    // ======================================
 
     const handleLoad = () => {
+      if (disposed || initialized) return;
+
+      initialized = true;
+
+      // Khởi tạo toàn bộ source và layer.
       cleanupAnimation = initializeMapLayers(map);
 
+      // Đồng bộ dữ liệu mới nhất.
       updateGridLabels(map, gridLabelsRef.current);
 
+      updateAircraftRoutes(map, aircraftsRef.current);
+
+      // Đăng ký hover.
       cleanupHover = registerWaypointHoverEvents(map);
 
-      cleanupEvents = registerMapEvents(map, (point) =>
-        onAddPointRef.current(point),
+      // Đăng ký click và waypoint.
+      cleanupEvents = registerMapEvents(
+        map,
+        (aircraftId, point) => {
+          return addPointRef.current(aircraftId, point);
+        },
+        () => selectedAircraftIdRef.current,
       );
 
+      // Context menu của grid.
       map.on("contextmenu", "grid-fill", handleGridContextMenu);
 
       map.getCanvas().style.cursor = "crosshair";
-
-      updateRoute(map, pointsRef.current);
     };
+
+    // ======================================
+    // MAP ERROR
+    // ======================================
 
     const handleError = (event: ErrorEvent) => {
       console.error("Map error:", event.error);
@@ -165,32 +260,35 @@ export default function MapView({
     map.on("load", handleLoad);
     map.on("error", handleError);
 
+    // ======================================
+    // CLEANUP
+    // ======================================
+
     return () => {
+      disposed = true;
+
       map.off("load", handleLoad);
       map.off("error", handleError);
 
+      // Xóa các event đã đăng ký.
       map.off("contextmenu", "grid-fill", handleGridContextMenu);
 
       cleanupHover?.();
       cleanupEvents?.();
       cleanupAnimation?.();
 
+      // Xóa map.
       map.remove();
-      mapRef.current = null;
+
+      if (mapRef.current === map) {
+        mapRef.current = null;
+      }
     };
   }, []);
 
   // ======================================
-  // UPDATE ROUTE
+  // RENDER
   // ======================================
-
-  useEffect(() => {
-    const map = mapRef.current;
-
-    if (!map || !map.isStyleLoaded()) return;
-
-    updateRoute(map, points);
-  }, [points]);
 
   return (
     <div
@@ -206,10 +304,10 @@ export default function MapView({
 }
 
 // ======================================
-// UPDATE ROUTE DATA
+// UPDATE AIRCRAFT ROUTES
 // ======================================
 
-function updateRoute(map: MapLibreMap, points: Point[]) {
+function updateAircraftRoutes(map: MapLibreMap, aircrafts: AirCraft[]) {
   const routeSource = map.getSource("route-source") as
     | GeoJSONSource
     | undefined;
@@ -220,47 +318,66 @@ function updateRoute(map: MapLibreMap, points: Point[]) {
 
   if (!routeSource || !pointsSource) return;
 
+  // ======================================
+  // ROUTES GEOJSON
+  // Mỗi máy bay là một LineString riêng.
+  // ======================================
+
   routeSource.setData({
     type: "FeatureCollection",
-    features:
-      points.length >= 2
-        ? [
-            {
-              type: "Feature",
-              properties: {},
-              geometry: {
-                type: "LineString",
-                coordinates: createRoundedRoute(
-                  points,
-                  MAP_GRID_CONFIG.ROUTE_RADIUS,
-                  MAP_GRID_CONFIG.ROUTE_STEPS,
-                ),
-              },
-            },
-          ]
-        : [],
+
+    features: aircrafts
+      .filter((aircraft) => aircraft.points.length >= 2)
+      .map((aircraft) => ({
+        type: "Feature" as const,
+
+        properties: {
+          aircraftId: aircraft.id,
+          name: aircraft.name,
+          color: aircraft.color,
+        },
+
+        geometry: {
+          type: "LineString" as const,
+
+          coordinates: createRoundedRoute(
+            aircraft.points,
+            MAP_GRID_CONFIG.ROUTE_RADIUS,
+            MAP_GRID_CONFIG.ROUTE_STEPS,
+          ),
+        },
+      })),
   });
 
-  // Thêm đánh dấu điểm
+  // ======================================
+  // WAYPOINTS GEOJSON
+  // Mỗi điểm thuộc về một máy bay.
+  // ======================================
+
   pointsSource.setData({
     type: "FeatureCollection",
-    features: points.map((point, index) => ({
-      type: "Feature",
-      properties: {
-        name:
-          point.time ??
-          new Date().toLocaleTimeString("vi-VN", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }),
-        lng: point.lng,
-        lat: point.lat,
-      },
-      geometry: {
-        type: "Point",
-        coordinates: [point.lng, point.lat],
-      },
-    })),
+
+    features: aircrafts.flatMap((aircraft) =>
+      aircraft.points.map((point, index) => ({
+        type: "Feature" as const,
+
+        properties: {
+          aircraftId: aircraft.id,
+          aircraftName: aircraft.name,
+          color: aircraft.color,
+
+          index: index + 1,
+
+          lng: point.lng,
+          lat: point.lat,
+        },
+
+        geometry: {
+          type: "Point" as const,
+
+          coordinates: [point.lng, point.lat] as [number, number],
+        },
+      })),
+    ),
   });
 }

@@ -23,7 +23,8 @@ const GRID_LAYERS = ["grid-level-3-fill", "grid-level-2-fill", "grid-fill"];
 
 export function registerMapEvents(
   map: MapLibreMap,
-  onAddPoint: (point: Point) => number,
+  onAddPoint: (aircraftId: string, point: Point) => number,
+  getSelectedAircraftId: () => string | null,
 ) {
   let activeParentId: string | null = null;
   let activeChildId: string | null = null;
@@ -116,15 +117,28 @@ export function registerMapEvents(
   // ======================================
 
   const handleClick = (event: MapMouseEvent) => {
+    if (!map.isStyleLoaded()) return;
+    const selectedAircraftId = getSelectedAircraftId();
+    // Chưa chọn máy bay thì không thêm điểm
+    if (!selectedAircraftId) {
+      // them top may bay moi
+      console.warn("Vui lòng chọn máy bay trước khi thêm waypoint");
+      return;
+    }
     const point: Point = {
       lng: event.lngLat.lng,
       lat: event.lngLat.lat,
-      time: new Date().toDateString(),
+      time: new Date().toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }),
     };
 
-    const pointNumber = onAddPoint(point);
+    // Thêm điểm vào đúng máy bay
+    const pointNumber = onAddPoint(selectedAircraftId, point);
 
-    // Chỉ hiển thị popup tại điểm đầu tiên
+    // Chỉ hiển thị popup tại điểm đầu tiên của từng máy bay
     if (pointNumber === 1) {
       showPointPopup(
         {
@@ -142,7 +156,10 @@ export function registerMapEvents(
   map.on("mousemove", handleMouseMove);
   map.on("click", handleClick);
 
-  // Cleanup event listeners.
+  // ======================================
+  // CLEANUP
+  // ======================================
+
   return () => {
     map.off("mousemove", handleMouseMove);
     map.off("click", handleClick);

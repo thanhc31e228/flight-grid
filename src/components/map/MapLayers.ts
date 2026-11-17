@@ -145,7 +145,7 @@ export function addRouteLayers(map: MapLibreMap) {
       "line-join": "round",
     },
     paint: {
-      "line-color": "#ef4444",
+      "line-color": ["coalesce", ["get", "color"], "#ef4444"],
       "line-width": [
         "interpolate",
         ["linear"],

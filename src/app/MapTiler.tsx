@@ -6,13 +6,21 @@ import MapControlPanel from "../components/controls/MapControlPanel";
 import { createLevel3Index } from "../features/grid/grid.index";
 
 import "../styles/map.css";
-import { GridCell } from "../components/MapTiler/types/map.types";
-import { useMaker } from "../context/MakerContext";
+
+import type { GridCell } from "../components/MapTiler/types/map.types";
 import { hidePointPopup } from "../components/map/MapPopup";
+import { useAirCraftContext } from "../context/MakerContext";
 
 export default function MapTiler() {
-  const { points, addPoint, undoPoint, clearPoints, setRoute } = useMaker();
-
+  const {
+    aircrafts,
+    selectedAircraftId,
+    setSelectedAircraftId,
+    undoPoint,
+    clearPoints,
+    setRoute,
+  } = useAirCraftContext();
+  // Máy bay đang được chọn
   // Danh sách tọa độ mặc định
   const DEFAULT_GRID_LABELS = [
     "43",
@@ -119,13 +127,30 @@ export default function MapTiler() {
 
   const [labelInput, setLabelInput] = useState(DEFAULT_GRID_LABELS.join(" "));
 
+  // Tự động chọn máy bay đầu tiên khi có danh sách
+  useEffect(() => {
+    if (aircrafts.length === 0) {
+      setSelectedAircraftId("");
+      return;
+    }
+
+    const selectedExists = aircrafts.some(
+      (aircraft) => aircraft.id === selectedAircraftId,
+    );
+    if (!selectedExists) {
+      setSelectedAircraftId(aircrafts[0].id);
+    }
+  }, [aircrafts, selectedAircraftId, setSelectedAircraftId]);
+
   // Danh sách labels
   const gridLabels = useMemo(() => {
     return labelInput.trim().split(/\s+/).filter(Boolean);
   }, [labelInput]);
 
   // Tạo grid index
-  const gridIndex = useMemo(() => createLevel3Index(gridLabels), [gridLabels]);
+  const gridIndex = useMemo(() => {
+    return createLevel3Index(gridLabels);
+  }, [gridLabels]);
 
   // Trạng thái panel
   const [isPanelOpen, setIsPanelOpen] = useState(true);
@@ -146,24 +171,59 @@ export default function MapTiler() {
     setContextMenu(data);
   };
 
-  // Xử lý phím Backspace
+  // Undo waypoint của máy bay đang chọn
+  const handleUndo = () => {
+    if (!selectedAircraftId) return 0;
+
+    const remainingPoints = undoPoint(selectedAircraftId);
+
+    if (remainingPoints === 0) {
+      hidePointPopup();
+    }
+
+    return remainingPoints;
+  };
+
+  // Lưu labels
+  const handleSaveLabels = async (labels: string[]) => {
+    // Có thể gọi API lưu tọa độ tại đây
+    //
+    // const response = await fetch("/api/grid-labels", {
+    //   method: "PUT",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //   },
+    //   body: JSON.stringify({ labels }),
+    // });
+    //
+    // if (!response.ok) {
+    //   throw new Error("Lưu tọa độ thất bại.");
+    // }
+  };
+
+  // Chọn máy bay
+  const handleSelectAircraft = (aircraftId: string) => {
+    setSelectedAircraftId(aircraftId);
+    hidePointPopup();
+  };
+
+  // Đóng context menu khi nhấn Escape
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement;
+      const target = event.target as HTMLElement | null;
 
-      // Không undo khi đang nhập nội dung
+      // Không xử lý phím khi đang nhập nội dung
       if (
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||
-        target.isContentEditable
+        target?.isContentEditable
       ) {
         return;
       }
 
       if (event.key === "Backspace") {
-        if (undoPoint() === 0) {
-          hidePointPopup();
-        }
+        event.preventDefault();
+        handleUndo();
       }
 
       if (event.key === "Escape") {
@@ -172,36 +232,68 @@ export default function MapTiler() {
     };
 
     window.addEventListener("keydown", handleKeyDown);
+
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [undoPoint]);
-
-  // Lưu labels
-  const handleSaveLabels = async (labels: string[]) => {
-    // Có thể gọi API lưu tọa độ tại đây
-    // const response = await fetch("/api/grid-labels", {
-    //   method: "PUT",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    //   body: JSON.stringify({ labels }),
-    // });
-    // if (!response.ok) {
-    //   throw new Error("Lưu tọa độ thất bại.");
-    // }
-  };
+  }, [selectedAircraftId, undoPoint]);
 
   return (
-    <div className="map-container relative w-full h-screen overflow-hidden">
+    <div className="map-container relative h-screen w-full overflow-hidden">
       {/* ================= MAP ================= */}
       <div className="absolute inset-0 z-0">
         <MapView
           gridLabels={gridLabels}
-          points={points}
-          onAddPoint={addPoint}
+          aircrafts={aircrafts}
           onOpenGridContextMenu={handleOpenGridContextMenu}
         />
+      </div>
+
+      {/* ================= CHỌN MÁY BAY ================= */}
+      <div
+        className={`
+          absolute right-4 top-3 z-[1000]
+          flex items-center gap-2
+          rounded-lg bg-white p-2 shadow-lg
+          transition-all duration-300
+        `}
+      >
+        <span className="whitespace-nowrap text-sm font-semibold text-gray-700">
+          Máy bay:
+        </span>
+
+        <select
+          value={selectedAircraftId ?? ""}
+          onChange={(event) => handleSelectAircraft(event.target.value)}
+          disabled={aircrafts.length === 0}
+          className="
+            max-w-[180px] rounded-md border border-gray-200
+            bg-white px-3 py-2 text-sm text-gray-700
+            outline-none focus:border-blue-500
+            disabled:cursor-not-allowed disabled:bg-gray-100
+          "
+        >
+          {aircrafts.length === 0 ? (
+            <option value="">Chưa có máy bay</option>
+          ) : (
+            aircrafts.map((aircraft) => (
+              <option key={aircraft.id} value={aircraft.id}>
+                {aircraft.name}
+              </option>
+            ))
+          )}
+        </select>
+
+        {selectedAircraftId && (
+          <span
+            className="h-3 w-3 shrink-0 rounded-full"
+            style={{
+              backgroundColor:
+                aircrafts.find((aircraft) => aircraft.id === selectedAircraftId)
+                  ?.color ?? "#999",
+            }}
+          />
+        )}
       </div>
 
       {/* ================= PANEL BÊN TRÁI ================= */}
@@ -214,11 +306,10 @@ export default function MapTiler() {
         `}
       >
         <MapControlPanel
-          onSaveLabels={handleSaveLabels}
-          points={points}
           gridIndex={gridIndex}
           labelInput={labelInput}
           onLabelInputChange={setLabelInput}
+          onSaveLabels={handleSaveLabels}
           onUndo={undoPoint}
           onClear={clearPoints}
           onCreateRoute={setRoute}
@@ -254,8 +345,8 @@ export default function MapTiler() {
           hover:bg-blue-50 hover:text-blue-600
           ${
             isPanelOpen
-              ? "opacity-0 -translate-x-4 pointer-events-none"
-              : "opacity-100 translate-x-0"
+              ? "pointer-events-none -translate-x-4 opacity-0"
+              : "translate-x-0 opacity-100"
           }
         `}
         title="Mở bảng điều khiển"
@@ -276,7 +367,7 @@ export default function MapTiler() {
             left: contextMenu.x,
             top: contextMenu.y,
           }}
-          onContextMenu={(e) => e.preventDefault()}
+          onContextMenu={(event) => event.preventDefault()}
         >
           <div className="border-b border-gray-100 px-3 py-2 text-sm font-semibold text-gray-800">
             Tọa độ: {contextMenu.cell.row}

@@ -9,7 +9,7 @@ export type GridCell = {
   row: number;
   col: number;
 };
-type Aircraft = {
+export type AirCraft = {
   id: string;
   name: string;
   color: string;

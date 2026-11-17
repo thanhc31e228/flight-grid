@@ -1,45 +1,79 @@
 import { createContext, ReactNode, useContext, useMemo } from "react";
-import { useRoutePoints } from "../hooks/useRoutePoints";
+
+import { useAircrafts } from "../hooks/useAircrafts";
+import type { AirCraft } from "../components/MapTiler/types/map.types";
 import type { Point } from "../features/route/route.types";
 
-// kiểu của context
-interface MakerContextType {
-  points: Point[];
-  addPoint: (point: Point) => number;
-  undoPoint: () => number;
-  clearPoints: () => void;
-  setRoute: (points: Point[]) => void;
+interface AirCraftContextType {
+  aircrafts: AirCraft[];
+  selectedAircraftId: string | null;
+  setSelectedAircraftId: (id: string | null) => void;
+  addAircraft: (aircraft: AirCraft) => number;
+  removeAirCraft: (aircraftId: string) => number;
+  addPoint: (aircraftId: string, point: Point) => number;
+  isExistsAir: (idAircraft: string) => AirCraft | undefined;
+  undoPoint: (aircraftId: string) => number;
+  clearPoints: (aircraftId: string) => void;
+  setRoute: (aircraftId: string, points: Point[]) => void;
 }
-// tạo context
-const MakerContext = createContext<MakerContextType | undefined>(undefined);
 
-//provider cung cấp dữ liệu cho context
+const AirCraftContext = createContext<AirCraftContextType | undefined>(
+  undefined,
+);
+
 export default function MakerProvider({ children }: { children: ReactNode }) {
-  const { points, addPoint, undoPoint, clearPoints, setRoute } =
-    useRoutePoints();
-  // muốn truyền nhiều data thì thêm field ở đây
+  const {
+    aircrafts,
+    selectedAircraftId,
+    setSelectedAircraftId,
+    addAircraft,
+    removeAircraft,
+    isExistsAir,
+    addPoint,
+    undoPoint,
+    clearPoints,
+    setRoute,
+  } = useAircrafts();
 
-  // Gom dữ liệu vào một object
   const value = useMemo(
     () => ({
-      points,
+      aircrafts,
+      selectedAircraftId,
+      setSelectedAircraftId,
+      addAircraft,
+      removeAirCraft: removeAircraft,
       addPoint,
+      isExistsAir,
       undoPoint,
       clearPoints,
       setRoute,
     }),
-    [points, addPoint, undoPoint, clearPoints, setRoute],
+    [
+      aircrafts,
+      selectedAircraftId,
+      setSelectedAircraftId,
+      addAircraft,
+      removeAircraft,
+      isExistsAir,
+      addPoint,
+      undoPoint,
+      clearPoints,
+      setRoute,
+    ],
   );
+
   return (
-    <MakerContext.Provider value={value}>{children}</MakerContext.Provider>
+    <AirCraftContext.Provider value={value}>
+      {children}
+    </AirCraftContext.Provider>
   );
 }
-// Custom Hook
-export function useMaker() {
-  const context = useContext(MakerContext);
+
+export function useAirCraftContext() {
+  const context = useContext(AirCraftContext);
 
   if (!context) {
-    throw new Error("useMaker must be used inside MakerProvider");
+    throw new Error("useAirCraft must be used inside MakerProvider");
   }
 
   return context;
