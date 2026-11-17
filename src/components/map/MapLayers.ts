@@ -215,26 +215,26 @@ export function addRouteLayers(map: MapLibreMap) {
     },
   });
 
-  map.addLayer({
-    id: "aircraft-label",
-    type: "symbol",
-    source: "aircraft-source",
+  // map.addLayer({
+  //   id: "aircraft-label",
+  //   type: "symbol",
+  //   source: "aircraft-source",
 
-    layout: {
-      "text-field": ["get", "name"],
-      "text-size": 9,
-      "text-font": ["Open Sans Semibold"],
-      "text-offset": [0, 2],
-      "text-anchor": "top",
-      "text-allow-overlap": true,
-    },
+  //   layout: {
+  //     "text-field": ["get", "name"],
+  //     "text-size": 9,
+  //     "text-font": ["Open Sans Semibold"],
+  //     "text-offset": [0, 2],
+  //     "text-anchor": "top",
+  //     "text-allow-overlap": true,
+  //   },
 
-    paint: {
-      "text-color": ["get", "color"],
-      "text-halo-color": "#0f172a",
-      "text-halo-width": 1.5,
-    },
-  });
+  //   paint: {
+  //     "text-color": ["get", "color"],
+  //     "text-halo-color": "#0f172a",
+  //     "text-halo-width": 1.5,
+  //   },
+  // });
 
   // =========================
   // WAYPOINT SOURCE
@@ -250,14 +250,30 @@ export function addRouteLayers(map: MapLibreMap) {
     type: "geojson",
     data: EMPTY_FEATURE_COLLECTION,
   });
+  const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <path d="M12 52 L52 12"
+        stroke="#4e1010"
+        stroke-width="10"
+        stroke-linecap="round"
+        fill="none"/>
+</svg>
+`;
 
-  // Tam giác chính
+  const img = new Image(64, 64);
+  img.onload = () => {
+    if (!map.hasImage("half-v")) {
+      map.addImage("half-v", img);
+    }
+  };
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  // Tam giác
   map.addLayer({
     id: "points-layer",
     type: "symbol",
     source: "points-source",
     layout: {
-      "icon-image": "waypoint-triangle",
+      "icon-image": "half-v",
       "icon-size": 0.2,
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
@@ -275,7 +291,7 @@ export function addRouteLayers(map: MapLibreMap) {
     source: "points-source",
 
     layout: {
-      "text-field": ["get", "name"],
+      "text-field": ["get", "name"], // label hiển thị ở tam giác
       "text-size": 10,
       "text-offset": [0, 1.5],
       "text-anchor": "top",
