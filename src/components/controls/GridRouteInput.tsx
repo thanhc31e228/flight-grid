@@ -61,8 +61,9 @@ export default function GridRouteInput({ gridIndex }: Props) {
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault();
-            handleSubmit();
+            setTimeout(() => {
+              handleSubmit();
+            }, 0);
           }
         }}
         placeholder="Nhập tọa độ"

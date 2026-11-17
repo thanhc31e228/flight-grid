@@ -112,13 +112,13 @@ export default function MapControlPanel({
   };
 
   // Tạo route cho máy bay đang chọn
-  const handleCreateRoute = (routePoints: Point[]) => {
-    if (!selectedAircraftId) return;
+  // const handleCreateRoute = (routePoints: Point[]) => {
+  //   if (!selectedAircraftId) return;
 
-    routePoints.forEach((point) => {
-      addPoint(selectedAircraftId, point);
-    });
-  };
+  //   routePoints.forEach((point) => {
+  //     addPoint(selectedAircraftId, point);
+  //   });
+  // };
 
   // Xác nhận và lưu tọa độ
   const handleAccept = async () => {
