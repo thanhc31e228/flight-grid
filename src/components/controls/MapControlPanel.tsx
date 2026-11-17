@@ -238,10 +238,7 @@ export default function MapControlPanel({
             onClear={handleClear}
           />
 
-          <GridRouteInput
-            gridIndex={gridIndex}
-            onCreateRoute={handleCreateRoute}
-          />
+          <GridRouteInput gridIndex={gridIndex} />
 
           <PointList points={points} />
         </>
