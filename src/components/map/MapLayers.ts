@@ -1,6 +1,10 @@
 import circle from "@turf/circle";
 
-import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
+import {
+  Popup,
+  type GeoJSONSource,
+  type Map as MapLibreMap,
+} from "maplibre-gl";
 
 import { MAP_CONFIG } from "../../config/map.config";
 
@@ -145,7 +149,63 @@ export function addGridLayers(map: MapLibreMap) {
 //     sdf: true,
 //   });
 // }
+const firstWaypointPopups = new Map<string, Popup>();
+function updateFirstWaypointPopup(map: MapLibreMap, aircrafts: AirCraft[]) {
+  // Lưu lại ID các aircraft còn tồn tại
+  const activeAircraftIds = new Set(
+    aircrafts
+      .filter((aircraft) => aircraft.points.length > 0)
+      .map((aircraft) => aircraft.id),
+  );
 
+  // Xóa popup của aircraft đã bị xóa hoặc không còn waypoint
+  firstWaypointPopups.forEach((popup, aircraftId) => {
+    if (!activeAircraftIds.has(aircraftId)) {
+      popup.remove();
+      firstWaypointPopups.delete(aircraftId);
+    }
+  });
+
+  // Tạo hoặc cập nhật popup cho từng aircraft
+  aircrafts.forEach((aircraft) => {
+    if (aircraft.points.length === 0) return;
+
+    // Lấy waypoint đầu tiên của aircraft
+    const firstPoint = aircraft.points[0];
+
+    const html = `
+      <div style="
+        padding: 6px 10px;
+        color: #ffffff;
+        background: ${aircraft.color};
+        border-radius: 6px;
+        font-size: 12px;
+        white-space: nowrap;
+      ">
+        <div><b>${aircraft.id}</b></div>
+        <div>${firstPoint.appearanceTime}</div>
+      </div>
+    `;
+
+    let popup = firstWaypointPopups.get(aircraft.id);
+
+    // Nếu chưa có popup thì tạo mới
+    if (!popup) {
+      popup = new Popup({
+        closeButton: false,
+        closeOnClick: false,
+        closeOnMove: false,
+        offset: 15,
+        className: "first-waypoint-popup",
+      });
+
+      firstWaypointPopups.set(aircraft.id, popup);
+    }
+
+    // Cập nhật vị trí và nội dung popup
+    popup.setLngLat([firstPoint.lng, firstPoint.lat]).setHTML(html).addTo(map);
+  });
+}
 export function addRouteLayers(map: MapLibreMap) {
   // =========================
   // ROUTE SOURCE
@@ -340,6 +400,7 @@ export function addRouteLayers(map: MapLibreMap) {
       "text-halo-width": 0.5,
     },
   });
+
   // =========================
   // ROUTE HOVER LAYER
   // =========================
@@ -577,6 +638,14 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
     type: "FeatureCollection",
     features: aircraftFeatures,
   });
+  // Cập nhật vị trí máy bay
+  aircraftSource.setData({
+    type: "FeatureCollection",
+    features: aircraftFeatures,
+  });
+
+  // Luôn hiển thị popup waypoint đầu tiên
+  updateFirstWaypointPopup(map, aircrafts);
 }
 function addWaypointCircleImage(map: MapLibreMap) {
   if (map.hasImage("waypoint-circle")) return;
