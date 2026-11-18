@@ -12,6 +12,7 @@ import { createGrid, emptyGrid } from "../../features/grid/grid.factory";
 import { lineString } from "@turf/helpers";
 import type { Feature, Point } from "geojson";
 import { AirCraft } from "../MapTiler/types/map.types";
+import { setupRadialMenu } from "../MapTiler/utils/radialMenu";
 
 const EMPTY_FEATURE_COLLECTION = {
   type: "FeatureCollection" as const,
@@ -623,6 +624,59 @@ export function initializeMapLayers(map: MapLibreMap) {
   addRouteHoverEvents(map);
 
   addFirstWaypointClickEvent(map);
+  const cleanupRadialMenu = setupRadialMenu(
+    map,
+    [
+      { label: "Waypoint", value: "waypoint" },
+      { label: "Route", value: "route" },
+      { label: "Aircraft", value: "aircraft" },
+      { label: "Delete", value: "delete" },
+      { label: "Edit", value: "edit" },
+      { label: "Info", value: "info" },
+      { label: "Select", value: "select" },
+      { label: "Other", value: "other" },
+    ],
+    {
+      onSelect: (item, point) => {
+        console.log("Selected:", item.value);
+        console.log("Mouse position:", point);
+
+        switch (item.value) {
+          case "waypoint":
+            console.log("Create waypoint");
+            break;
+
+          case "route":
+            console.log("Create route");
+            break;
+
+          case "aircraft":
+            console.log("Create aircraft");
+            break;
+
+          case "delete":
+            console.log("Delete object");
+            break;
+
+          case "edit":
+            console.log("Edit object");
+            break;
+
+          case "info":
+            console.log("Show information");
+            break;
+
+          case "select":
+            console.log("Select object");
+            break;
+
+          case "other":
+            console.log("Other action");
+            break;
+        }
+      },
+    },
+  );
 }
 export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
   const pointsSource = map.getSource("points-source") as
