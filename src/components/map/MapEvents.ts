@@ -118,6 +118,12 @@ export function registerMapEvents(
 
   const handleClick = (event: MapMouseEvent) => {
     if (!map.isStyleLoaded()) return;
+    const features = map.queryRenderedFeatures(event.point, {
+      layers: ["points-layer"],
+    });
+
+    // Nếu click vào waypoint thì không tạo waypoint mới
+    if (features.length > 0) return;
     const selectedAircraftId = getSelectedAircraftId();
     // Chưa chọn máy bay thì không thêm điểm
     if (!selectedAircraftId) {

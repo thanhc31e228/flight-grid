@@ -150,30 +150,37 @@ export function addGridLayers(map: MapLibreMap) {
 //   });
 // }
 const firstWaypointPopups = new Map<string, Popup>();
+// Lưu trạng thái ẩn/hiện của từng aircraft
+const hiddenPopups = new Set<string>();
+let activePopupAircraftId: string | null = null;
 function updateFirstWaypointPopup(map: MapLibreMap, aircrafts: AirCraft[]) {
-  // Lưu lại ID các aircraft còn tồn tại
-  const activeAircraftIds = new Set(
+  const activeIds = new Set(
     aircrafts
       .filter((aircraft) => aircraft.points.length > 0)
       .map((aircraft) => aircraft.id),
   );
 
-  // Xóa popup của aircraft đã bị xóa hoặc không còn waypoint
-  firstWaypointPopups.forEach((popup, aircraftId) => {
-    if (!activeAircraftIds.has(aircraftId)) {
+  // Xóa popup không còn aircraft
+  firstWaypointPopups.forEach((popup, id) => {
+    if (!activeIds.has(id)) {
       popup.remove();
-      firstWaypointPopups.delete(aircraftId);
+      firstWaypointPopups.delete(id);
+
+      if (activePopupAircraftId === id) {
+        activePopupAircraftId = null;
+      }
     }
   });
 
-  // Tạo hoặc cập nhật popup cho từng aircraft
   aircrafts.forEach((aircraft) => {
-    if (aircraft.points.length === 0) return;
+    if (!aircraft.points.length) return;
 
-    // Lấy waypoint đầu tiên của aircraft
     const firstPoint = aircraft.points[0];
 
-    const html = `
+    let popup = firstWaypointPopups.get(aircraft.id);
+
+    if (!popup) {
+      const html = `
   <div style="
     padding: 8px 12px;
     color: #ffffff;
@@ -182,51 +189,102 @@ function updateFirstWaypointPopup(map: MapLibreMap, aircrafts: AirCraft[]) {
     font-size: 12px;
     white-space: nowrap;
     min-width: 150px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   ">
     <div style="
       font-size: 14px;
       font-weight: bold;
       margin-bottom: 6px;
       border-bottom: 1px solid rgba(255,255,255,0.3);
+      padding-bottom: 5px;
     ">
       ✈ ${aircraft.name} (${aircraft.id})
     </div>
 
-    <div style="display: flex; justify-content: space-between; gap: 15px;">
+    <div style="display:flex;justify-content:space-between;gap:15px">
       <span>SL-KL:</span>
       <b>${aircraft.aircraftCode}</b>
     </div>
 
-    <div style="display: flex; justify-content: space-between; gap: 15px;">
+    <div style="display:flex;justify-content:space-between;gap:15px">
       <span>h:</span>
-      <b>${aircraft.altitude} </b>
+      <b>${aircraft.altitude}</b>
     </div>
 
-    <div style="display: flex; justify-content: space-between; gap: 15px;">
+    <div style="display:flex;justify-content:space-between;gap:15px">
       <span>Thời gian xuất hiện:</span>
       <b>${aircraft.appearanceTime}</b>
     </div>
   </div>
 `;
 
-    let popup = firstWaypointPopups.get(aircraft.id);
+      if (!popup) {
+        popup = new Popup({
+          closeButton: true,
+          closeOnClick: false,
+          closeOnMove: false,
+          offset: 15,
+          className: "first-waypoint-popup",
+        });
 
-    // Nếu chưa có popup thì tạo mới
-    if (!popup) {
-      popup = new Popup({
-        closeButton: false,
-        closeOnClick: false,
-        closeOnMove: false,
-        offset: 15,
-        className: "first-waypoint-popup",
-      });
+        popup.setHTML(html);
 
-      firstWaypointPopups.set(aircraft.id, popup);
+        popup.on("close", () => {
+          hiddenPopups.add(aircraft.id);
+
+          if (activePopupAircraftId === aircraft.id) {
+            activePopupAircraftId = null;
+          }
+        });
+
+        firstWaypointPopups.set(aircraft.id, popup);
+      }
+
+      // firstWaypointPopups.set(aircraft.id, popup);
     }
 
-    // Cập nhật vị trí và nội dung popup
-    popup.setLngLat([firstPoint.lng, firstPoint.lat]).setHTML(html).addTo(map);
+    popup.setLngLat([firstPoint.lng, firstPoint.lat]);
+
+    // Chỉ hiển thị Popup đang được chọn
+    // Chỉ hiển thị nếu aircraft chưa bị ẩn
+    if (!hiddenPopups.has(aircraft.id)) {
+      popup.addTo(map);
+    }
+  });
+}
+export function addFirstWaypointClickEvent(map: MapLibreMap) {
+  map.on("click", "points-layer", (e) => {
+    const feature = e.features?.[0];
+
+    if (!feature) return;
+
+    const isFirst =
+      feature.properties?.isFirst === true ||
+      feature.properties?.isFirst === "true";
+
+    if (!isFirst) return;
+
+    const aircraftId = String(feature.properties?.aircraftId);
+
+    const popup = firstWaypointPopups.get(aircraftId);
+
+    if (!popup) return;
+
+    // Đánh dấu Popup đang được hiển thị
+    hiddenPopups.delete(aircraftId);
+
+    // Đưa Popup được chọn lên trên cùng
+    popup.remove();
+    popup.addTo(map);
+
+    activePopupAircraftId = aircraftId;
+  });
+
+  map.on("mouseenter", "points-layer", () => {
+    map.getCanvas().style.cursor = "pointer";
+  });
+
+  map.on("mouseleave", "points-layer", () => {
+    map.getCanvas().style.cursor = "";
   });
 }
 export function addRouteLayers(map: MapLibreMap) {
@@ -560,14 +618,12 @@ export function addAirportLayer(map: MapLibreMap) {
 
 export function initializeMapLayers(map: MapLibreMap) {
   addGridLayers(map);
-
   addRouteLayers(map);
-
   addAirportLayer(map);
-
   addRouteHoverEvents(map);
-}
 
+  addFirstWaypointClickEvent(map);
+}
 export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
   const pointsSource = map.getSource("points-source") as
     | GeoJSONSource
