@@ -40,6 +40,9 @@ export default function GridRouteInput({ gridIndex }: Props) {
         name: idTop,
         color: generateRandomHexColor(),
         points: [point],
+        aircraftCode: "0122",
+        altitude: "005",
+        appearanceTime: 5,
       };
 
       addAircraft(airCraft);

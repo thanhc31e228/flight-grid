@@ -245,7 +245,7 @@ export function addRouteLayers(map: MapLibreMap) {
   // =========================
 
   addWaypointTriangleImage(map);
-
+  addWaypointCircleImage(map);
   map.addSource("points-source", {
     type: "geojson",
     data: EMPTY_FEATURE_COLLECTION,
@@ -273,8 +273,13 @@ export function addRouteLayers(map: MapLibreMap) {
     type: "symbol",
     source: "points-source",
     layout: {
-      "icon-image": "half-v",
-      "icon-size": 0.2,
+      "icon-image": [
+        "case",
+        ["==", ["get", "isFirst"], true],
+        "waypoint-circle",
+        "half-v",
+      ],
+      "icon-size": ["case", ["==", ["get", "isFirst"], true], 0.5, 0.2],
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
       "icon-anchor": "center",
@@ -291,8 +296,8 @@ export function addRouteLayers(map: MapLibreMap) {
     source: "points-source",
 
     layout: {
-      "text-field": ["get", "name"], // label hiển thị ở tam giác
-      "text-size": 10,
+      "text-field": ["get", "appearanceTime"], // label hiển thị ở tam giác
+      "text-size": 15,
       "text-offset": [0, 1.5],
       "text-anchor": "top",
       "text-allow-overlap": true,
@@ -300,8 +305,8 @@ export function addRouteLayers(map: MapLibreMap) {
 
     paint: {
       "text-color": ["get", "color"],
-      "text-halo-color": "#0f172a",
-      "text-halo-width": 1.5,
+      "text-halo-color": "#293184", // màu của time
+      "text-halo-width": 2,
     },
   });
 }
@@ -441,6 +446,10 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
             name: `${aircraft.id} - ${index + 1}`,
             aircraftId: aircraft.id,
             color: aircraft.color,
+            isFirst: index === 0,
+            aircraftCode: "0122",
+            altitude: "005",
+            appearanceTime: 5,
           },
           geometry: {
             type: "Point",
@@ -502,7 +511,29 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
     features: aircraftFeatures,
   });
 }
+function addWaypointCircleImage(map: MapLibreMap) {
+  if (map.hasImage("waypoint-circle")) return;
 
+  const size = 50;
+  const canvas = document.createElement("canvas");
+
+  canvas.width = size;
+  canvas.height = size;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 5;
+
+  ctx.beginPath();
+  ctx.arc(16, 16, 12, 0, Math.PI * 2);
+  ctx.stroke();
+
+  map.addImage("waypoint-circle", ctx.getImageData(0, 0, size, size), {
+    sdf: true,
+  });
+}
 // Cập nhật label cho các ô lưới
 export function updateGridLabels(map: MapLibreMap, labels: string[]) {
   const source = map.getSource("grid-source") as GeoJSONSource | undefined;

@@ -10,8 +10,11 @@ export type GridCell = {
   col: number;
 };
 export type AirCraft = {
-  id: string;
-  name: string;
-  color: string;
+  id: string; //401
+  name: string; //401
+  color: string; // #23e3
   points: Point[];
+  aircraftCode: string; // vd: 0122
+  altitude: string; // Độ cao (mét) // vd 005
+  appearanceTime: number; // Thời gian xuất hiện (phút)
 };
