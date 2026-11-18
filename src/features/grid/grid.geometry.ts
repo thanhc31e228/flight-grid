@@ -24,7 +24,6 @@ export function createRectangle(
   const south = coordinates[0][1];
   const east = coordinates[2][0];
   const north = coordinates[2][1];
-  // console.log("properties", properties.id);
   return {
     type: "Feature",
     properties: {

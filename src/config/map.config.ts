@@ -2,7 +2,7 @@ import { COLS, ROWS } from "../components/MapTiler/map.constants";
 
 export const MAP_CONFIG = {
   CENTER: [106.263569, 21.394697] as [number, number],
-  INITIAL_ZOOM: 12,
+  INITIAL_ZOOM: 9,
 
   AIRPORT_RADIUS_KM: 1.5,
 
