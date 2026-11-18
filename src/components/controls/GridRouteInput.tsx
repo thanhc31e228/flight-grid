@@ -85,26 +85,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
     </div>
   );
 }
-const COLORS = [
-  "#FF1744", // Red
-  "#00E5FF", // Cyan
-  "#FFD600", // Yellow
-  "#E040FB", // Purple
-  "#76FF03", // Lime
-  "#FF6D00", // Orange
-  "#2979FF", // Blue
-  "#F50057", // Pink
-  "#00E676", // Green
-  "#FFFFFF", // White
-  "#FF4081", // Hot pink
-  "#18FFFF", // Aqua
-  "#FFEA00", // Bright yellow
-  "#D500F9", // Violet
-  "#64FFDA", // Mint
-  "#FF9100", // Amber
-];
 
-const usedColors = new Set<string>();
 let colorIndex = 0;
 
 const generateRandomHexColor = (): string => {
