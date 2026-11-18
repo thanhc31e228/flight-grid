@@ -62,10 +62,6 @@ export default function GridRouteInput({ gridIndex }: Props) {
     } else {
       window.alert(`Giá trị ${lastLine} không phù hợp !`);
     }
-    console.log("lenght", lastLine.length);
-    console.log("id top", idTop);
-    console.log("id grid", idGrid);
-
     setSelectedAircraftId(idTop);
   };
 
@@ -89,11 +85,52 @@ export default function GridRouteInput({ gridIndex }: Props) {
     </div>
   );
 }
+const COLORS = [
+  "#FF1744", // Red
+  "#00E5FF", // Cyan
+  "#FFD600", // Yellow
+  "#E040FB", // Purple
+  "#76FF03", // Lime
+  "#FF6D00", // Orange
+  "#2979FF", // Blue
+  "#F50057", // Pink
+  "#00E676", // Green
+  "#FFFFFF", // White
+  "#FF4081", // Hot pink
+  "#18FFFF", // Aqua
+  "#FFEA00", // Bright yellow
+  "#D500F9", // Violet
+  "#64FFDA", // Mint
+  "#FF9100", // Amber
+];
+
+const usedColors = new Set<string>();
+let colorIndex = 0;
+
 const generateRandomHexColor = (): string => {
-  return (
-    "#" +
-    Math.floor(Math.random() * 0xffffff)
+  const goldenAngle = 137.508;
+
+  const hue = (colorIndex++ * goldenAngle) % 360;
+
+  const saturation = 85;
+  const lightness = 32;
+
+  return hslToHex(hue, saturation, lightness);
+};
+
+const hslToHex = (h: number, s: number, l: number): string => {
+  s /= 100;
+  l /= 100;
+
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+
+  const f = (n: number) =>
+    Math.round(
+      255 * (l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))),
+    )
       .toString(16)
-      .padStart(6, "0")
-  );
+      .padStart(2, "0");
+
+  return `#${f(0)}${f(8)}${f(4)}`;
 };
