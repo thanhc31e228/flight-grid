@@ -53,6 +53,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
       addPoint(idTop, point);
     } else if (lastLine.length === 8) {
       // vd 401 81 441 , chi co toa do k co thoi gian
+      // neu k co thoi gian thi lay thoi gian o diem cuoi cung xuat hien
       const lastPoint = getLastPoint(idTop);
       if (lastPoint) {
         point.appearanceTime = lastPoint?.appearanceTime;
