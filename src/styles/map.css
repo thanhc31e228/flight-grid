@@ -83,7 +83,16 @@
   color: #64748b;
   font-size: 18px;
 }
+.first-waypoint-popup .maplibregl-popup-content {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 8px;
+}
 
+.first-waypoint-popup .maplibregl-popup-tip {
+  display: none;
+}
 .point-popup .maplibregl-popup-close-button:hover {
   color: #2563eb;
   background: #eff6ff;

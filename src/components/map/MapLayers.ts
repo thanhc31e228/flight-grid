@@ -174,18 +174,41 @@ function updateFirstWaypointPopup(map: MapLibreMap, aircrafts: AirCraft[]) {
     const firstPoint = aircraft.points[0];
 
     const html = `
-      <div style="
-        padding: 6px 10px;
-        color: #ffffff;
-        background: ${aircraft.color};
-        border-radius: 6px;
-        font-size: 12px;
-        white-space: nowrap;
-      ">
-        <div><b>${aircraft.id}</b></div>
-        <div>${firstPoint.appearanceTime}</div>
-      </div>
-    `;
+  <div style="
+    padding: 8px 12px;
+    color: #ffffff;
+    background: ${aircraft.color};
+    border-radius: 8px;
+    font-size: 12px;
+    white-space: nowrap;
+    min-width: 150px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  ">
+    <div style="
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.3);
+    ">
+      ✈ ${aircraft.name} (${aircraft.id})
+    </div>
+
+    <div style="display: flex; justify-content: space-between; gap: 15px;">
+      <span>SL-KL:</span>
+      <b>${aircraft.aircraftCode}</b>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; gap: 15px;">
+      <span>h:</span>
+      <b>${aircraft.altitude} </b>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; gap: 15px;">
+      <span>Thời gian xuất hiện:</span>
+      <b>${aircraft.appearanceTime}</b>
+    </div>
+  </div>
+`;
 
     let popup = firstWaypointPopups.get(aircraft.id);
 
