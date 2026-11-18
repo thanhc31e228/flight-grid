@@ -120,31 +120,31 @@ export function addGridLayers(map: MapLibreMap) {
   });
 }
 
-function addWaypointTriangleImage(map: MapLibreMap) {
-  if (map.hasImage("waypoint-triangle")) return;
+// function addWaypointTriangleImage(map: MapLibreMap) {
+//   if (map.hasImage("waypoint-triangle")) return;
 
-  const canvas = document.createElement("canvas");
-  canvas.width = 64;
-  canvas.height = 64;
+//   const canvas = document.createElement("canvas");
+//   canvas.width = 64;
+//   canvas.height = 64;
 
-  const ctx = canvas.getContext("2d");
+//   const ctx = canvas.getContext("2d");
 
-  if (!ctx) return;
+//   if (!ctx) return;
 
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.moveTo(32, 4);
-  ctx.lineTo(60, 58);
-  ctx.lineTo(4, 58);
-  ctx.closePath();
-  ctx.fill();
+//   ctx.fillStyle = "#ffffff";
+//   ctx.beginPath();
+//   ctx.moveTo(32, 4);
+//   ctx.lineTo(60, 58);
+//   ctx.lineTo(4, 58);
+//   ctx.closePath();
+//   ctx.fill();
 
-  const imageData = ctx.getImageData(0, 0, 64, 64);
+//   const imageData = ctx.getImageData(0, 0, 64, 64);
 
-  map.addImage("waypoint-triangle", imageData, {
-    sdf: true,
-  });
-}
+//   map.addImage("waypoint-triangle", imageData, {
+//     sdf: true,
+//   });
+// }
 
 export function addRouteLayers(map: MapLibreMap) {
   // =========================
@@ -184,7 +184,38 @@ export function addRouteLayers(map: MapLibreMap) {
       "line-opacity": 0.9,
     },
   });
+  // =========================
+  // ROUTE HITBOX - VÙNG BẮT HOVER
+  // =========================
 
+  map.addLayer({
+    id: "route-line-hitbox",
+    type: "line",
+    source: "route-source",
+
+    layout: {
+      "line-cap": "round",
+      "line-join": "round",
+    },
+
+    paint: {
+      "line-color": "#ffffff",
+      "line-width": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        4,
+        15,
+        8,
+        20,
+        12,
+        25,
+        16,
+        30,
+      ],
+      "line-opacity": 0,
+    },
+  });
   // =========================
   // AIRCRAFT SOURCE
   // =========================
@@ -244,21 +275,21 @@ export function addRouteLayers(map: MapLibreMap) {
   // WAYPOINT SOURCE
   // =========================
 
-  addWaypointTriangleImage(map);
+  // addWaypointTriangleImage(map);
   addWaypointCircleImage(map);
   map.addSource("points-source", {
     type: "geojson",
     data: EMPTY_FEATURE_COLLECTION,
   });
   const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <path d="M12 52 L52 12"
-        stroke="#4e1010"
-        stroke-width="10"
-        stroke-linecap="round"
-        fill="none"/>
-</svg>
-`;
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+      <path d="M12 52 L52 12"
+            stroke="#4e1010"
+            stroke-width="10"
+            stroke-linecap="round"
+            fill="none"/>
+    </svg>
+    `;
 
   const img = new Image(64, 64);
   img.onload = () => {
@@ -308,6 +339,40 @@ export function addRouteLayers(map: MapLibreMap) {
       "text-halo-color": "#032b19", // màu của time
       "text-halo-width": 0.5,
     },
+  });
+  // =========================
+  // ROUTE HOVER LAYER
+  // =========================
+
+  map.addLayer({
+    id: "route-line-hover",
+    type: "line",
+    source: "route-source",
+
+    layout: {
+      "line-cap": "round",
+      "line-join": "round",
+    },
+
+    paint: {
+      "line-color": "#4bf035e8",
+      "line-width": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        4,
+        2,
+        8,
+        2.5,
+        12,
+        3,
+        16,
+        4,
+      ],
+      "line-opacity": 1,
+    },
+
+    filter: ["==", ["get", "aircraftId"], ""],
   });
 }
 //Hàm này nhận danh sách tọa độ và cập nhật đường bay, vị trí máy bay.
@@ -415,6 +480,8 @@ export function initializeMapLayers(map: MapLibreMap) {
   addRouteLayers(map);
 
   addAirportLayer(map);
+
+  addRouteHoverEvents(map);
 }
 
 export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
@@ -576,4 +643,35 @@ export function updateGridLabels(map: MapLibreMap, labels: string[]) {
 
   // Cập nhật dữ liệu GeoJSON
   source.setData(gridData);
+}
+export function addRouteHoverEvents(map: MapLibreMap) {
+  let hoveredAircraftId: string | null = null;
+
+  map.on("mousemove", "route-line-hitbox", (e) => {
+    map.getCanvas().style.cursor = "pointer";
+
+    const feature = e.features?.[0];
+
+    if (!feature) return;
+
+    const aircraftId = String(feature.properties?.aircraftId);
+
+    if (hoveredAircraftId === aircraftId) return;
+
+    hoveredAircraftId = aircraftId;
+
+    map.setFilter("route-line-hover", [
+      "==",
+      ["get", "aircraftId"],
+      aircraftId,
+    ]);
+  });
+
+  map.on("mouseleave", "route-line-hitbox", () => {
+    map.getCanvas().style.cursor = "";
+
+    hoveredAircraftId = null;
+
+    map.setFilter("route-line-hover", ["==", ["get", "aircraftId"], ""]);
+  });
 }
