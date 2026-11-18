@@ -12,7 +12,7 @@ type Props = {
 export default function GridRouteInput({ gridIndex }: Props) {
   const [value, setValue] = useState("");
 
-  const { addAircraft, addPoint, isExistsAir, setSelectedAircraftId } =
+  const { addAircraft, addPoint, setSelectedAircraftId, getLastPoint } =
     useAirCraftContext();
 
   const handleSubmit = () => {
@@ -21,34 +21,49 @@ export default function GridRouteInput({ gridIndex }: Props) {
     if (!lastLine || lastLine.length <= 3) return;
 
     const idTop = lastLine.slice(0, 3);
-    const idGrid = lastLine.slice(3).trim();
+    const idGrid = lastLine.slice(3, 8).trim();
 
     const cell = gridIndex.get(idGrid);
-
     if (!cell) {
       alert(`Không tìm thấy ô Grid: ${idGrid}`);
       return;
     }
-
     const point = getGridCenter(cell);
-    point.appearanceTime = 9;
-    const exists = isExistsAir(idTop);
-
-    if (!exists) {
+    // top lần đầu xuất hiện
+    if (lastLine.length === 17) {
+      // 401 80 441 0122 005 04 , co toa do, do cao va thoi gian
+      const aircraftCode = lastLine.slice(-9, -5); // "0122"
+      const altitude = lastLine.slice(-5, -2); // "005"
+      const appearanceTime = lastLine.slice(-2); // "04"
+      point.appearanceTime = appearanceTime;
       const airCraft: AirCraft = {
         id: idTop,
         name: idTop,
         color: generateRandomHexColor(),
         points: [point],
-        aircraftCode: "0122",
-        altitude: "005",
+        aircraftCode: aircraftCode,
+        altitude: altitude,
         appearanceTime: point.appearanceTime,
       };
-
       addAircraft(airCraft);
-    } else {
+    } else if (lastLine.length === 10) {
+      // 401 80 551 02 , co thoi gian
+      const appearanceTime = lastLine.slice(-2);
+      point.appearanceTime = appearanceTime;
       addPoint(idTop, point);
+    } else if (lastLine.length === 8) {
+      // vd 401 81 441 , chi co toa do k co thoi gian
+      const lastPoint = getLastPoint(idTop);
+      if (lastPoint) {
+        point.appearanceTime = lastPoint?.appearanceTime;
+      }
+      addPoint(idTop, point);
+    } else {
+      window.alert(`Giá trị ${lastLine} không phù hợp !`);
     }
+    console.log("lenght", lastLine.length);
+    console.log("id top", idTop);
+    console.log("id grid", idGrid);
 
     setSelectedAircraftId(idTop);
   };

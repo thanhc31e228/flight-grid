@@ -126,7 +126,7 @@ export function registerMapEvents(
     const point: Point = {
       lng: event.lngLat.lng,
       lat: event.lngLat.lat,
-      appearanceTime: +selectedAircraftId,
+      appearanceTime: selectedAircraftId,
     };
 
     // Thêm điểm vào đúng máy bay

@@ -6,11 +6,11 @@ import type { AirCraft, Point } from "../components/MapTiler/types/map.types";
 interface AirCraftContextType {
   aircrafts: AirCraft[];
   selectedAircraftId: string | null;
+  getLastPoint: (aircaftId: string) => Point | undefined;
   setSelectedAircraftId: (id: string | null) => void;
   addAircraft: (aircraft: AirCraft) => number;
   removeAirCraft: (aircraftId: string) => number;
   addPoint: (aircraftId: string, point: Point) => number;
-  isExistsAir: (idAircraft: string) => AirCraft | undefined;
   undoPoint: (aircraftId: string) => number;
   clearPoints: (aircraftId: string) => void;
   setRoute: (aircraftId: string, points: Point[]) => void;
@@ -26,8 +26,8 @@ export default function MakerProvider({ children }: { children: ReactNode }) {
     selectedAircraftId,
     setSelectedAircraftId,
     addAircraft,
+    getLastPoint,
     removeAircraft,
-    isExistsAir,
     addPoint,
     undoPoint,
     clearPoints,
@@ -42,7 +42,7 @@ export default function MakerProvider({ children }: { children: ReactNode }) {
       addAircraft,
       removeAirCraft: removeAircraft,
       addPoint,
-      isExistsAir,
+      getLastPoint,
       undoPoint,
       clearPoints,
       setRoute,
@@ -53,7 +53,7 @@ export default function MakerProvider({ children }: { children: ReactNode }) {
       setSelectedAircraftId,
       addAircraft,
       removeAircraft,
-      isExistsAir,
+      getLastPoint,
       addPoint,
       undoPoint,
       clearPoints,

@@ -2,7 +2,7 @@
 export type Point = {
   lng: number;
   lat: number;
-  appearanceTime: number; // Thời gian xuất hiện (phút)
+  appearanceTime: string; // Thời gian xuất hiện (phút)
 };
 
 // Thông tin của một ô lưới
@@ -17,5 +17,5 @@ export type AirCraft = {
   points: Point[];
   aircraftCode: string; // vd: 0122
   altitude: string; // Độ cao (mét) // vd 005
-  appearanceTime: number; // Thời gian xuất hiện (phút)
+  appearanceTime: string; // Thời gian xuất hiện (phút)
 };

@@ -26,9 +26,12 @@ export function useAircrafts() {
     },
     [commitAircrafts],
   );
-  const isExistsAir = useCallback(
-    (idAircraft: string) => {
-      return aircrafts.find((a) => a.id === idAircraft);
+  // lay diem cuoi cua aircraft
+  const getLastPoint = useCallback(
+    (aircraftId: string): Point | undefined => {
+      const aircraft = aircrafts.find((a) => a.id === aircraftId);
+
+      return aircraft?.points.at(-1);
     },
     [aircrafts],
   );
@@ -126,7 +129,7 @@ export function useAircrafts() {
     removeAircraft,
     addPoint,
     undoPoint,
-    isExistsAir,
+    getLastPoint,
     clearPoints,
     setRoute,
   };

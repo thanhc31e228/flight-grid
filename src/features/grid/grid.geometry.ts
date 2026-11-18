@@ -49,5 +49,5 @@ export function getGridCenter(feature: GridFeature): Point {
     yMin + heightMeters / 2,
   );
 
-  return { lng, lat, appearanceTime: 0 };
+  return { lng, lat, appearanceTime: "" };
 }
