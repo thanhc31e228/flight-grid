@@ -1,15 +1,10 @@
-
-import type { Point } from "./route.types";
-
-import {
-  lngLatToMeters,
-  metersToLngLat,
-} from "../../utils/geo.utils";
+import { Point } from "../../components/MapTiler/types/map.types";
+import { lngLatToMeters, metersToLngLat } from "../../utils/geo.utils";
 
 export function createRoundedRoute(
   points: Point[],
   radius = 0.25,
-  steps = 12
+  steps = 12,
 ): [number, number][] {
   if (points.length < 3) {
     return points.map((p) => [p.lng, p.lat]);
@@ -17,13 +12,9 @@ export function createRoundedRoute(
 
   const result: [number, number][] = [];
 
-  const xy = points.map((p) =>
-    lngLatToMeters(p.lng, p.lat)
-  );
+  const xy = points.map((p) => lngLatToMeters(p.lng, p.lat));
 
-  result.push(
-    metersToLngLat(xy[0].x, xy[0].y)
-  );
+  result.push(metersToLngLat(xy[0].x, xy[0].y));
 
   for (let i = 1; i < xy.length - 1; i++) {
     const A = xy[i - 1];
@@ -41,11 +32,7 @@ export function createRoundedRoute(
 
     if (len1 === 0 || len2 === 0) continue;
 
-    const cut = Math.min(
-      len1 * radius,
-      len2 * radius,
-      200
-    );
+    const cut = Math.min(len1 * radius, len2 * radius, 200);
 
     const P1 = {
       x: B.x + (dx1 / len1) * cut,
@@ -57,23 +44,15 @@ export function createRoundedRoute(
       y: B.y + (dy2 / len2) * cut,
     };
 
-    result.push(
-      metersToLngLat(P1.x, P1.y)
-    );
+    result.push(metersToLngLat(P1.x, P1.y));
 
     for (let j = 1; j <= steps; j++) {
       const t = j / steps;
       const mt = 1 - t;
 
-      const x =
-        mt * mt * P1.x +
-        2 * mt * t * B.x +
-        t * t * P2.x;
+      const x = mt * mt * P1.x + 2 * mt * t * B.x + t * t * P2.x;
 
-      const y =
-        mt * mt * P1.y +
-        2 * mt * t * B.y +
-        t * t * P2.y;
+      const y = mt * mt * P1.y + 2 * mt * t * B.y + t * t * P2.y;
 
       result.push(metersToLngLat(x, y));
     }
@@ -81,9 +60,7 @@ export function createRoundedRoute(
 
   const last = xy[xy.length - 1];
 
-  result.push(
-    metersToLngLat(last.x, last.y)
-  );
+  result.push(metersToLngLat(last.x, last.y));
 
   return result;
 }

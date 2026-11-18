@@ -1,5 +1,6 @@
 import type { GridFeature, GridProperties } from "./grid.types";
 import { metersToLngLat } from "../../utils/geo.utils";
+import { Point } from "../../components/MapTiler/types/map.types";
 
 export function createRectangle(
   xMin: number,
@@ -40,7 +41,7 @@ export function createRectangle(
   };
 }
 
-export function getGridCenter(feature: GridFeature) {
+export function getGridCenter(feature: GridFeature): Point {
   const { xMin, yMin, widthMeters, heightMeters } = feature.properties;
 
   const [lng, lat] = metersToLngLat(
@@ -48,5 +49,5 @@ export function getGridCenter(feature: GridFeature) {
     yMin + heightMeters / 2,
   );
 
-  return { lng, lat };
+  return { lng, lat, appearanceTime: 0 };
 }

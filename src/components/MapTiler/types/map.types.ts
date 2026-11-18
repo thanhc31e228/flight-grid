@@ -2,6 +2,7 @@
 export type Point = {
   lng: number;
   lat: number;
+  appearanceTime: number; // Thời gian xuất hiện (phút)
 };
 
 // Thông tin của một ô lưới

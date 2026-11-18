@@ -449,7 +449,7 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
             isFirst: index === 0,
             aircraftCode: "0122",
             altitude: "005",
-            appearanceTime: 5,
+            appearanceTime: point.appearanceTime,
           },
           geometry: {
             type: "Point",

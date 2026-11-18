@@ -1,5 +1,4 @@
-
-import type { Point } from "../../features/route/route.types";
+import { Point } from "../MapTiler/types/map.types";
 
 type Props = {
   points: Point[];

@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 
-import type { Point } from "../features/route/route.types";
-import type { AirCraft } from "../components/MapTiler/types/map.types";
+import type { AirCraft, Point } from "../components/MapTiler/types/map.types";
 
 export function useAircrafts() {
   // danh sach cac duong bay quan ly
@@ -52,11 +51,6 @@ export function useAircrafts() {
     (aircraftId: string, point: Point) => {
       const newPoint = {
         ...point,
-        time: new Date().toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }),
       };
       const updated = aircraftsRef.current.map((aircraft) =>
         aircraft.id === aircraftId

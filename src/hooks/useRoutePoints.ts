@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from "react";
 
-import type { Point } from "../features/route/route.types";
 import {
   hidePointPopup,
   PointPopupData,
   showPointPopup,
 } from "../components/map/MapPopup";
 import { MapLibreMap } from "maplibre-gl";
+import { Point } from "../components/MapTiler/types/map.types";
 
 export function useRoutePoints() {
   const pointsRef = useRef<Point[]>([]);
@@ -20,11 +20,6 @@ export function useRoutePoints() {
 
   const addPoint = useCallback(
     (point: Point) => {
-      point.time = new Date().toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
       const updated = [...pointsRef.current, point];
 
       commitPoints(updated);

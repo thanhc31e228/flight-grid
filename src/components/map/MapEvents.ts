@@ -15,9 +15,8 @@ import type {
   GridCollection,
 } from "../../features/grid/grid.types";
 
-import type { Point } from "../../features/route/route.types";
-
 import { showPointPopup } from "./MapPopup";
+import { Point } from "../MapTiler/types/map.types";
 
 const GRID_LAYERS = ["grid-level-3-fill", "grid-level-2-fill", "grid-fill"];
 
@@ -127,11 +126,7 @@ export function registerMapEvents(
     const point: Point = {
       lng: event.lngLat.lng,
       lat: event.lngLat.lat,
-      time: new Date().toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }),
+      appearanceTime: +selectedAircraftId,
     };
 
     // Thêm điểm vào đúng máy bay

@@ -1,8 +1,7 @@
 import { createContext, ReactNode, useContext, useMemo } from "react";
 
 import { useAircrafts } from "../hooks/useAircrafts";
-import type { AirCraft } from "../components/MapTiler/types/map.types";
-import type { Point } from "../features/route/route.types";
+import type { AirCraft, Point } from "../components/MapTiler/types/map.types";
 
 interface AirCraftContextType {
   aircrafts: AirCraft[];

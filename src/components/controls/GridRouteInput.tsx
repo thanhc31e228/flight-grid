@@ -17,7 +17,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
 
   const handleSubmit = () => {
     const lastLine = value.trim().split(/\r?\n/).pop()?.trim();
-
+    console.log("last line", lastLine);
     if (!lastLine || lastLine.length <= 3) return;
 
     const idTop = lastLine.slice(0, 3);
@@ -31,7 +31,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
     }
 
     const point = getGridCenter(cell);
-
+    point.appearanceTime = 9;
     const exists = isExistsAir(idTop);
 
     if (!exists) {
@@ -42,7 +42,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
         points: [point],
         aircraftCode: "0122",
         altitude: "005",
-        appearanceTime: 5,
+        appearanceTime: point.appearanceTime,
       };
 
       addAircraft(airCraft);
