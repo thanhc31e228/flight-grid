@@ -24,11 +24,17 @@ export function setupRadialMenu(
 
   let lastPointer: { x: number; y: number } | null = null;
   let center: { x: number; y: number } | null = null;
+
   let activeIndex = -1;
   let isOpen = false;
-
+  let isCtrlPressed = false;
+  let isBlocked = false;
   const radius = 85;
   const hoverThreshold = 20;
+
+  // =========================
+  // CREATE MENU
+  // =========================
 
   const menu = document.createElement("div");
   menu.className = "radial-menu";
@@ -44,8 +50,12 @@ export function setupRadialMenu(
 
   container.appendChild(menu);
 
+  // =========================
   // CSS
+  // =========================
+
   const style = document.createElement("style");
+
   style.textContent = `
     .radial-menu-item {
       position: absolute;
@@ -61,8 +71,19 @@ export function setupRadialMenu(
       font-size: 12px;
       font-weight: 600;
       transform: translate(-50%, -50%);
-      transition: background 0.12s, scale 0.12s, border 0.12s;
+      transition:
+        background 0.12s,
+        scale 0.12s,
+        border 0.12s,
+        box-shadow 0.12s;
       white-space: nowrap;
+      pointer-events: auto;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .radial-menu-item:hover {
+      background: #2196f3;
     }
 
     .radial-menu-item.active {
@@ -79,6 +100,7 @@ export function setupRadialMenu(
       border-radius: 50%;
       background: white;
       transform: translate(-50%, -50%);
+      pointer-events: none;
     }
   `;
 
@@ -86,39 +108,14 @@ export function setupRadialMenu(
 
   const buttons: HTMLDivElement[] = [];
 
-  // Tạo các mục menu theo hình tròn
-  items.forEach((item, index) => {
-    const angle = -Math.PI / 2 + (index * Math.PI * 2) / items.length;
-
-    const button = document.createElement("div");
-    button.className = "radial-menu-item";
-    button.textContent = item.label;
-
-    button.style.left = `${Math.cos(angle) * radius}px`;
-    button.style.top = `${Math.sin(angle) * radius}px`;
-
-    menu.appendChild(button);
-    buttons.push(button);
-  });
-
-  const centerPoint = document.createElement("div");
-  centerPoint.className = "radial-menu-center";
-  menu.appendChild(centerPoint);
-
-  function showMenu() {
-    if (!lastPointer || isOpen) return;
-
-    center = { ...lastPointer };
-    menu.style.left = `${center.x}px`;
-    menu.style.top = `${center.y}px`;
-    menu.style.display = "block";
-
-    isOpen = true;
-    activeIndex = -1;
-  }
+  // =========================
+  // HIDE MENU
+  // =========================
 
   function hideMenu() {
     menu.style.display = "none";
+    menu.style.pointerEvents = "none";
+
     isOpen = false;
     activeIndex = -1;
 
@@ -126,27 +123,114 @@ export function setupRadialMenu(
       button.classList.remove("active");
     });
   }
-  function selectMenu() {
-    if (!isOpen || activeIndex < 0) {
+
+  // =========================
+  // SELECT MENU
+  // =========================
+
+  function selectMenu(index: number = activeIndex) {
+    if (!isOpen || index < 0 || index >= items.length) {
       hideMenu();
       return;
     }
 
-    const selectedItem = items[activeIndex];
+    const selectedItem = items[index];
+    const selectedPoint = center ? { ...center } : null;
 
-    if (!selectedItem || !center) {
+    if (!selectedPoint) {
       hideMenu();
       return;
     }
 
-    const selectedPoint = { ...center };
+    // Khóa mở menu cho đến khi Ctrl được thả
+    isBlocked = true;
 
-    // Đóng menu trước khi thực hiện action
     hideMenu();
 
-    // Callback trả về item được chọn
     options.onSelect(selectedItem, selectedPoint);
   }
+
+  // =========================
+  // CREATE MENU ITEMS
+  // =========================
+
+  items.forEach((item, index) => {
+    const angle = -Math.PI / 2 + (index * Math.PI * 2) / items.length;
+
+    const button = document.createElement("div");
+
+    button.className = "radial-menu-item";
+    button.textContent = item.label;
+
+    button.style.left = `${Math.cos(angle) * radius}px`;
+    button.style.top = `${Math.sin(angle) * radius}px`;
+
+    // CLICK MENU
+    button.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      selectMenu(index);
+    });
+
+    // Không để MapLibre nhận sự kiện chuột của menu
+    button.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
+    });
+
+    button.addEventListener("mouseup", (e) => {
+      e.stopPropagation();
+    });
+
+    button.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    menu.appendChild(button);
+    buttons.push(button);
+  });
+
+  // =========================
+  // CENTER POINT
+  // =========================
+
+  const centerPoint = document.createElement("div");
+
+  centerPoint.className = "radial-menu-center";
+
+  menu.appendChild(centerPoint);
+
+  // =========================
+  // SHOW MENU
+  // =========================
+
+  function showMenu() {
+    if (
+      !lastPointer ||
+      isOpen ||
+      isBlocked ||
+      !isCtrlPressed ||
+      items.length === 0
+    ) {
+      return;
+    }
+
+    center = { ...lastPointer };
+
+    menu.style.left = `${center.x}px`;
+    menu.style.top = `${center.y}px`;
+    menu.style.display = "block";
+    menu.style.pointerEvents = "auto";
+
+    isOpen = true;
+    activeIndex = -1;
+  }
+
+  // =========================
+  // UPDATE HOVER
+  // =========================
+
   function updateHover(mouseX: number, mouseY: number) {
     if (!center || !isOpen) return;
 
@@ -158,8 +242,11 @@ export function setupRadialMenu(
     if (distance < hoverThreshold) {
       activeIndex = -1;
     } else {
-      // Góc bắt đầu từ hướng trên và chạy theo chiều kim đồng hồ
+      // Góc bắt đầu từ hướng trên
+      // Chạy theo chiều kim đồng hồ
+
       const angle = Math.atan2(dy, dx) + Math.PI / 2;
+
       const normalizedAngle = (angle + Math.PI * 2) % (Math.PI * 2);
 
       const sectorSize = (Math.PI * 2) / items.length;
@@ -172,6 +259,10 @@ export function setupRadialMenu(
     });
   }
 
+  // =========================
+  // MOUSE MOVE
+  // =========================
+
   function onMouseMove(e: MouseEvent) {
     const rect = container.getBoundingClientRect();
 
@@ -180,36 +271,69 @@ export function setupRadialMenu(
       y: e.clientY - rect.top,
     };
 
-    if (e.ctrlKey && !isOpen) {
+    if (isCtrlPressed && !isBlocked && !isOpen) {
       showMenu();
     }
 
     updateHover(lastPointer.x, lastPointer.y);
   }
 
+  // =========================
+  // KEY DOWN
+  // =========================
+
   function onKeyDown(e: KeyboardEvent) {
     if (e.key !== "Control" || e.repeat) return;
 
+    isCtrlPressed = true;
+    isBlocked = false;
+
     showMenu();
   }
+  // =========================
+  // KEY UP
+  // =========================
 
   function onKeyUp(e: KeyboardEvent) {
-    if (e.key === "Control") {
+    if (e.key !== "Control") return;
+
+    isCtrlPressed = false;
+
+    if (isOpen) {
       selectMenu();
     }
+
+    // Chỉ cho phép mở lại ở lần nhấn Ctrl tiếp theo
+    isBlocked = false;
   }
 
+  // =========================
+  // BLUR
+  // =========================
+
   function onBlur() {
+    isCtrlPressed = false;
+    isBlocked = false;
     hideMenu();
   }
 
+  // =========================
+  // EVENT LISTENERS
+  // =========================
+
   container.addEventListener("mousemove", onMouseMove);
+
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
   window.addEventListener("blur", onBlur);
 
+  // =========================
+  // CLEANUP
+  // =========================
+
   return () => {
     container.removeEventListener("mousemove", onMouseMove);
+
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup", onKeyUp);
     window.removeEventListener("blur", onBlur);

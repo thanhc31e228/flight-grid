@@ -638,36 +638,44 @@ export function initializeMapLayers(map: MapLibreMap) {
     ],
     {
       onSelect: (item, point) => {
-        console.log("Selected:", item.value);
-        console.log("Mouse position:", point);
+        const lngLat = map.unproject([point.x, point.y]);
+
+        console.log("Action:", item.value);
+        console.log("Coordinates:", lngLat);
 
         switch (item.value) {
           case "waypoint":
-            console.log("Create waypoint");
+            console.log("waypoint");
             break;
 
           case "route":
-            console.log("Create route");
+            console.log("route");
+
             break;
 
           case "aircraft":
-            console.log("Create aircraft");
+            console.log("aircraft");
+
             break;
 
           case "delete":
-            console.log("Delete object");
+            console.log("delete");
+
             break;
 
           case "edit":
-            console.log("Edit object");
+            console.log("edit");
+
             break;
 
           case "info":
-            console.log("Show information");
+            console.log("info");
+
             break;
 
           case "select":
-            console.log("Select object");
+            console.log("select");
+
             break;
 
           case "other":
@@ -677,6 +685,8 @@ export function initializeMapLayers(map: MapLibreMap) {
       },
     },
   );
+
+  return cleanupRadialMenu;
 }
 export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
   const pointsSource = map.getSource("points-source") as
