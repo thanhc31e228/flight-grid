@@ -17,7 +17,6 @@ export default function GridRouteInput({ gridIndex }: Props) {
 
   const handleSubmit = () => {
     const lastLine = value.trim().split(/\r?\n/).pop()?.trim();
-    console.log("last line", lastLine);
     if (!lastLine || lastLine.length <= 3) return;
 
     const idTop = lastLine.slice(0, 3);

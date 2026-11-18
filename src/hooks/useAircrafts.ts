@@ -27,14 +27,10 @@ export function useAircrafts() {
     [commitAircrafts],
   );
   // lay diem cuoi cua aircraft
-  const getLastPoint = useCallback(
-    (aircraftId: string): Point | undefined => {
-      const aircraft = aircrafts.find((a) => a.id === aircraftId);
-
-      return aircraft?.points.at(-1);
-    },
-    [aircrafts],
-  );
+  const getLastPoint = useCallback((aircraftId: string): Point | undefined => {
+    const aircraft = aircraftsRef.current.find((a) => a.id === aircraftId);
+    return aircraft?.points.at(-1);
+  }, []);
 
   // Xóa máy bay theo ID
   const removeAircraft = useCallback(

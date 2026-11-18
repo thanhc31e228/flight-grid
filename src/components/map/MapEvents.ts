@@ -24,6 +24,7 @@ export function registerMapEvents(
   map: MapLibreMap,
   onAddPoint: (aircraftId: string, point: Point) => number,
   getSelectedAircraftId: () => string | null,
+  getLastPoint: (aircraftId: string) => Point | undefined,
 ) {
   let activeParentId: string | null = null;
   let activeChildId: string | null = null;
@@ -123,27 +124,29 @@ export function registerMapEvents(
       // them top may bay moi
       return;
     }
-    const point: Point = {
-      lng: event.lngLat.lng,
-      lat: event.lngLat.lat,
-      appearanceTime: selectedAircraftId,
-    };
-
-    // Thêm điểm vào đúng máy bay
-    const pointNumber = onAddPoint(selectedAircraftId, point);
-
-    // Chỉ hiển thị popup tại điểm đầu tiên của từng máy bay
-    if (pointNumber === 1) {
-      showPointPopup(
-        {
-          lng: point.lng,
-          lat: point.lat,
-          index: pointNumber,
-          topNumber: 1,
-          groupNumber: 1,
-        },
-        map,
-      );
+    const lastPoint = getLastPoint(selectedAircraftId);
+    // neu co diem cuoi thi tao them diem moi
+    if (lastPoint) {
+      const point: Point = {
+        lng: event.lngLat.lng,
+        lat: event.lngLat.lat,
+        appearanceTime: lastPoint.appearanceTime,
+      };
+      // Thêm điểm vào đúng máy bay
+      const pointNumber = onAddPoint(selectedAircraftId, point);
+      // Chỉ hiển thị popup tại điểm đầu tiên của từng máy bay
+      // if (pointNumber === 1) {
+      //   showPointPopup(
+      //     {
+      //       lng: point.lng,
+      //       lat: point.lat,
+      //       index: pointNumber,
+      //       topNumber: 1,
+      //       groupNumber: 1,
+      //     },
+      //     map,
+      //   );
+      // }
     }
   };
 

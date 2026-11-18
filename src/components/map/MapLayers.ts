@@ -305,8 +305,8 @@ export function addRouteLayers(map: MapLibreMap) {
 
     paint: {
       "text-color": ["get", "color"],
-      "text-halo-color": "#293184", // màu của time
-      "text-halo-width": 2,
+      "text-halo-color": "#032b19", // màu của time
+      "text-halo-width": 0.5,
     },
   });
 }

@@ -81,6 +81,7 @@ export default function MapView({
     selectedAircraftId,
     aircrafts: contextAircrafts,
     addPoint,
+    getLastPoint,
   } = useAirCraftContext();
 
   // Context là nguồn dữ liệu chính.
@@ -249,6 +250,7 @@ export default function MapView({
           return addPointRef.current(aircraftId, point);
         },
         () => selectedAircraftIdRef.current,
+        getLastPoint,
       );
 
       // Context menu của grid.
