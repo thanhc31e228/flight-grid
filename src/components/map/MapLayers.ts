@@ -14,6 +14,7 @@ import type { Feature, Point } from "geojson";
 import { AirCraft } from "../MapTiler/types/map.types";
 import { setupRadialMenu } from "../MapTiler/utils/radialMenu";
 import { createAzimuth } from "../../features/grid/azimuth.factory";
+import { addMeasurementTool } from "../MapTiler/utils/measurement.tool";
 
 const EMPTY_FEATURE_COLLECTION = {
   type: "FeatureCollection" as const,
@@ -623,11 +624,11 @@ export function initializeMapLayers(map: MapLibreMap) {
   addRouteLayers(map);
   addAirportLayer(map);
   addRouteHoverEvents(map);
-
+  addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);
   // Vòng tròn phương vị
   addAzimuthLayers(
     map,
-    MAP_CONFIG.CENTER,
+    MAP_CONFIG.CENTER_MIL,
     35, // bán kính 35km
   );
   addFirstWaypointClickEvent(map);
