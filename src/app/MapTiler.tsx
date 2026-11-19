@@ -8,7 +8,6 @@ import { createLevel3Index } from "../features/grid/grid.index";
 import "../styles/map.css";
 
 import type { GridCell } from "../components/MapTiler/types/map.types";
-import { hidePointPopup } from "../components/map/MapPopup";
 import { useAirCraftContext } from "../context/MakerContext";
 import MeasurementBar from "../components/controls/MeasurementBar";
 import { setPick, usePick } from "../components/MapTiler/utils/pick.store";
@@ -188,9 +187,9 @@ export default function MapTiler() {
 
     const remainingPoints = undoPoint(selectedAircraftId);
 
-    if (remainingPoints === 0) {
-      hidePointPopup();
-    }
+    // if (remainingPoints === 0) {
+    //   hidePointPopup();
+    // }
 
     return remainingPoints;
   }, [selectedAircraftId, undoPoint]);
@@ -215,7 +214,6 @@ export default function MapTiler() {
   // Chọn máy bay
   const handleSelectAircraft = (aircraftId: string) => {
     setSelectedAircraftId(aircraftId);
-    hidePointPopup();
   };
 
   // Đóng context menu khi nhấn Escape

@@ -1,4 +1,4 @@
-import { hidePointPopup } from "../map/MapPopup";
+// import { hidePointPopup } from "../map/MapPopup";
 
 type Props = {
   count: number;
@@ -18,16 +18,16 @@ export default function RouteControls({
 
     const remainingPoints = onUndo(aircraftId);
 
-    if (remainingPoints === 0) {
-      hidePointPopup();
-    }
+    // if (remainingPoints === 0) {
+    //   hidePointPopup();
+    // }
   };
 
   const handleClear = () => {
     if (!aircraftId) return;
 
     onClear(aircraftId);
-    hidePointPopup();
+    // hidePointPopup();
   };
 
   return (
