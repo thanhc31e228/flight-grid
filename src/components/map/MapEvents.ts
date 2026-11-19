@@ -140,20 +140,7 @@ export function registerMapEvents(
         appearanceTime: lastPoint.appearanceTime,
       };
       // Thêm điểm vào đúng máy bay
-      const pointNumber = onAddPoint(selectedAircraftId, point);
-      // Chỉ hiển thị popup tại điểm đầu tiên của từng máy bay
-      // if (pointNumber === 1) {
-      //   showPointPopup(
-      //     {
-      //       lng: point.lng,
-      //       lat: point.lat,
-      //       index: pointNumber,
-      //       topNumber: 1,
-      //       groupNumber: 1,
-      //     },
-      //     map,
-      //   );
-      // }
+      onAddPoint(selectedAircraftId, point);
     }
   };
 

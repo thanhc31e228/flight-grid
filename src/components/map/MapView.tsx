@@ -297,7 +297,7 @@ export default function MapView({
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [getLastPoint]);
 
   // ======================================
   // RENDER
