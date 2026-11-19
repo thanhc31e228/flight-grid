@@ -984,4 +984,89 @@ export function addAzimuthLayers(
       "text-halo-width": 1.5,
     },
   });
+  // =========================
+  // MIL CIRCLE SOURCE
+  // =========================
+
+  map.addSource("azimuth-mil-circle-source", {
+    type: "geojson",
+    data: data.milCircle,
+  });
+
+  map.addLayer({
+    id: "azimuth-mil-circle",
+    type: "line",
+    source: "azimuth-mil-circle-source",
+    paint: {
+      "line-color": "#f97316",
+      "line-width": 1.5,
+      "line-opacity": 0.9,
+    },
+  });
+
+  // =========================
+  // MIL TICK SOURCE
+  // =========================
+
+  map.addSource("azimuth-mil-ticks-source", {
+    type: "geojson",
+    data: data.milTicks,
+  });
+
+  map.addLayer({
+    id: "azimuth-mil-ticks",
+    type: "line",
+    source: "azimuth-mil-ticks-source",
+    paint: {
+      "line-color": "#f97316",
+      "line-width": ["case", ["==", ["get", "major"], true], 2, 1],
+      "line-opacity": 0.95,
+    },
+  });
+
+  // =========================
+  // MIL LABEL SOURCE
+  // =========================
+
+  map.addSource("azimuth-mil-labels-source", {
+    type: "geojson",
+    data: data.milLabels,
+  });
+
+  map.addLayer({
+    id: "azimuth-mil-labels",
+    type: "symbol",
+    source: "azimuth-mil-labels-source",
+    layout: {
+      "text-field": ["get", "label"],
+      "text-size": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        4,
+        8,
+        6,
+        10,
+        8,
+        12,
+        10,
+        14,
+        12,
+        16,
+        14,
+        18,
+        16,
+        20,
+      ],
+      "text-font": ["Open Sans Bold"],
+      "text-anchor": "center",
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+    },
+    paint: {
+      "text-color": "#47220f",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 1.5,
+    },
+  });
 }
