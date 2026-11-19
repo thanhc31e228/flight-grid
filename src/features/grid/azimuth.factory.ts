@@ -53,7 +53,7 @@ function formatMil(mil: number): string {
   return `${mil === 0 ? 60 : mil}-00`;
 }
 
-export function createAzimuth(center: Position, radiusKm = 100, interval = 6) {
+export function createAzimuth(center: Position, radiusKm = 20, interval = 6) {
   const circleFeatures: Feature<LineString>[] = [];
   const tickFeatures: Feature<LineString, AzimuthProperties>[] = [];
   const labelFeatures: Feature<Point, AzimuthProperties>[] = [];

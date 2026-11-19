@@ -9,6 +9,7 @@
     "@testing-library/user-event": "^13.5.0",
     "@turf/bearing": "^7.4.0",
     "@turf/bezier-spline": "^7.4.0",
+    "@turf/centroid": "^7.4.0",
     "@turf/helpers": "^7.4.0",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.126",

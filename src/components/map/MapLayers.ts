@@ -16,6 +16,7 @@ import { AirCraft } from "../MapTiler/types/map.types";
 import { createAzimuth } from "../../features/grid/azimuth.factory";
 import { addMeasurementTool } from "../MapTiler/utils/measurement.tool";
 import { addCursorTracker } from "../MapTiler/utils/cursor.tracker";
+import centroid from "@turf/centroid";
 
 const EMPTY_FEATURE_COLLECTION = {
   type: "FeatureCollection" as const,
@@ -23,13 +24,29 @@ const EMPTY_FEATURE_COLLECTION = {
 };
 
 // hàm thêm các ô vuông
-
+// Mỗi ô vuông -> 1 điểm ở tâm ô, giữ nguyên properties (label, row, col)
+function createGridLabelPoints(grid: ReturnType<typeof createGrid>) {
+  return {
+    type: "FeatureCollection" as const,
+    features: grid.features.map((feature) => {
+      const point = centroid(feature);
+      point.properties = { ...(feature.properties ?? {}) };
+      return point;
+    }),
+  };
+}
 export function addGridLayers(map: MapLibreMap) {
+  const grid = createGrid();
+
   map.addSource("grid-source", {
     type: "geojson",
-    data: createGrid(),
+    data: grid,
   });
-
+  // Source riêng chỉ chứa điểm tâm của từng ô, dùng cho label
+  map.addSource("grid-label-source", {
+    type: "geojson",
+    data: createGridLabelPoints(grid),
+  });
   map.addLayer({
     id: "grid-fill",
     type: "fill",
@@ -55,23 +72,23 @@ export function addGridLayers(map: MapLibreMap) {
   map.addLayer({
     id: "grid-label",
     type: "symbol",
-    source: "grid-source",
+    source: "grid-label-source", // đổi từ "grid-source"
     layout: {
       "text-field": [
         "coalesce",
         ["get", "label"],
         ["to-string", ["*", ["get", "row"], ["get", "col"]]],
       ],
-      "text-size": 11,
-      "text-font": ["Open Sans Regular"],
+      "text-size": 16,
+      "text-font": ["Open Sans Bold"],
       "text-anchor": "center",
       "text-allow-overlap": true,
     },
     paint: {
-      "text-color": "#050e1c",
+      "text-color": "#020617",
       "text-halo-color": "#ffffff",
-      "text-halo-width": 1.2,
-      "text-opacity": 0.8,
+      "text-halo-width": 1.5,
+      "text-opacity": 1,
     },
   });
 
@@ -632,7 +649,7 @@ export function initializeMapLayers(map: MapLibreMap) {
   addAzimuthLayers(
     map,
     MAP_CONFIG.CENTER_MIL,
-    35, // bán kính 35km
+    40, // bán kính 40km
   );
   addFirstWaypointClickEvent(map);
   return () => {
@@ -807,6 +824,12 @@ export function updateGridLabels(map: MapLibreMap, labels: string[]) {
 
   // Cập nhật dữ liệu GeoJSON
   source.setData(gridData);
+  // Cập nhật luôn các điểm label
+  const labelSource = map.getSource("grid-label-source") as
+    | GeoJSONSource
+    | undefined;
+
+  labelSource?.setData(createGridLabelPoints(gridData));
 }
 export function addRouteHoverEvents(map: MapLibreMap) {
   let hoveredAircraftId: string | null = null;
@@ -842,7 +865,7 @@ export function addRouteHoverEvents(map: MapLibreMap) {
 export function addAzimuthLayers(
   map: MapLibreMap,
   center: [number, number],
-  radiusKm = 100,
+  radiusKm = 20,
 ) {
   const data = createAzimuth(center, radiusKm, 6);
 
