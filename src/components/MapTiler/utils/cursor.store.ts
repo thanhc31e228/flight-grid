@@ -1,16 +1,15 @@
 import { useSyncExternalStore } from "react";
 
-export interface MeasurementInfo {
-  mil: string; // ví dụ "15-00"
-  bearingDeg: number; // 0-360
-  distanceKm: number;
+export interface CursorCoords {
+  lng: number;
+  lat: number;
 }
 
-let current: MeasurementInfo | null = null;
+let current: CursorCoords | null = null;
 const listeners = new Set<() => void>();
 
-export function setMeasurement(info: MeasurementInfo | null) {
-  current = info;
+export function setCursorCoords(coords: CursorCoords | null) {
+  current = coords;
   listeners.forEach((listener) => listener());
 }
 
@@ -19,6 +18,6 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-export function useMeasurement() {
+export function useCursorCoords() {
   return useSyncExternalStore(subscribe, () => current);
 }

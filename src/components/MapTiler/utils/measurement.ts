@@ -19,7 +19,10 @@ export function getDistanceKm(start: Position, end: Position): number {
 
   return 6371.0088 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-
+// Cự ly theo mét, làm tròn thành số nguyên
+export function getDistanceMeters(start: Position, end: Position): number {
+  return Math.round(getDistanceKm(start, end) * 1000);
+}
 // Tính bearing: 0° Bắc, tăng theo chiều kim đồng hồ
 export function getBearing(start: Position, end: Position): number {
   const [lng1, lat1] = start.map((v) => v * DEG_TO_RAD);

@@ -16,6 +16,7 @@ import { AirCraft } from "../MapTiler/types/map.types";
 import { setupRadialMenu } from "../MapTiler/utils/radialMenu";
 import { createAzimuth } from "../../features/grid/azimuth.factory";
 import { addMeasurementTool } from "../MapTiler/utils/measurement.tool";
+import { addCursorTracker } from "../MapTiler/utils/cursor.tracker";
 
 const EMPTY_FEATURE_COLLECTION = {
   type: "FeatureCollection" as const,
@@ -625,7 +626,8 @@ export function initializeMapLayers(map: MapLibreMap) {
   addRouteLayers(map);
   addAirportLayer(map);
   addRouteHoverEvents(map);
-  addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);
+  const cleanupMeasurement = addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);
+  const cleanupCursor = addCursorTracker(map);
   // Vòng tròn phương vị
   addAzimuthLayers(
     map,
@@ -696,7 +698,11 @@ export function initializeMapLayers(map: MapLibreMap) {
     },
   );
 
-  return cleanupRadialMenu;
+  return () => {
+    cleanupMeasurement();
+    cleanupCursor();
+    cleanupRadialMenu();
+  };
 }
 export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
   const pointsSource = map.getSource("points-source") as

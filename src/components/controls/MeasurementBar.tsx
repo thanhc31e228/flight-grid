@@ -1,7 +1,7 @@
-import { useMeasurement } from "../MapTiler/utils/measurement.store";
+import { useCursorCoords } from "../MapTiler/utils/cursor.store";
 
 export default function MeasurementBar() {
-  const measurement = useMeasurement();
+  const coords = useCursorCoords();
 
   return (
     <div
@@ -14,23 +14,16 @@ export default function MeasurementBar() {
       "
     >
       <div className="flex items-center gap-2">
-        <span className="font-semibold">Phương vị:</span>
-        <span className="w-16 font-mono tabular-nums text-orange-700">
-          {measurement ? measurement.mil : "--"}
+        <span className="font-semibold">Kinh độ:</span>
+        <span className="w-28 font-mono tabular-nums text-sky-700">
+          {coords ? `${coords.lng.toFixed(6)}°` : "--"}
         </span>
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="font-semibold">Góc:</span>
-        <span className="w-16 font-mono tabular-nums text-sky-700">
-          {measurement ? `${measurement.bearingDeg.toFixed(1)}°` : "--"}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <span className="font-semibold">Cự ly:</span>
-        <span className="w-24 font-mono tabular-nums">
-          {measurement ? `${measurement.distanceKm.toFixed(2)} km` : "--"}
+        <span className="font-semibold">Vĩ độ:</span>
+        <span className="w-28 font-mono tabular-nums text-orange-700">
+          {coords ? `${coords.lat.toFixed(6)}°` : "--"}
         </span>
       </div>
     </div>
