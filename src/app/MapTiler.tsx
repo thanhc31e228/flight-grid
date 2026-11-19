@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import MapView from "../components/map/MapView";
 import MapControlPanel from "../components/controls/MapControlPanel";
@@ -168,7 +168,7 @@ export default function MapTiler() {
   };
 
   // Undo waypoint của máy bay đang chọn
-  const handleUndo = () => {
+  const handleUndo = useCallback(() => {
     if (!selectedAircraftId) return 0;
 
     const remainingPoints = undoPoint(selectedAircraftId);
@@ -178,7 +178,7 @@ export default function MapTiler() {
     }
 
     return remainingPoints;
-  };
+  }, [selectedAircraftId, undoPoint]);
 
   // Lưu labels
   const handleSaveLabels = async (labels: string[]) => {
@@ -232,7 +232,7 @@ export default function MapTiler() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedAircraftId, undoPoint]);
+  }, [handleUndo]);
 
   return (
     <div className="map-container flex h-screen w-full flex-col overflow-hidden">
