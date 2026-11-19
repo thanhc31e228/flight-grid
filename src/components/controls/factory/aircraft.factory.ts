@@ -26,7 +26,11 @@ function getNextAircraftId(
 
   return null;
 }
-
+export type AircraftDetails = {
+  aircraftCode?: string;
+  altitude?: string;
+  appearanceTime?: string;
+};
 export function createAircraft(
   aircrafts: AirCraft[],
   side: AircraftSide,

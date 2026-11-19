@@ -2,6 +2,7 @@ import { createContext, ReactNode, useContext, useMemo } from "react";
 
 import { useAircrafts } from "../hooks/useAircrafts";
 import type { AirCraft, Point } from "../components/MapTiler/types/map.types";
+import { AircraftDetails } from "../components/controls/factory/aircraft.factory";
 
 interface AirCraftContextType {
   aircrafts: AirCraft[];
@@ -9,6 +10,7 @@ interface AirCraftContextType {
   getLastPoint: (aircaftId: string) => Point | undefined;
   setSelectedAircraftId: (id: string | null) => void;
   addAircraft: (aircraft: AirCraft) => number;
+  updateAircraft: (aircraftId: string, details: AircraftDetails) => void;
   removeAirCraft: (aircraftId: string) => number;
   addPoint: (aircraftId: string, point: Point) => number;
   undoPoint: (aircraftId: string) => number;
@@ -26,6 +28,7 @@ export default function MakerProvider({ children }: { children: ReactNode }) {
     selectedAircraftId,
     setSelectedAircraftId,
     addAircraft,
+    updateAircraft,
     getLastPoint,
     removeAircraft,
     addPoint,
@@ -40,6 +43,7 @@ export default function MakerProvider({ children }: { children: ReactNode }) {
       selectedAircraftId,
       setSelectedAircraftId,
       addAircraft,
+      updateAircraft,
       removeAirCraft: removeAircraft,
       addPoint,
       getLastPoint,
@@ -52,6 +56,7 @@ export default function MakerProvider({ children }: { children: ReactNode }) {
       selectedAircraftId,
       setSelectedAircraftId,
       addAircraft,
+      updateAircraft,
       removeAircraft,
       getLastPoint,
       addPoint,

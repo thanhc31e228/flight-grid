@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
-
-import type { AirCraft, Point } from "../components/MapTiler/types/map.types";
+import { AirCraft } from "../components/MapTiler/types/map.types";
+import { AircraftDetails } from "../components/controls/factory/aircraft.factory";
+import { Point } from "../features/route/route.types";
 
 export function useAircrafts() {
   // danh sach cac duong bay quan ly
@@ -9,6 +10,7 @@ export function useAircrafts() {
   const [selectedAircraftId, setSelectedAircraftId] = useState<string | null>(
     null,
   );
+
   // Đồng bộ ref và state
   /// LƯU VÀO DATABASE
   const commitAircrafts = useCallback((updated: AirCraft[]) => {
@@ -26,6 +28,32 @@ export function useAircrafts() {
     },
     [commitAircrafts],
   );
+
+  // Sửa thông tin máy bay (SL-KL, độ cao, thời gian)
+  const updateAircraft = useCallback(
+    (aircraftId: string, details: AircraftDetails) => {
+      const updated = aircraftsRef.current.map((aircraft) => {
+        if (aircraft.id !== aircraftId) return aircraft;
+
+        // Nhãn điểm đầu hiển thị thời gian của waypoint đầu, nên sửa luôn ở đó
+        const [first, ...rest] = aircraft.points;
+
+        return {
+          ...aircraft,
+          aircraftCode: details.aircraftCode,
+          altitude: details.altitude,
+          appearanceTime: details.appearanceTime,
+          points: first
+            ? [{ ...first, appearanceTime: details.appearanceTime }, ...rest]
+            : aircraft.points,
+        };
+      });
+
+      commitAircrafts(updated);
+    },
+    [commitAircrafts],
+  );
+
   // lay diem cuoi cua aircraft
   const getLastPoint = useCallback((aircraftId: string): Point | undefined => {
     const aircraft = aircraftsRef.current.find((a) => a.id === aircraftId);
@@ -48,23 +76,15 @@ export function useAircrafts() {
   // Thêm point cho một máy bay
   const addPoint = useCallback(
     (aircraftId: string, point: Point) => {
-      const newPoint = {
-        ...point,
-      };
       const updated = aircraftsRef.current.map((aircraft) =>
         aircraft.id === aircraftId
-          ? {
-              ...aircraft,
-              points: [...aircraft.points, newPoint],
-            }
+          ? { ...aircraft, points: [...aircraft.points, { ...point }] }
           : aircraft,
       );
 
       commitAircrafts(updated);
 
       const target = updated.find((a) => a.id === aircraftId);
-      console.log("target", target);
-
       return target?.points.length ?? 0;
     },
     [commitAircrafts],
@@ -75,10 +95,7 @@ export function useAircrafts() {
     (aircraftId: string) => {
       const updated = aircraftsRef.current.map((aircraft) =>
         aircraft.id === aircraftId
-          ? {
-              ...aircraft,
-              points: aircraft.points.slice(0, -1),
-            }
+          ? { ...aircraft, points: aircraft.points.slice(0, -1) }
           : aircraft,
       );
 
@@ -122,6 +139,7 @@ export function useAircrafts() {
     setSelectedAircraftId,
     aircraftsRef,
     addAircraft,
+    updateAircraft,
     removeAircraft,
     addPoint,
     undoPoint,
