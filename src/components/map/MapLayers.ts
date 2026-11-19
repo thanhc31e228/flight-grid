@@ -16,6 +16,7 @@ import { createAzimuth } from "../../features/grid/azimuth.factory";
 import type { AirCraft } from "../MapTiler/types/map.types";
 import { addMeasurementTool } from "../MapTiler/utils/measurement.tool";
 import { addCursorTracker } from "../MapTiler/utils/cursor.tracker";
+import { smoothLine } from "../MapTiler/utils/smooth-line";
 
 // =========================
 // HẰNG SỐ & HÀM DÙNG CHUNG
@@ -673,8 +674,14 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
     if (coordinates.length >= 2) {
       routeFeatures.push({
         type: "Feature",
-        properties: { color: aircraft.color, aircraftId: aircraft.id },
-        geometry: { type: "LineString", coordinates },
+        properties: {
+          color: aircraft.color,
+          aircraftId: aircraft.id,
+        },
+        geometry: {
+          type: "LineString",
+          coordinates: smoothLine(coordinates, 0.4, 24),
+        },
       });
     }
   });
