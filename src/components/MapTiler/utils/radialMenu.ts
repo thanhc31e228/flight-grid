@@ -50,62 +50,6 @@ export function setupRadialMenu(
 
   container.appendChild(menu);
 
-  // =========================
-  // CSS
-  // =========================
-
-  const style = document.createElement("style");
-
-  style.textContent = `
-    .radial-menu-item {
-      position: absolute;
-      width: 66px;
-      height: 66px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(25, 35, 50, 0.95);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.35);
-      font-size: 12px;
-      font-weight: 600;
-      transform: translate(-50%, -50%);
-      transition:
-        background 0.12s,
-        scale 0.12s,
-        border 0.12s,
-        box-shadow 0.12s;
-      white-space: nowrap;
-      pointer-events: auto;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .radial-menu-item:hover {
-      background: #2196f3;
-    }
-
-    .radial-menu-item.active {
-      background: #2196f3;
-      border: 2px solid white;
-      scale: 1.15;
-      box-shadow: 0 0 12px rgba(33,150,243,0.8);
-    }
-
-    .radial-menu-center {
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: white;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-    }
-  `;
-
-  document.head.appendChild(style);
-
   const buttons: HTMLDivElement[] = [];
 
   // =========================
@@ -337,8 +281,6 @@ export function setupRadialMenu(
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup", onKeyUp);
     window.removeEventListener("blur", onBlur);
-
     menu.remove();
-    style.remove();
   };
 }
