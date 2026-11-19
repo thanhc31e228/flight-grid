@@ -12,7 +12,15 @@ import { hidePointPopup } from "../components/map/MapPopup";
 import { useAirCraftContext } from "../context/MakerContext";
 import MeasurementBar from "../components/controls/MeasurementBar";
 import { setPick, usePick } from "../components/MapTiler/utils/pick.store";
-import { createAircraft } from "../components/controls/factory/aircraft.factory";
+import {
+  createAircraft,
+  type AircraftDetails,
+  type AircraftSide,
+} from "../components/controls/factory/aircraft.factory";
+import NewAircraftForm from "../components/controls/NewAircraftForm";
+
+// Thời gian xuất hiện điền sẵn cho top mới (đổi theo quy ước thời gian của bạn)
+const DEFAULT_APPEARANCE_TIME = "00";
 
 export default function MapTiler() {
   const {
@@ -240,17 +248,36 @@ export default function MapTiler() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [handleUndo]);
+
   const pick = usePick();
 
-  // Chọn loại top: tạo máy bay mới, điểm đầu chính là điểm vừa chốt
-  const handlePickSide = (side: "friendly" | "enemy") => {
-    if (!pick) return;
+  // Phe đang chờ nhập thông tin (null = đang ở bước chọn phe)
+  const [pendingSide, setPendingSide] = useState<AircraftSide | null>(null);
 
-    const aircraft = createAircraft(aircrafts, side, {
-      lng: pick.lng,
-      lat: pick.lat,
-      appearanceTime: "00", // đổi theo quy ước thời gian của bạn
-    });
+  // Menu chốt điểm bị đóng từ nơi khác (pick = null) thì quay về bước chọn phe
+  useEffect(() => {
+    if (!pick) setPendingSide(null);
+  }, [pick]);
+
+  const closePick = () => {
+    setPick(null);
+    setPendingSide(null);
+  };
+
+  // Bấm "Thêm" trong form: tạo máy bay mới, điểm đầu chính là điểm vừa chốt
+  const handleCreateAircraft = (details: AircraftDetails) => {
+    if (!pick || !pendingSide) return;
+
+    const aircraft = createAircraft(
+      aircrafts,
+      pendingSide,
+      {
+        lng: pick.lng,
+        lat: pick.lat,
+        appearanceTime: details.appearanceTime ?? DEFAULT_APPEARANCE_TIME,
+      },
+      details,
+    );
 
     if (!aircraft) {
       window.alert("Đã đủ số lượng top máy bay của phe này (99).");
@@ -259,8 +286,9 @@ export default function MapTiler() {
 
     addAircraft(aircraft);
     setSelectedAircraftId(aircraft.id); // các click tiếp theo thêm waypoint cho top này
-    setPick(null);
+    closePick();
   };
+
   return (
     <div className="map-container flex h-screen w-full flex-col overflow-hidden">
       {/* ================= THANH TỌA ĐỘ ================= */}
@@ -429,24 +457,28 @@ export default function MapTiler() {
           </button>
         </div>
       )}
+
       {/* ================= MENU CHỐT ĐIỂM ĐO ================= */}
       {pick && (
         <>
           {/* Lớp nền bắt click ngoài menu để đóng, nên click đó không lọt xuống bản đồ */}
           <div
             className="fixed inset-0 z-[999998]"
-            onClick={() => setPick(null)}
+            onClick={closePick}
             onContextMenu={(event) => {
               event.preventDefault();
-              setPick(null);
+              closePick();
             }}
           />
 
           <div
-            className="fixed z-[999999] w-[220px] rounded-lg border border-gray-200 bg-white p-2 shadow-xl"
+            className="fixed z-[999999] w-[240px] rounded-lg border border-gray-200 bg-white p-2 shadow-xl"
             style={{
-              left: Math.min(pick.clientX, window.innerWidth - 232),
-              top: Math.min(pick.clientY, window.innerHeight - 170),
+              left: Math.min(pick.clientX, window.innerWidth - 252),
+              top: Math.min(
+                pick.clientY,
+                window.innerHeight - (pendingSide ? 330 : 170),
+              ),
             }}
           >
             <div className="border-b border-gray-100 px-3 pb-2 pt-1 text-xs leading-5 text-gray-500">
@@ -459,29 +491,42 @@ export default function MapTiler() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => handlePickSide("friendly")}
-              className="mt-1 block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-            >
-              Thêm top máy bay ta
-            </button>
+            {pendingSide ? (
+              // Bước 2: nhập thông tin top máy bay
+              <NewAircraftForm
+                side={pendingSide}
+                initialTime={DEFAULT_APPEARANCE_TIME}
+                onSubmit={handleCreateAircraft}
+                onBack={() => setPendingSide(null)}
+              />
+            ) : (
+              // Bước 1: chọn phe
+              <>
+                <button
+                  type="button"
+                  onClick={() => setPendingSide("friendly")}
+                  className="mt-1 block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                >
+                  Thêm top máy bay ta
+                </button>
 
-            <button
-              type="button"
-              onClick={() => handlePickSide("enemy")}
-              className="block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-red-50 hover:text-red-600"
-            >
-              Thêm top máy bay địch
-            </button>
+                <button
+                  type="button"
+                  onClick={() => setPendingSide("enemy")}
+                  className="block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-red-50 hover:text-red-600"
+                >
+                  Thêm top máy bay địch
+                </button>
 
-            <button
-              type="button"
-              onClick={() => setPick(null)}
-              className="block w-full rounded-md px-3 py-2 text-left text-sm text-gray-500 hover:bg-gray-100"
-            >
-              Hủy
-            </button>
+                <button
+                  type="button"
+                  onClick={closePick}
+                  className="block w-full rounded-md px-3 py-2 text-left text-sm text-gray-500 hover:bg-gray-100"
+                >
+                  Hủy
+                </button>
+              </>
+            )}
           </div>
         </>
       )}

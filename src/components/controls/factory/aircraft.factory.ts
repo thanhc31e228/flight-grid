@@ -7,9 +7,16 @@ const SIDE_CONFIG = {
   friendly: { prefix: 5, color: "#2563eb" }, // 501, 502, ...
 } as const;
 
-// Giá trị mặc định cho máy bay mới
+// Giá trị mặc định cho máy bay mới (khi không nhập gì)
 const DEFAULT_AIRCRAFT_CODE = undefined;
 const DEFAULT_ALTITUDE = undefined;
+
+// Thông tin nhập thêm khi tạo / sửa máy bay
+export type AircraftDetails = {
+  aircraftCode?: string;
+  altitude?: string;
+  appearanceTime?: string;
+};
 
 // Id nhỏ nhất còn trống của phe đó (4xx hoặc 5xx). Đủ 99 máy bay thì trả về null.
 function getNextAircraftId(
@@ -26,15 +33,12 @@ function getNextAircraftId(
 
   return null;
 }
-export type AircraftDetails = {
-  aircraftCode?: string;
-  altitude?: string;
-  appearanceTime?: string;
-};
+
 export function createAircraft(
   aircrafts: AirCraft[],
   side: AircraftSide,
   firstPoint: Point,
+  details?: AircraftDetails, // thông tin người dùng nhập (không bắt buộc)
 ): AirCraft | null {
   const id = getNextAircraftId(aircrafts, side);
   if (!id) return null;
@@ -44,8 +48,9 @@ export function createAircraft(
     name: id, // name giống id
     color: SIDE_CONFIG[side].color,
     points: [firstPoint],
-    aircraftCode: DEFAULT_AIRCRAFT_CODE,
-    altitude: DEFAULT_ALTITUDE,
+    aircraftCode: details?.aircraftCode ?? DEFAULT_AIRCRAFT_CODE,
+    altitude: details?.altitude ?? DEFAULT_ALTITUDE,
+    // Thời gian của máy bay luôn khớp với waypoint đầu
     appearanceTime: firstPoint.appearanceTime,
   };
 }

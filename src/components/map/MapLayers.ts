@@ -58,8 +58,9 @@ const AZIMUTH_TEXT_SIZE = byZoom(
   20,
 );
 
+// undefined / null -> chuỗi rỗng (tránh hiện chữ "undefined" trên nhãn)
 const escapeHtml = (value: unknown) =>
-  String(value).replace(
+  String(value ?? "").replace(
     /[&<>"']/g,
     (char) =>
       ({
@@ -640,8 +641,9 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
             aircraftId: aircraft.id,
             color: aircraft.color,
             isFirst: index === 0,
-            aircraftCode: "0122",
-            altitude: "005",
+            // Lấy theo thông tin người dùng nhập (chưa nhập thì để rỗng)
+            aircraftCode: aircraft.aircraftCode ?? "",
+            altitude: aircraft.altitude ?? "",
             appearanceTime: point.appearanceTime,
           },
           geometry: { type: "Point", coordinates: [point.lng, point.lat] },
