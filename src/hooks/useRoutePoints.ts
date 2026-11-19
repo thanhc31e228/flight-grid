@@ -46,9 +46,9 @@ export function useRoutePoints() {
     commitPoints([]);
   }, [commitPoints]);
 
-  const showPopup = useCallback((point: PointPopupData, map: MapLibreMap) => {
-    showPointPopup(point, map);
-  }, []);
+  // const showPopup = useCallback((point: PointPopupData, map: MapLibreMap) => {
+  //   showPointPopup(point, map);
+  // }, []);
 
   const hidePopup = useCallback(() => {
     hidePointPopup();
@@ -59,7 +59,7 @@ export function useRoutePoints() {
     addPoint,
     setRoute,
     undoPoint,
-    showPopup,
+    // showPopup,
     hidePopup,
     clearPoints,
   };

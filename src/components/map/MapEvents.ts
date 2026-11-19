@@ -15,7 +15,6 @@ import type {
   GridCollection,
 } from "../../features/grid/grid.types";
 
-import { showPointPopup } from "./MapPopup";
 import { Point } from "../MapTiler/types/map.types";
 
 const GRID_LAYERS = ["grid-level-3-fill", "grid-level-2-fill", "grid-fill"];

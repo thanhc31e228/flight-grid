@@ -13,6 +13,7 @@ import { lineString } from "@turf/helpers";
 import type { Feature, Point } from "geojson";
 import { AirCraft } from "../MapTiler/types/map.types";
 import { setupRadialMenu } from "../MapTiler/utils/radialMenu";
+import { createAzimuth } from "../../features/grid/azimuth.factory";
 
 const EMPTY_FEATURE_COLLECTION = {
   type: "FeatureCollection" as const,
@@ -623,6 +624,12 @@ export function initializeMapLayers(map: MapLibreMap) {
   addAirportLayer(map);
   addRouteHoverEvents(map);
 
+  // Vòng tròn phương vị
+  addAzimuthLayers(
+    map,
+    MAP_CONFIG.CENTER,
+    35, // bán kính 35km
+  );
   addFirstWaypointClickEvent(map);
   // tạo radial menu
   const cleanupRadialMenu = setupRadialMenu(
@@ -886,5 +893,95 @@ export function addRouteHoverEvents(map: MapLibreMap) {
     hoveredAircraftId = null;
 
     map.setFilter("route-line-hover", ["==", ["get", "aircraftId"], ""]);
+  });
+}
+export function addAzimuthLayers(
+  map: MapLibreMap,
+  center: [number, number],
+  radiusKm = 100,
+) {
+  const data = createAzimuth(center, radiusKm, 6);
+
+  // =========================
+  // CIRCLE SOURCE
+  // =========================
+  map.addSource("azimuth-circle-source", {
+    type: "geojson",
+    data: data.circle,
+  });
+
+  map.addLayer({
+    id: "azimuth-circle",
+    type: "line",
+    source: "azimuth-circle-source",
+    paint: {
+      "line-color": "#0ea5e9",
+      "line-width": 1.5,
+      "line-opacity": 0.85,
+    },
+  });
+
+  // =========================
+  // TICK SOURCE
+  // =========================
+  map.addSource("azimuth-ticks-source", {
+    type: "geojson",
+    data: data.ticks,
+  });
+
+  map.addLayer({
+    id: "azimuth-ticks",
+    type: "line",
+    source: "azimuth-ticks-source",
+    paint: {
+      "line-color": "#0ea5e9",
+      "line-width": ["case", ["==", ["get", "major"], true], 2, 1],
+      "line-opacity": 0.9,
+    },
+  });
+
+  // =========================
+  // LABEL SOURCE
+  // =========================
+  map.addSource("azimuth-labels-source", {
+    type: "geojson",
+    data: data.labels,
+  });
+
+  map.addLayer({
+    id: "azimuth-labels",
+    type: "symbol",
+    source: "azimuth-labels-source",
+    layout: {
+      "text-field": ["concat", ["to-string", ["get", "degree"]], "°"],
+      "text-size": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        4,
+        8,
+        6,
+        10,
+        8,
+        12,
+        10,
+        14,
+        12,
+        16,
+        14,
+        18,
+        16,
+        20,
+      ],
+      "text-font": ["Open Sans Semibold"],
+      "text-anchor": "center",
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+    },
+    paint: {
+      "text-color": "#0369a1",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 1.5,
+    },
   });
 }
