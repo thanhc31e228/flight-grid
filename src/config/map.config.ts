@@ -5,7 +5,7 @@ export const MAP_CONFIG = {
   CENTER_MIL: [106.272848, 21.395146] as [number, number],
   INITIAL_ZOOM: 9,
 
-  AIRPORT_RADIUS_KM: 1.5,
+  AIRPORT_RADIUS_KM: 3,
 
   STYLE_URL: "https://api.maptiler.com/maps/streets-v4/style.json",
 

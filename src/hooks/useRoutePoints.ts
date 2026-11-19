@@ -1,10 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 
-import {
-  hidePointPopup,
-  PointPopupData,
-  showPointPopup,
-} from "../components/map/MapPopup";
+import { hidePointPopup } from "../components/map/MapPopup";
 import { MapLibreMap } from "maplibre-gl";
 import { Point } from "../components/MapTiler/types/map.types";
 

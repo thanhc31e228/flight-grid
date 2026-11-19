@@ -1,6 +1,7 @@
 import circle from "@turf/circle";
 
 import {
+  ExpressionSpecification,
   Popup,
   type GeoJSONSource,
   type Map as MapLibreMap,
@@ -903,9 +904,27 @@ export function addAzimuthLayers(
 ) {
   const data = createAzimuth(center, radiusKm, 6);
 
-  // =========================
-  // CIRCLE SOURCE
-  // =========================
+  const textSize: ExpressionSpecification = [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    4,
+    8,
+    6,
+    10,
+    8,
+    12,
+    10,
+    14,
+    12,
+    16,
+    14,
+    18,
+    16,
+    20,
+  ];
+
+  // Vòng tròn chung
   map.addSource("azimuth-circle-source", {
     type: "geojson",
     data: data.circle,
@@ -922,9 +941,7 @@ export function addAzimuthLayers(
     },
   });
 
-  // =========================
-  // TICK SOURCE
-  // =========================
+  // Vạch chia chung
   map.addSource("azimuth-ticks-source", {
     type: "geojson",
     data: data.ticks,
@@ -941,9 +958,7 @@ export function addAzimuthLayers(
     },
   });
 
-  // =========================
-  // LABEL SOURCE
-  // =========================
+  // Nhãn: độ (ngoài) + mil (trong), cùng 1 source
   map.addSource("azimuth-labels-source", {
     type: "geojson",
     data: data.labels,
@@ -953,27 +968,10 @@ export function addAzimuthLayers(
     id: "azimuth-labels",
     type: "symbol",
     source: "azimuth-labels-source",
+    filter: ["==", ["get", "kind"], "deg"],
     layout: {
       "text-field": ["concat", ["to-string", ["get", "degree"]], "°"],
-      "text-size": [
-        "interpolate",
-        ["linear"],
-        ["zoom"],
-        4,
-        8,
-        6,
-        10,
-        8,
-        12,
-        10,
-        14,
-        12,
-        16,
-        14,
-        18,
-        16,
-        20,
-      ],
+      "text-size": textSize,
       "text-font": ["Open Sans Semibold"],
       "text-anchor": "center",
       "text-allow-overlap": true,
@@ -985,87 +983,22 @@ export function addAzimuthLayers(
       "text-halo-width": 1.5,
     },
   });
-  // =========================
-  // MIL CIRCLE SOURCE
-  // =========================
-
-  map.addSource("azimuth-mil-circle-source", {
-    type: "geojson",
-    data: data.milCircle,
-  });
-
-  map.addLayer({
-    id: "azimuth-mil-circle",
-    type: "line",
-    source: "azimuth-mil-circle-source",
-    paint: {
-      "line-color": "#f97316",
-      "line-width": 1.5,
-      "line-opacity": 0.9,
-    },
-  });
-
-  // =========================
-  // MIL TICK SOURCE
-  // =========================
-
-  map.addSource("azimuth-mil-ticks-source", {
-    type: "geojson",
-    data: data.milTicks,
-  });
-
-  map.addLayer({
-    id: "azimuth-mil-ticks",
-    type: "line",
-    source: "azimuth-mil-ticks-source",
-    paint: {
-      "line-color": "#f97316",
-      "line-width": ["case", ["==", ["get", "major"], true], 2, 1],
-      "line-opacity": 0.95,
-    },
-  });
-
-  // =========================
-  // MIL LABEL SOURCE
-  // =========================
-
-  map.addSource("azimuth-mil-labels-source", {
-    type: "geojson",
-    data: data.milLabels,
-  });
 
   map.addLayer({
     id: "azimuth-mil-labels",
     type: "symbol",
-    source: "azimuth-mil-labels-source",
+    source: "azimuth-labels-source",
+    filter: ["==", ["get", "kind"], "mil"],
     layout: {
       "text-field": ["get", "label"],
-      "text-size": [
-        "interpolate",
-        ["linear"],
-        ["zoom"],
-        4,
-        8,
-        6,
-        10,
-        8,
-        12,
-        10,
-        14,
-        12,
-        16,
-        14,
-        18,
-        16,
-        20,
-      ],
+      "text-size": textSize,
       "text-font": ["Open Sans Bold"],
       "text-anchor": "center",
       "text-allow-overlap": true,
       "text-ignore-placement": true,
     },
     paint: {
-      "text-color": "#47220f",
+      "text-color": "#c2410c",
       "text-halo-color": "#ffffff",
       "text-halo-width": 1.5,
     },

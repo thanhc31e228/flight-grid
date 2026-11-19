@@ -7,6 +7,7 @@ interface AzimuthProperties {
   mil?: number;
   label?: string;
   major?: boolean;
+  kind?: "deg" | "mil";
   type?: string;
 }
 
@@ -40,25 +41,26 @@ function destination(
   return [lng2 * RAD_TO_DEG, lat2 * RAD_TO_DEG];
 }
 
-// Mil tăng ngược chiều kim đồng hồ
-// 0 = Nam, 15 = Đông, 30 = Bắc, 45 = Tây
-function milToBearing(mil: number): number {
-  return (180 - mil * 6 + 360) % 360;
+// Đổi hướng (độ, 0 = Bắc, theo chiều kim đồng hồ) sang mil
+// Mil tăng ngược chiều kim đồng hồ: 0 = Nam, 15 = Đông, 30 = Bắc, 45 = Tây
+// Mỗi 1 mil (đơn vị 100 mil) = 6 độ
+function degreeToMil(degree: number): number {
+  return (((30 - degree / 6) % 60) + 60) % 60;
 }
 
 function formatMil(mil: number): string {
-  return `${mil}-00`;
+  // 0-00 tại hướng Nam được hiển thị là 60-00 (khép vòng)
+  return `${mil === 0 ? 60 : mil}-00`;
 }
 
 export function createAzimuth(center: Position, radiusKm = 100, interval = 6) {
-  // =========================
-  // DATA VÒNG 360 ĐỘ (GIỮ NGUYÊN)
-  // =========================
-
   const circleFeatures: Feature<LineString>[] = [];
   const tickFeatures: Feature<LineString, AzimuthProperties>[] = [];
   const labelFeatures: Feature<Point, AzimuthProperties>[] = [];
 
+  // =========================
+  // VÒNG TRÒN DUY NHẤT
+  // =========================
   const circleCoordinates: Position[] = [];
 
   for (let degree = 0; degree <= 360; degree++) {
@@ -74,16 +76,16 @@ export function createAzimuth(center: Position, radiusKm = 100, interval = 6) {
     },
   });
 
+  // =========================
+  // VẠCH CHIA + NHÃN ĐỘ (ngoài) + NHÃN MIL (trong)
+  // =========================
   for (let degree = 0; degree < 360; degree += interval) {
     const isMajor = degree % 30 === 0;
     const isCardinal = degree % 90 === 0;
 
+    // Vạch chia dùng chung cho cả độ và mil
     const tickInnerRadius = isMajor ? radiusKm * 0.96 : radiusKm * 0.985;
-
     const tickOuterRadius = radiusKm * 1.015;
-
-    const start = destination(center, degree, tickInnerRadius);
-    const end = destination(center, degree, tickOuterRadius);
 
     tickFeatures.push({
       type: "Feature",
@@ -94,126 +96,51 @@ export function createAzimuth(center: Position, radiusKm = 100, interval = 6) {
       },
       geometry: {
         type: "LineString",
-        coordinates: [start, end],
+        coordinates: [
+          destination(center, degree, tickInnerRadius),
+          destination(center, degree, tickOuterRadius),
+        ],
       },
     });
 
-    const labelPosition = destination(center, degree, radiusKm * 1.08);
-
-    const labelDegree = degree === 0 ? 360 : degree;
-
+    // Nhãn ĐỘ - phía ngoài vòng
     labelFeatures.push({
       type: "Feature",
       properties: {
-        degree: labelDegree,
+        kind: "deg",
+        degree: degree === 0 ? 360 : degree,
         major: isCardinal,
         type: "label",
       },
       geometry: {
         type: "Point",
-        coordinates: labelPosition,
-      },
-    });
-  }
-
-  // =========================
-  // DATA VÒNG 60-00 (MỚI)
-  // =========================
-
-  const milCircleFeatures: Feature<LineString>[] = [];
-  const milTickFeatures: Feature<LineString, AzimuthProperties>[] = [];
-  const milLabelFeatures: Feature<Point, AzimuthProperties>[] = [];
-
-  // Tạo vòng mil lệch ra ngoài vòng 360 một chút
-  const milCircleRadius = radiusKm * 1.035;
-
-  const milCircleCoordinates: Position[] = [];
-
-  for (let degree = 0; degree <= 360; degree++) {
-    milCircleCoordinates.push(destination(center, degree, milCircleRadius));
-  }
-
-  milCircleFeatures.push({
-    type: "Feature",
-    properties: { type: "mil-circle" },
-    geometry: {
-      type: "LineString",
-      coordinates: milCircleCoordinates,
-    },
-  });
-
-  // 60 vị trí, 0 đến 59; 60-00 khép vòng tại vị trí 0-00
-  for (let mil = 0; mil < 60; mil++) {
-    const bearing = milToBearing(mil);
-
-    const isMajor = mil % 5 === 0;
-    const isCardinal = mil % 15 === 0;
-
-    // Vạch mil hướng ra ngoài để phân biệt với vòng độ
-    const tickInnerRadius = isMajor
-      ? milCircleRadius * 0.985
-      : milCircleRadius * 0.992;
-
-    const tickOuterRadius = milCircleRadius * 1.015;
-
-    const start = destination(center, bearing, tickInnerRadius);
-    const end = destination(center, bearing, tickOuterRadius);
-
-    milTickFeatures.push({
-      type: "Feature",
-      properties: {
-        mil,
-        degree: bearing,
-        label: formatMil(mil),
-        major: isMajor,
-        type: "mil-tick",
-      },
-      geometry: {
-        type: "LineString",
-        coordinates: [start, end],
+        coordinates: destination(center, degree, radiusKm * 1.08),
       },
     });
 
-    const labelPosition = destination(center, bearing, milCircleRadius * 0.9);
+    // Nhãn MIL - phía trong vòng (chỉ tại các hướng chia hết cho 6°)
+    if (degree % 6 === 0) {
+      const mil = degreeToMil(degree);
 
-    milLabelFeatures.push({
-      type: "Feature",
-      properties: {
-        mil,
-        degree: bearing,
-        label: formatMil(mil),
-        major: isCardinal,
-        type: "mil-label",
-      },
-      geometry: {
-        type: "Point",
-        coordinates: labelPosition,
-      },
-    });
+      labelFeatures.push({
+        type: "Feature",
+        properties: {
+          kind: "mil",
+          mil,
+          degree,
+          label: formatMil(mil),
+          major: mil % 15 === 0,
+          type: "label",
+        },
+        geometry: {
+          type: "Point",
+          coordinates: destination(center, degree, radiusKm * 0.9),
+        },
+      });
+    }
   }
-
-  // Label 60-00 tại đúng vị trí Nam, cùng vị trí 0-00
-  milLabelFeatures.push({
-    type: "Feature",
-    properties: {
-      mil: 60,
-      degree: 180,
-      label: "60-00",
-      major: true,
-      type: "mil-label",
-    },
-    geometry: {
-      type: "Point",
-      coordinates: destination(center, 180, milCircleRadius * 1.07),
-    },
-  });
-
-  // =========================
-  // RETURN
-  // =========================
 
   return {
-    // Vòng độ cũ
     circle: {
       type: "FeatureCollection" as const,
       features: circleFeatures,
@@ -222,23 +149,10 @@ export function createAzimuth(center: Position, radiusKm = 100, interval = 6) {
       type: "FeatureCollection" as const,
       features: tickFeatures,
     },
+    // Chứa cả nhãn độ (kind = "deg") và nhãn mil (kind = "mil")
     labels: {
       type: "FeatureCollection" as const,
       features: labelFeatures,
-    },
-
-    // Vòng mil mới
-    milCircle: {
-      type: "FeatureCollection" as const,
-      features: milCircleFeatures,
-    },
-    milTicks: {
-      type: "FeatureCollection" as const,
-      features: milTickFeatures,
-    },
-    milLabels: {
-      type: "FeatureCollection" as const,
-      features: milLabelFeatures,
     },
   };
 }
