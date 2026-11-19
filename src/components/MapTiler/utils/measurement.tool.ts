@@ -23,25 +23,90 @@ const EMPTY_LINE = {
   },
 };
 
-export function addMeasurementTool(map: MapLibreMap, origin: Position) {
-  const sourceId = "measurement-line-source";
-  const layerId = "measurement-line";
+const EMPTY_COLLECTION = {
+  type: "FeatureCollection" as const,
+  features: [] as never[],
+};
 
-  // Tạo source và layer đường đo
-  if (!map.getSource(sourceId)) {
-    map.addSource(sourceId, {
+const ARROW_IMAGE_ID = "measurement-arrow";
+
+// Vẽ mũi tên: đầu nhọn nằm đúng tâm ảnh (32, 32),
+// thân nằm phía sau, nên icon-anchor "center" sẽ đặt đầu nhọn đúng vị trí chuột
+function addArrowImage(map: MapLibreMap) {
+  if (map.hasImage(ARROW_IMAGE_ID)) return;
+
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.beginPath();
+  ctx.moveTo(32, 32); // đầu nhọn
+  ctx.lineTo(18, 62); // góc đáy trái
+  ctx.lineTo(32, 54); // khuyết đáy
+  ctx.lineTo(46, 62); // góc đáy phải
+  ctx.closePath();
+
+  ctx.fillStyle = "#ef4444";
+  ctx.fill();
+
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineJoin = "round";
+  ctx.stroke();
+
+  map.addImage(ARROW_IMAGE_ID, ctx.getImageData(0, 0, size, size));
+}
+
+export function addMeasurementTool(map: MapLibreMap, origin: Position) {
+  const lineSourceId = "measurement-line-source";
+  const lineLayerId = "measurement-line";
+  const arrowSourceId = "measurement-arrow-source";
+  const arrowLayerId = "measurement-arrow";
+
+  // Đường đo
+  if (!map.getSource(lineSourceId)) {
+    map.addSource(lineSourceId, {
       type: "geojson",
       data: EMPTY_LINE,
     });
 
     map.addLayer({
-      id: layerId,
+      id: lineLayerId,
       type: "line",
-      source: sourceId,
+      source: lineSourceId,
       paint: {
         "line-color": "#ef4444",
         "line-width": 2.5,
         "line-dasharray": [2, 1],
+      },
+    });
+  }
+
+  // Mũi tên ở đầu chuột
+  addArrowImage(map);
+
+  if (!map.getSource(arrowSourceId)) {
+    map.addSource(arrowSourceId, {
+      type: "geojson",
+      data: EMPTY_COLLECTION,
+    });
+
+    map.addLayer({
+      id: arrowLayerId,
+      type: "symbol",
+      source: arrowSourceId,
+      layout: {
+        "icon-image": ARROW_IMAGE_ID,
+        "icon-size": 0.7,
+        "icon-anchor": "center",
+        "icon-rotate": ["get", "angle"],
+        "icon-rotation-alignment": "viewport",
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
       },
     });
   }
@@ -58,8 +123,12 @@ export function addMeasurementTool(map: MapLibreMap, origin: Position) {
     if (!isMeasuring) return;
     isMeasuring = false;
 
-    const source = map.getSource(sourceId) as GeoJSONSource | undefined;
-    source?.setData(EMPTY_LINE);
+    (map.getSource(lineSourceId) as GeoJSONSource | undefined)?.setData(
+      EMPTY_LINE,
+    );
+    (map.getSource(arrowSourceId) as GeoJSONSource | undefined)?.setData(
+      EMPTY_COLLECTION,
+    );
 
     popup.remove();
   };
@@ -78,15 +147,33 @@ export function addMeasurementTool(map: MapLibreMap, origin: Position) {
     const bearing = getBearing(origin, target);
     const mil = bearingToMil(bearing);
 
-    const source = map.getSource(sourceId) as GeoJSONSource | undefined;
+    // Góc của mũi tên tính theo màn hình (0 = hướng lên, theo chiều kim đồng hồ),
+    // khớp đúng với đường thẳng đang vẽ, kể cả khi bản đồ bị xoay
+    const p1 = map.project(origin);
+    const p2 = map.project(target);
+    const angle = (Math.atan2(p2.x - p1.x, -(p2.y - p1.y)) * 180) / Math.PI;
 
-    source?.setData({
+    (map.getSource(lineSourceId) as GeoJSONSource | undefined)?.setData({
       type: "Feature",
       properties: {},
       geometry: {
         type: "LineString",
         coordinates: [origin, target],
       },
+    });
+
+    (map.getSource(arrowSourceId) as GeoJSONSource | undefined)?.setData({
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: { angle },
+          geometry: {
+            type: "Point",
+            coordinates: target,
+          },
+        },
+      ],
     });
 
     popup
@@ -115,14 +202,17 @@ export function addMeasurementTool(map: MapLibreMap, origin: Position) {
   map.getCanvas().addEventListener("mouseleave", handleMouseLeave);
   window.addEventListener("keyup", handleKeyUp);
 
-  // Hàm dọn dẹp khi không còn sử dụng
   return () => {
     map.off("mousemove", handleMouseMove);
     map.getCanvas().removeEventListener("mouseleave", handleMouseLeave);
     window.removeEventListener("keyup", handleKeyUp);
     popup.remove();
 
-    if (map.getLayer(layerId)) map.removeLayer(layerId);
-    if (map.getSource(sourceId)) map.removeSource(sourceId);
+    if (map.getLayer(arrowLayerId)) map.removeLayer(arrowLayerId);
+    if (map.getSource(arrowSourceId)) map.removeSource(arrowSourceId);
+    if (map.hasImage(ARROW_IMAGE_ID)) map.removeImage(ARROW_IMAGE_ID);
+
+    if (map.getLayer(lineLayerId)) map.removeLayer(lineLayerId);
+    if (map.getSource(lineSourceId)) map.removeSource(lineSourceId);
   };
 }

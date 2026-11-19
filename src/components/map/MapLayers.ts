@@ -13,7 +13,6 @@ import { createGrid, emptyGrid } from "../../features/grid/grid.factory";
 import { lineString } from "@turf/helpers";
 import type { Feature, Point } from "geojson";
 import { AirCraft } from "../MapTiler/types/map.types";
-import { setupRadialMenu } from "../MapTiler/utils/radialMenu";
 import { createAzimuth } from "../../features/grid/azimuth.factory";
 import { addMeasurementTool } from "../MapTiler/utils/measurement.tool";
 import { addCursorTracker } from "../MapTiler/utils/cursor.tracker";
@@ -626,6 +625,7 @@ export function initializeMapLayers(map: MapLibreMap) {
   addRouteLayers(map);
   addAirportLayer(map);
   addRouteHoverEvents(map);
+
   const cleanupMeasurement = addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);
   const cleanupCursor = addCursorTracker(map);
   // Vòng tròn phương vị
@@ -635,73 +635,9 @@ export function initializeMapLayers(map: MapLibreMap) {
     35, // bán kính 35km
   );
   addFirstWaypointClickEvent(map);
-  // tạo radial menu
-  const cleanupRadialMenu = setupRadialMenu(
-    map,
-    [
-      { label: "Waypoint", value: "waypoint" },
-      { label: "Route", value: "route" },
-      { label: "Aircraft", value: "aircraft" },
-      { label: "Delete", value: "delete" },
-      { label: "Edit", value: "edit" },
-      { label: "Info", value: "info" },
-      { label: "Select", value: "select" },
-      { label: "Other", value: "other" },
-    ],
-    {
-      onSelect: (item, point) => {
-        const lngLat = map.unproject([point.x, point.y]);
-
-        console.log("Action:", item.value);
-        console.log("Coordinates:", lngLat);
-
-        switch (item.value) {
-          case "waypoint":
-            console.log("waypoint");
-            break;
-
-          case "route":
-            console.log("route");
-
-            break;
-
-          case "aircraft":
-            console.log("aircraft");
-
-            break;
-
-          case "delete":
-            console.log("delete");
-
-            break;
-
-          case "edit":
-            console.log("edit");
-
-            break;
-
-          case "info":
-            console.log("info");
-
-            break;
-
-          case "select":
-            console.log("select");
-
-            break;
-
-          case "other":
-            console.log("Other action");
-            break;
-        }
-      },
-    },
-  );
-
   return () => {
     cleanupMeasurement();
     cleanupCursor();
-    cleanupRadialMenu();
   };
 }
 export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {

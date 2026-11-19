@@ -236,7 +236,7 @@ export default function MapTiler() {
 
   return (
     <div className="map-container flex h-screen w-full flex-col overflow-hidden">
-      {/* ================= THANH ĐO PHƯƠNG VỊ / CỰ LY ================= */}
+      {/* ================= THANH TỌA ĐỘ ================= */}
       <MeasurementBar />
 
       {/* ================= VÙNG BẢN ĐỒ (nằm dưới thanh bar) ================= */}

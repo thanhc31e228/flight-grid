@@ -217,6 +217,9 @@ export default function MapView({
       style: `${MAP_CONFIG.STYLE_URL}?key=${API_KEY}`,
       center: MAP_CONFIG.CENTER,
       zoom: MAP_CONFIG.INITIAL_ZOOM,
+      dragRotate: false, // tắt kéo chuột phải / Ctrl + kéo để xoay, nghiêng
+      pitchWithRotate: false, // không cho nghiêng khi xoay
+      touchPitch: false, // tắt nghiêng bằng cảm ứng (nếu có)
     });
 
     mapRef.current = map;
