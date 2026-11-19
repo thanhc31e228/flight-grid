@@ -8,7 +8,6 @@ import {
   bearingToMil,
   formatMil,
   getBearing,
-  getDistanceKm,
   getDistanceMeters,
 } from "./measurement";
 
