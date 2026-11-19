@@ -9,6 +9,7 @@ import {
   bearingToMil,
   formatMil,
   getBearing,
+  getDistanceKm,
   getDistanceMeters,
 } from "./measurement";
 
@@ -245,11 +246,12 @@ export function addMeasurementTool(map: MapLibreMap, origin: Position) {
 
     const bearingDeg = getBearing(origin, target);
     const distanceMeters = getDistanceMeters(origin, target);
-
+    const distanceKm = getDistanceKm(origin, target);
     return {
       target,
       bearingDeg,
       distanceMeters,
+      distanceKm,
       mil: formatMil(bearingToMil(bearingDeg)),
     };
   };
@@ -275,7 +277,7 @@ export function addMeasurementTool(map: MapLibreMap, origin: Position) {
 
     isMeasuring = true;
 
-    const { target, bearingDeg, distanceMeters, mil } = measure(event);
+    const { target, bearingDeg, distanceKm, mil } = measure(event);
 
     // Tính góc arrow theo tọa độ màn hình
     // đảm bảo đúng hướng khi map bị rotate
@@ -312,7 +314,7 @@ export function addMeasurementTool(map: MapLibreMap, origin: Position) {
     // Update popup DOM, không tạo HTML mới
     milRow.value.textContent = mil;
     angleRow.value.textContent = `${bearingDeg.toFixed(1)}°`;
-    distanceRow.value.textContent = `${distanceMeters} m`;
+    distanceRow.value.textContent = `${distanceKm.toFixed(2)} km`;
 
     popup.setLngLat(event.lngLat);
 
@@ -359,7 +361,8 @@ export function addMeasurementTool(map: MapLibreMap, origin: Position) {
     frozen = true;
     popup.remove();
 
-    const { target, bearingDeg, distanceMeters, mil } = measure(event);
+    const { target, bearingDeg, distanceMeters, distanceKm, mil } =
+      measure(event);
 
     setData(pickSourceId, {
       type: "FeatureCollection",
@@ -381,6 +384,7 @@ export function addMeasurementTool(map: MapLibreMap, origin: Position) {
       mil,
       bearingDeg,
       distanceMeters,
+      distanceKm,
       clientX: event.originalEvent.clientX,
       clientY: event.originalEvent.clientY,
     });

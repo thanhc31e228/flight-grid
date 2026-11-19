@@ -6,6 +6,7 @@ export interface PickInfo {
   mil: string;
   bearingDeg: number;
   distanceMeters: number;
+  distanceKm: number;
   // Vị trí chuột trên màn hình, để đặt menu
   clientX: number;
   clientY: number;

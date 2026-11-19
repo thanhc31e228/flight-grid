@@ -485,7 +485,8 @@ export default function MapTiler() {
                 {pick.bearingDeg.toFixed(1)}°)
               </div>
               <div>
-                Cự ly: <b className="text-gray-800">{pick.distanceMeters} m</b>
+                Cự ly:{" "}
+                <b className="text-gray-800">{pick.distanceKm.toFixed(2)} km</b>
               </div>
             </div>
 

@@ -16,7 +16,7 @@ export default function RouteControls({
   const handleUndo = () => {
     if (!aircraftId) return;
 
-    const remainingPoints = onUndo(aircraftId);
+    onUndo(aircraftId);
 
     // if (remainingPoints === 0) {
     //   hidePointPopup();
