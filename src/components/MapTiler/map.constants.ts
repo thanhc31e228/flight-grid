@@ -1,5 +1,5 @@
-// Tọa độ trung tâm Hà Nội
-export const CENTER: [number, number] = [105.8342, 21.0278];
+// Tọa độ sân bay kép
+export const CENTER: [number, number] = [106.263569, 21.394697];
 
 // Kích thước toàn bộ khu vực lưới
 export const GRID_WIDTH = 0.06;

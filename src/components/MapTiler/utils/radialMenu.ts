@@ -1,5 +1,6 @@
 import type { Map as MapLibreMap } from "maplibre-gl";
-
+import { LngLat } from "maplibre-gl";
+import { CENTER } from "../map.constants";
 type RadialMenuItem = {
   label: string;
   value: string;
@@ -71,7 +72,23 @@ export function setupRadialMenu(
   // =========================
   // SELECT MENU
   // =========================
+  function calculateDistanceFromOrigin(point: { x: number; y: number }) {
+    // Chuyển vị trí mở menu từ pixel sang tọa độ địa lý
+    const target = map.unproject([point.x, point.y]);
 
+    // Tọa độ gốc
+    const originLngLat = new LngLat(CENTER[0], CENTER[1]);
+
+    // Tính khoảng cách mét -> km
+    const distanceKm = originLngLat.distanceTo(target) / 1000;
+
+    return {
+      distanceKm,
+      distanceMeters: distanceKm * 1000,
+      targetLng: target.lng,
+      targetLat: target.lat,
+    };
+  }
   function selectMenu(index: number = activeIndex) {
     if (!isOpen || index < 0 || index >= items.length) {
       hideMenu();
@@ -86,9 +103,19 @@ export function setupRadialMenu(
       return;
     }
 
-    // Khóa mở menu cho đến khi Ctrl được thả
-    isBlocked = true;
+    // Xử lý riêng menu info
+    // Xử lý riêng menu info
+    // Xử lý riêng menu info
+    if (selectedItem.value === "info") {
+      const result = calculateDistanceFromOrigin(selectedPoint);
 
+      console.log("===== INFO =====");
+      console.log("Tọa độ gốc:", origin);
+      console.log("Tọa độ đích:", [result.targetLng, result.targetLat]);
+      console.log("Cự ly:", result.distanceKm.toFixed(3), "km");
+      console.log("Cự ly:", result.distanceMeters.toFixed(1), "m");
+    }
+    isBlocked = true;
     hideMenu();
 
     options.onSelect(selectedItem, selectedPoint);
