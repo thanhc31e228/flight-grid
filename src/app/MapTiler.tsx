@@ -10,6 +10,7 @@ import "../styles/map.css";
 import type { GridCell } from "../components/MapTiler/types/map.types";
 import { hidePointPopup } from "../components/map/MapPopup";
 import { useAirCraftContext } from "../context/MakerContext";
+import MeasurementBar from "../components/controls/MeasurementBar";
 
 export default function MapTiler() {
   const { aircrafts, selectedAircraftId, setSelectedAircraftId, undoPoint } =
@@ -234,119 +235,126 @@ export default function MapTiler() {
   }, [selectedAircraftId, undoPoint]);
 
   return (
-    <div className="map-container relative h-screen w-full overflow-hidden">
-      {/* ================= MAP ================= */}
-      <div className="absolute inset-0 z-0">
-        <MapView
-          gridLabels={gridLabels}
-          aircrafts={aircrafts}
-          onOpenGridContextMenu={handleOpenGridContextMenu}
-        />
-      </div>
+    <div className="map-container flex h-screen w-full flex-col overflow-hidden">
+      {/* ================= THANH ĐO PHƯƠNG VỊ / CỰ LY ================= */}
+      <MeasurementBar />
 
-      {/* ================= CHỌN MÁY BAY ================= */}
-      <div
-        className={`
-          absolute right-4 top-3 z-[1000]
-          flex items-center gap-2
-          rounded-lg bg-white p-2 shadow-lg
-          transition-all duration-300
-        `}
-      >
-        <span className="whitespace-nowrap text-sm font-semibold text-gray-700">
-          Máy bay:
-        </span>
-
-        <select
-          value={selectedAircraftId ?? ""}
-          onChange={(event) => handleSelectAircraft(event.target.value)}
-          disabled={aircrafts.length === 0}
-          className="
-            max-w-[180px] rounded-md border border-gray-200
-            bg-white px-3 py-2 text-sm text-gray-700
-            outline-none focus:border-blue-500
-            disabled:cursor-not-allowed disabled:bg-gray-100
-          "
-        >
-          {aircrafts.length === 0 ? (
-            <option value="">Chưa có máy bay</option>
-          ) : (
-            aircrafts.map((aircraft) => (
-              <option key={aircraft.id} value={aircraft.id}>
-                {aircraft.name}
-              </option>
-            ))
-          )}
-        </select>
-
-        {selectedAircraftId && (
-          <span
-            className="h-3 w-3 shrink-0 rounded-full"
-            style={{
-              backgroundColor:
-                aircrafts.find((aircraft) => aircraft.id === selectedAircraftId)
-                  ?.color ?? "#999",
-            }}
+      {/* ================= VÙNG BẢN ĐỒ (nằm dưới thanh bar) ================= */}
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        {/* ================= MAP ================= */}
+        <div className="absolute inset-0 z-0">
+          <MapView
+            gridLabels={gridLabels}
+            aircrafts={aircrafts}
+            onOpenGridContextMenu={handleOpenGridContextMenu}
           />
-        )}
-      </div>
+        </div>
 
-      {/* ================= PANEL BÊN TRÁI ================= */}
-      <div
-        className={`
-          absolute inset-y-0 left-0 z-[999]
-          w-[300px] max-w-[90vw]
-          transition-transform duration-300 ease-in-out
-          ${isPanelOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
-      >
-        <MapControlPanel
-          gridIndex={gridIndex}
-          labelInput={labelInput}
-          onLabelInputChange={setLabelInput}
-          onSaveLabels={handleSaveLabels}
-        />
+        {/* ================= CHỌN MÁY BAY ================= */}
+        <div
+          className={`
+            absolute right-4 top-3 z-[1000]
+            flex items-center gap-2
+            rounded-lg bg-white p-2 shadow-lg
+            transition-all duration-300
+          `}
+        >
+          <span className="whitespace-nowrap text-sm font-semibold text-gray-700">
+            Máy bay:
+          </span>
 
-        {/* Nút đóng panel */}
+          <select
+            value={selectedAircraftId ?? ""}
+            onChange={(event) => handleSelectAircraft(event.target.value)}
+            disabled={aircrafts.length === 0}
+            className="
+              max-w-[180px] rounded-md border border-gray-200
+              bg-white px-3 py-2 text-sm text-gray-700
+              outline-none focus:border-blue-500
+              disabled:cursor-not-allowed disabled:bg-gray-100
+            "
+          >
+            {aircrafts.length === 0 ? (
+              <option value="">Chưa có máy bay</option>
+            ) : (
+              aircrafts.map((aircraft) => (
+                <option key={aircraft.id} value={aircraft.id}>
+                  {aircraft.name}
+                </option>
+              ))
+            )}
+          </select>
+
+          {selectedAircraftId && (
+            <span
+              className="h-3 w-3 shrink-0 rounded-full"
+              style={{
+                backgroundColor:
+                  aircrafts.find(
+                    (aircraft) => aircraft.id === selectedAircraftId,
+                  )?.color ?? "#999",
+              }}
+            />
+          )}
+        </div>
+
+        {/* ================= PANEL BÊN TRÁI ================= */}
+        <div
+          className={`
+            absolute inset-y-0 left-0 z-[999]
+            w-[300px] max-w-[90vw]
+            transition-transform duration-300 ease-in-out
+            ${isPanelOpen ? "translate-x-0" : "-translate-x-full"}
+          `}
+        >
+          <MapControlPanel
+            gridIndex={gridIndex}
+            labelInput={labelInput}
+            onLabelInputChange={setLabelInput}
+            onSaveLabels={handleSaveLabels}
+          />
+
+          {/* Nút đóng panel */}
+          <button
+            type="button"
+            onClick={() => setIsPanelOpen(false)}
+            className="
+              absolute top-3 -right-10
+              flex h-9 w-9 items-center justify-center
+              rounded-r-lg bg-white
+              text-gray-700 shadow-lg
+              transition hover:bg-red-50 hover:text-red-600
+            "
+            title="Ẩn bảng điều khiển"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* ================= NÚT MỞ PANEL ================= */}
         <button
           type="button"
-          onClick={() => setIsPanelOpen(false)}
-          className="
-            absolute top-3 -right-10
-            flex h-9 w-9 items-center justify-center
-            rounded-r-lg bg-white
-            text-gray-700 shadow-lg
-            transition hover:bg-red-50 hover:text-red-600
-          "
-          title="Ẩn bảng điều khiển"
+          onClick={() => setIsPanelOpen(true)}
+          className={`
+            absolute top-3 left-3 z-[1000]
+            flex items-center gap-2
+            rounded-lg bg-white px-4 py-2.5
+            text-sm font-semibold text-gray-700
+            shadow-lg transition-all duration-300
+            hover:bg-blue-50 hover:text-blue-600
+            ${
+              isPanelOpen
+                ? "pointer-events-none -translate-x-4 opacity-0"
+                : "translate-x-0 opacity-100"
+            }
+          `}
+          title="Mở bảng điều khiển"
         >
-          ✕
+          ☰ Bảng điều khiển
         </button>
       </div>
 
-      {/* ================= NÚT MỞ PANEL ================= */}
-      <button
-        type="button"
-        onClick={() => setIsPanelOpen(true)}
-        className={`
-          absolute top-3 left-3 z-[1000]
-          flex items-center gap-2
-          rounded-lg bg-white px-4 py-2.5
-          text-sm font-semibold text-gray-700
-          shadow-lg transition-all duration-300
-          hover:bg-blue-50 hover:text-blue-600
-          ${
-            isPanelOpen
-              ? "pointer-events-none -translate-x-4 opacity-0"
-              : "translate-x-0 opacity-100"
-          }
-        `}
-        title="Mở bảng điều khiển"
-      >
-        ☰ Bảng điều khiển
-      </button>
-
-      {/* ================= CONTEXT MENU ================= */}
+      {/* ================= CONTEXT MENU (fixed nên để ngoài vùng bản đồ) ================= */}
       {contextMenu && (
         <div
           className="

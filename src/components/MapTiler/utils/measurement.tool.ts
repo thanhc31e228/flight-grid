@@ -2,7 +2,6 @@ import {
   type Map as MapLibreMap,
   type MapMouseEvent,
   type GeoJSONSource,
-  Popup,
 } from "maplibre-gl";
 import {
   bearingToMil,
@@ -10,25 +9,33 @@ import {
   getBearing,
   getDistanceKm,
 } from "./measurement";
+import { setMeasurement } from "./measurement.store";
 
 type Position = [number, number];
 
-export function addMeasurementTool(map: MapLibreMap, origin: Position) {
+const EMPTY_LINE = {
+  type: "Feature" as const,
+  properties: {},
+  geometry: {
+    type: "LineString" as const,
+    coordinates: [] as Position[],
+  },
+};
+
+export function addMeasurementTool(
+  map: MapLibreMap,
+  origin: Position,
+  options: { showLine?: boolean } = {},
+) {
+  const { showLine = false } = options; // hiển thị đường kẻ
+
   const sourceId = "measurement-line-source";
   const layerId = "measurement-line";
 
-  // Tạo source và layer đường đo
   if (!map.getSource(sourceId)) {
     map.addSource(sourceId, {
       type: "geojson",
-      data: {
-        type: "Feature",
-        properties: {},
-        geometry: {
-          type: "LineString",
-          coordinates: [],
-        },
-      },
+      data: EMPTY_LINE,
     });
 
     map.addLayer({
@@ -36,86 +43,54 @@ export function addMeasurementTool(map: MapLibreMap, origin: Position) {
       type: "line",
       source: sourceId,
       paint: {
-        "line-color": "#ef4444",
+        "line-color": "#ef4444", // màu của đường kẻ
         "line-width": 2.5,
         "line-dasharray": [2, 1],
       },
     });
   }
 
-  const popup = new Popup({
-    closeButton: false,
-    closeOnClick: false,
-    offset: 12,
-  });
-
-  const hideMeasurement = () => {
-    const source = map.getSource(sourceId) as GeoJSONSource | undefined;
-
-    source?.setData({
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "LineString",
-        coordinates: [],
-      },
-    });
-
-    popup.remove();
-  };
-
   const handleMouseMove = (event: MapMouseEvent) => {
-    if (!event.originalEvent.ctrlKey) {
-      hideMeasurement();
-      return;
-    }
-
     const target: Position = [event.lngLat.lng, event.lngLat.lat];
 
-    const distance = getDistanceKm(origin, target);
-    const bearing = getBearing(origin, target);
-    const mil = bearingToMil(bearing);
+    const distanceKm = getDistanceKm(origin, target);
+    const bearingDeg = getBearing(origin, target);
+    const mil = bearingToMil(bearingDeg);
 
-    const source = map.getSource(sourceId) as GeoJSONSource;
+    if (showLine) {
+      const source = map.getSource(sourceId) as GeoJSONSource | undefined;
 
-    source.setData({
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "LineString",
-        coordinates: [origin, target],
-      },
+      source?.setData({
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "LineString",
+          coordinates: [origin, target],
+        },
+      });
+    }
+
+    setMeasurement({
+      mil: formatMil(mil),
+      bearingDeg,
+      distanceKm,
     });
+  };
 
-    popup
-      .setLngLat(event.lngLat)
-      .setHTML(
-        `
-        <div style="font-size:13px; line-height:1.7; min-width:120px;">
-          <div><b>Phương vị:</b> ${formatMil(mil)}</div>
-          <div><b>Góc:</b> ${bearing.toFixed(1)}°</div>
-          <div><b>Cự ly:</b> ${distance.toFixed(2)} km</div>
-        </div>
-      `,
-      )
-      .addTo(map);
+  // Chuột rời khỏi bản đồ thì xóa đường đo và đưa thanh bar về "--"
+  const handleMouseLeave = () => {
+    const source = map.getSource(sourceId) as GeoJSONSource | undefined;
+    source?.setData(EMPTY_LINE);
+    setMeasurement(null);
   };
 
   map.on("mousemove", handleMouseMove);
+  map.getCanvas().addEventListener("mouseleave", handleMouseLeave);
 
-  const handleKeyUp = (event: KeyboardEvent) => {
-    if (event.key === "Control") {
-      hideMeasurement();
-    }
-  };
-
-  window.addEventListener("keyup", handleKeyUp);
-
-  // Hàm dọn dẹp khi không còn sử dụng
   return () => {
     map.off("mousemove", handleMouseMove);
-    window.removeEventListener("keyup", handleKeyUp);
-    popup.remove();
+    map.getCanvas().removeEventListener("mouseleave", handleMouseLeave);
+    setMeasurement(null);
 
     if (map.getLayer(layerId)) map.removeLayer(layerId);
     if (map.getSource(sourceId)) map.removeSource(sourceId);
