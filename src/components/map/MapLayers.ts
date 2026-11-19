@@ -212,7 +212,7 @@ function updateFirstWaypointPopup(map: MapLibreMap, aircrafts: AirCraft[]) {
     </div>
 
     <div style="display:flex;justify-content:space-between;gap:15px">
-      <span>Thời gian xuất hiện:</span>
+      <span>Thời gian:</span>
       <b>${aircraft.appearanceTime}</b>
     </div>
   </div>
@@ -223,6 +223,7 @@ function updateFirstWaypointPopup(map: MapLibreMap, aircrafts: AirCraft[]) {
           closeButton: true,
           closeOnClick: false,
           closeOnMove: false,
+          focusAfterOpen: false,
           offset: 15,
           className: "first-waypoint-popup",
         });
@@ -519,7 +520,6 @@ export function addRouteLayers(map: MapLibreMap) {
   });
 }
 //Hàm này nhận danh sách tọa độ và cập nhật đường bay, vị trí máy bay.
-
 export function updateFlightRoute(
   map: MapLibreMap,
   coordinates: [number, number][],
@@ -624,6 +624,7 @@ export function initializeMapLayers(map: MapLibreMap) {
   addRouteHoverEvents(map);
 
   addFirstWaypointClickEvent(map);
+  // tạo radial menu
   const cleanupRadialMenu = setupRadialMenu(
     map,
     [
