@@ -820,7 +820,6 @@ export function initializeMapLayers(map: MapLibreMap) {
   addGridLayers(map);
   addRouteLayers(map);
   addAirportLayer(map);
-  addRouteHoverEvents(map);
 
   const cleanupMeasurement = addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);
   const cleanupCursor = addCursorTracker(map);

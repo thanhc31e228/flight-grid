@@ -116,6 +116,8 @@ export function registerMapEvents(
   // ======================================
 
   const handleClick = (event: MapMouseEvent) => {
+    // Ctrl + click là thao tác đo / chốt điểm, không thêm waypoint
+    if (event.originalEvent.ctrlKey) return;
     if (!map.isStyleLoaded()) return;
     const features = map.queryRenderedFeatures(event.point, {
       layers: ["points-layer"],
