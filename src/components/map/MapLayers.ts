@@ -345,7 +345,22 @@ function buildFirstWaypointHtml(
     background:rgba(255,255,255,0.9);
     ${outline}
   ">
-    <span>${escapeHtml(aircraft.id)}</span>
+<span style="
+  display:inline-flex;
+  align-items:center;
+  font-size:16px;
+  font-weight:700;
+  position:relative;
+">
+  ${escapeHtml(aircraft.id)}
+  <span style="
+    font-size:25px;
+    font-weight:300;
+    line-height:0.5;
+    margin-left:-2px;
+    margin-right:-8px;
+  "> ) </span>
+</span>
 
     <div style="
       display:grid; grid-template-rows:auto 3px auto;

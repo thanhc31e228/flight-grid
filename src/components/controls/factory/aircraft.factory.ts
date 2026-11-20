@@ -2,9 +2,9 @@ import { AirCraft, Point } from "../../MapTiler/types/map.types";
 
 export type AircraftSide = "friendly" | "enemy";
 
-const SIDE_CONFIG = {
-  enemy: { prefix: 4, color: "#dc2626" },
-  friendly: { prefix: 5, color: "#2563eb" },
+export const SIDE_CONFIG = {
+  enemy: { prefix: 4, color: "#2563eb" },
+  friendly: { prefix: 5, color: "#dc2626" },
 } as const;
 
 // Giá trị mặc định

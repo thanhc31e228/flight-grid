@@ -13,6 +13,7 @@ import MeasurementBar from "../components/controls/MeasurementBar";
 import { setPick, usePick } from "../components/MapTiler/utils/pick.store";
 import {
   createAircraft,
+  SIDE_CONFIG,
   type AircraftDetails,
   type AircraftSide,
 } from "../components/controls/factory/aircraft.factory";
@@ -513,7 +514,12 @@ export default function MapTiler() {
                 <button
                   type="button"
                   onClick={() => setPendingSide("friendly")}
-                  className="mt-1 block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                  className="mt-1 block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-[var(--friendly-color)]"
+                  style={
+                    {
+                      "--friendly-color": SIDE_CONFIG.friendly.color,
+                    } as React.CSSProperties
+                  }
                 >
                   Thêm top máy bay ta
                 </button>
@@ -521,7 +527,12 @@ export default function MapTiler() {
                 <button
                   type="button"
                   onClick={() => setPendingSide("enemy")}
-                  className="block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-red-50 hover:text-red-600"
+                  className="mt-1 block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-[var(--enemy-color)]"
+                  style={
+                    {
+                      "--enemy-color": SIDE_CONFIG.enemy.color,
+                    } as React.CSSProperties
+                  }
                 >
                   Thêm top máy bay địch
                 </button>
