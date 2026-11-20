@@ -14,6 +14,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { MAP_CONFIG, MAP_GRID_CONFIG } from "../../config/map.config";
 
 import {
+  addLocationLabels,
   initializeMapLayers,
   updateGridLabels,
   updateWaypoints,
@@ -29,6 +30,7 @@ import type { GridCell, AirCraft } from "../MapTiler/types/map.types";
 
 import { useAirCraftContext } from "../../context/MakerContext";
 import { Place } from "../../features/places/place.types";
+import { usePlace } from "../../hooks/usePlace";
 
 // ======================================
 // TYPES
@@ -68,6 +70,7 @@ setWorkerUrl(
 
 export default function MapView({
   aircrafts: propAircrafts,
+  places: propPlaces,
   onOpenGridContextMenu,
   gridLabels,
   focusTarget,
@@ -96,16 +99,19 @@ export default function MapView({
     addPoint,
     getLastPoint,
   } = useAirCraftContext();
+  const { addPlace, places: contextPlaces } = usePlace();
 
   // Context là nguồn dữ liệu chính.
   // Props chỉ là phương án dự phòng.
   const aircraftList = contextAircrafts ?? propAircrafts;
+  const placeList = contextPlaces ?? propPlaces;
 
   // ======================================
   // LATEST VALUES REFS
   // ======================================
 
   const aircraftsRef = useRef<AirCraft[]>(aircraftList);
+  const placeRef = useRef<Place[]>(placeList);
 
   const selectedAircraftIdRef = useRef<string | null>(selectedAircraftId);
 
@@ -122,6 +128,9 @@ export default function MapView({
   useEffect(() => {
     aircraftsRef.current = aircraftList;
   }, [aircraftList]);
+  useEffect(() => {
+    placeRef.current = placeList;
+  }, [placeList]);
 
   useEffect(() => {
     selectedAircraftIdRef.current = selectedAircraftId;
@@ -283,6 +292,15 @@ export default function MapView({
       updateGridLabels(map, gridLabelsRef.current);
 
       updateAircraftRoutes(map, aircraftsRef.current);
+      addLocationLabels(map, [
+        {
+          id: "kkk",
+          name: "asdasd",
+          phone: "13123",
+          lat: 21.390734,
+          lng: 106.266576,
+        },
+      ]);
 
       // Đăng ký hover.
       cleanupHover = registerWaypointHoverEvents(map);

@@ -19,6 +19,7 @@ import { addCursorTracker } from "../MapTiler/utils/cursor.tracker";
 import { smoothLine } from "../MapTiler/utils/smooth-line";
 import { CENTER } from "../MapTiler/map.constants";
 import bearing from "@turf/bearing";
+import { Place } from "../../features/places/place.types";
 
 // =========================
 // CONSTANTS & SHARED HELPERS
@@ -28,7 +29,6 @@ const EMPTY_FEATURE_COLLECTION = {
   type: "FeatureCollection" as const,
   features: [],
 };
-
 const SOURCE = {
   grid: "grid-source",
   gridLabel: "grid-label-source",
@@ -432,8 +432,12 @@ function buildLocationHtml(loc: LocationLabel) {
   `;
 }
 
-export function addLocationLabels(map: MapLibreMap) {
-  LOCATION_LABELS.forEach((loc) => {
+//==========================
+//   LOCATION MARKER
+//=========================
+
+export function addLocationLabels(map: MapLibreMap, places: Place[]) {
+  places.forEach((loc) => {
     const element = document.createElement("div");
 
     // Phần tử gốc 0x0 nằm đúng tại tọa độ, các phần con định vị tuyệt đối quanh nó
@@ -1205,7 +1209,7 @@ export function initializeMapLayers(map: MapLibreMap) {
   addGridLayers(map);
   addRouteLayers(map);
   addAirportLayer(map);
-  const cleanupLocations = addLocationLabels(map); // <-- thêm
+  // const cleanupLocations = addLocationLabels(map); // <-- thêm
   const cleanupMeasurement = addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);
   const cleanupCursor = addCursorTracker(map);
 
@@ -1217,7 +1221,7 @@ export function initializeMapLayers(map: MapLibreMap) {
     cleanupRouteHover();
     cleanupMeasurement();
     cleanupCursor();
-    cleanupLocations();
+    // cleanupLocations();
     clearFirstWaypointLabels();
 
     // Dọn cache theo map instance
