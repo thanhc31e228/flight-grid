@@ -358,7 +358,100 @@ function resetHover(map?: MapLibreMap) {
 // =========================
 // FIRST WAYPOINT LABEL
 // =========================
+// =========================
+// LOCATION LABEL (địa điểm cố định + số điện thoại)
+// =========================
 
+interface LocationLabel {
+  id: string;
+  name: string;
+  phone?: string;
+  lng: number;
+  lat: number;
+  side?: "left" | "right"; // label nằm bên nào so với điểm
+}
+
+const LOCATION_LABELS: LocationLabel[] = [
+  {
+    id: "bchqs",
+    name: "BCHQS",
+    phone: "0xxx xxx xxx", // thay số điện thoại thật
+    lng: 106.265561, // lưu ý: lng trước, lat sau
+    lat: 21.363411,
+    side: "left",
+  },
+];
+
+const locationMarkers = new Map<string, Marker>();
+
+// Kích thước đường kẻ (pixel)
+const LEADER_STUB = 30; // đoạn dựng đứng từ điểm đi lên
+const LEADER_RUN = 70; // đoạn xiên đi ngang sang trái/phải
+const LEADER_LIFT = 10; // đoạn xiên nhích lên thêm
+
+function buildLocationHtml(loc: LocationLabel) {
+  const isRight = loc.side === "right";
+  const sign = isRight ? 1 : -1;
+
+  const endX = sign * LEADER_RUN;
+  const endY = -(LEADER_STUB + LEADER_LIFT);
+
+  // Ô label: cạnh sát đầu đường kẻ, căn giữa theo chiều dọc
+  const boxPos = isRight
+    ? `left:${endX}px; transform:translate(0,-50%);`
+    : `left:${endX}px; transform:translate(-100%,-50%);`;
+
+  const phone = loc.phone
+    ? `<div style="font-size:13px; font-weight:500; margin-top:2px;">
+         ☎ <a href="tel:${escapeHtml(loc.phone.replace(/\s/g, ""))}"
+              style="color:#0369a1; text-decoration:none;">
+           ${escapeHtml(loc.phone)}
+         </a>
+       </div>`
+    : "";
+
+  return `
+    <svg width="1" height="1"
+      style="position:absolute; left:0; top:0; overflow:visible; pointer-events:none;">
+      <polyline
+        points="0,0 0,${-LEADER_STUB} ${endX},${endY}"
+        fill="none" stroke="#0f172a" stroke-width="2"
+        stroke-linejoin="round" stroke-linecap="round" />
+      <circle cx="0" cy="0" r="4" fill="#0f172a" stroke="#fff" stroke-width="1.5" />
+    </svg>
+
+    <div style="
+      position:absolute; top:${endY}px; ${boxPos}
+      padding:4px 10px; white-space:nowrap; pointer-events:auto;
+      background:#fff; border:2px solid #0f172a; border-radius:4px;
+      color:#0f172a; text-align:center; line-height:1.3;
+    ">
+      <div style="font-size:16px; font-weight:700;">${escapeHtml(loc.name)}</div>
+      ${phone}
+    </div>
+  `;
+}
+
+export function addLocationLabels(map: MapLibreMap) {
+  LOCATION_LABELS.forEach((loc) => {
+    const element = document.createElement("div");
+
+    // Phần tử gốc 0x0 nằm đúng tại tọa độ, các phần con định vị tuyệt đối quanh nó
+    element.style.cssText = "width:0;height:0;pointer-events:none;";
+    element.innerHTML = buildLocationHtml(loc);
+
+    const marker = new Marker({ element, anchor: "center" })
+      .setLngLat([loc.lng, loc.lat])
+      .addTo(map);
+
+    locationMarkers.set(loc.id, marker);
+  });
+
+  return () => {
+    locationMarkers.forEach((marker) => marker.remove());
+    locationMarkers.clear();
+  };
+}
 function buildFirstWaypointHtml(
   aircraft: AirCraft,
   firstPoint: AirCraft["points"][number],
@@ -1112,7 +1205,7 @@ export function initializeMapLayers(map: MapLibreMap) {
   addGridLayers(map);
   addRouteLayers(map);
   addAirportLayer(map);
-
+  const cleanupLocations = addLocationLabels(map); // <-- thêm
   const cleanupMeasurement = addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);
   const cleanupCursor = addCursorTracker(map);
 
@@ -1124,7 +1217,7 @@ export function initializeMapLayers(map: MapLibreMap) {
     cleanupRouteHover();
     cleanupMeasurement();
     cleanupCursor();
-
+    cleanupLocations();
     clearFirstWaypointLabels();
 
     // Dọn cache theo map instance
