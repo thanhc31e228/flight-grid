@@ -369,58 +369,243 @@ interface LocationLabel {
   lng: number;
   lat: number;
   side?: "left" | "right"; // label nằm bên nào so với điểm
+  offsetX?: number;
+  offsetY?: number;
 }
 
 const locationMarkers = new Map<string, Marker>();
+// Lưu offset kéo theo từng Place
+const locationOffsets = new Map<string, { x: number; y: number }>();
 
+// Quản lý listener kéo, tránh đăng ký trùng
+const locationDragCleanups = new Map<string, () => void>();
 // Kích thước đường kẻ (pixel)
-const LEADER_STUB = 30; // đoạn dựng đứng từ điểm đi lên
-const LEADER_RUN = 70; // đoạn xiên đi ngang sang trái/phải
-const LEADER_LIFT = 10; // đoạn xiên nhích lên thêm
+const LEADER_STUB = 30;
+const LEADER_RUN = 200;
+const LEADER_LIFT = 10;
 
-function buildLocationHtml(loc: LocationLabel) {
+function buildLocationHtml(loc: Place) {
   const isRight = loc.side === "right";
   const sign = isRight ? 1 : -1;
 
   const endX = sign * LEADER_RUN;
   const endY = -(LEADER_STUB + LEADER_LIFT);
 
-  // Ô label: cạnh sát đầu đường kẻ, căn giữa theo chiều dọc
+  const offset = locationOffsets.get(loc.id) ?? {
+    x: loc.offsetX ?? 0,
+    y: loc.offsetY ?? 0,
+  };
+
+  const labelX = endX + offset.x;
+  const labelY = endY + offset.y;
+
   const boxPos = isRight
-    ? `left:${endX}px; transform:translate(0,-50%);`
-    : `left:${endX}px; transform:translate(-100%,-50%);`;
+    ? `left:${labelX}px; transform:translate(0,-50%);`
+    : `left:${labelX}px; transform:translate(-100%,-50%);`;
 
   const phone = loc.phone
-    ? `<div style="font-size:13px; font-weight:500; margin-top:2px;">
-         ☎ <a href="tel:${escapeHtml(loc.phone.replace(/\s/g, ""))}"
-              style="color:#0369a1; text-decoration:none;">
-           ${escapeHtml(loc.phone)}
-         </a>
-       </div>`
+    ? `
+      <div class="mt-1 flex items-center justify-center gap-1 text-[12px] text-slate-500">
+        <span>☎</span>
+        <a
+          data-location-phone
+          href="tel:${escapeHtml(loc.phone.replace(/\s/g, ""))}"
+          class="text-sky-600 hover:text-sky-800 hover:underline"
+        >
+          ${escapeHtml(loc.phone)}
+        </a>
+      </div>
+    `
     : "";
 
   return `
-    <svg width="1" height="1"
-      style="position:absolute; left:0; top:0; overflow:visible; pointer-events:none;">
+    <!-- Leader line + coordinate point -->
+    <svg
+      width="1"
+      height="1"
+      style="position:absolute; left:0; top:0; overflow:visible; pointer-events:none;"
+    >
       <polyline
-        points="0,0 0,${-LEADER_STUB} ${endX},${endY}"
-        fill="none" stroke="#0f172a" stroke-width="2"
-        stroke-linejoin="round" stroke-linecap="round" />
-      <circle cx="0" cy="0" r="4" fill="#0f172a" stroke="#fff" stroke-width="1.5" />
+        data-location-line
+        points="0,0 0,${-LEADER_STUB} ${labelX},${labelY}"
+        fill="none"
+        stroke="#64748b"
+        stroke-width="1.5"
+        stroke-linejoin="round"
+        stroke-linecap="round"
+      />
+
+      <!-- Halo -->
+      <circle
+        cx="0"
+        cy="0"
+        r="6"
+        fill="rgba(14,165,233,0.12)"
+      />
+
+      <!-- Center point -->
+      <circle
+        cx="0"
+        cy="0"
+        r="3"
+        fill="#0ea5e9"
+        stroke="#ffffff"
+        stroke-width="1.5"
+      />
     </svg>
 
-    <div style="
-      position:absolute; top:${endY}px; ${boxPos}
-      padding:4px 10px; white-space:nowrap; pointer-events:auto;
-      background:#fff; border:2px solid #0f172a; border-radius:4px;
-      color:#0f172a; text-align:center; line-height:1.3;
-    ">
-      <div style="font-size:16px; font-weight:700;">${escapeHtml(loc.name)}</div>
-      ${phone}
+    <!-- Draggable location label -->
+    <div
+  data-location-label
+  data-location-id="${escapeHtml(String(loc.id))}"
+  data-side="${loc.side ?? "right"}"
+  data-base-x="${endX}"
+  data-base-y="${endY}"
+  data-offset-x="${offset.x}"
+  data-offset-y="${offset.y}"
+  class="absolute z-10 pointer-events-auto cursor-grab active:cursor-grabbing select-none"
+  style="top:${labelY}px; ${boxPos} touch-action:none;"
+>
+      <div
+        class="
+          min-w-[110px]
+          rounded-md
+          border border-slate-300
+          bg-white
+          px-3 py-1.5
+          text-center
+          text-slate-800
+          shadow-sm
+          transition-shadow
+          hover:shadow-md
+      ">
+        <div class="text-[14px] font-semibold leading-tight">
+          ${escapeHtml(loc.name)}
+        </div>
+
+        ${phone}
+      </div>
     </div>
   `;
 }
+function enableLocationLabelDrag(
+  map: MapLibreMap,
+  marker: Marker,
+  locId: string,
+) {
+  const root = marker.getElement();
 
+  const label = root.querySelector<HTMLElement>("[data-location-label]");
+
+  const line = root.querySelector<SVGPolylineElement>("[data-location-line]");
+
+  if (!label || !line) return () => {};
+
+  const baseX = Number(label.dataset.baseX);
+  const baseY = Number(label.dataset.baseY);
+
+  let offsetX = Number(label.dataset.offsetX) || 0;
+  let offsetY = Number(label.dataset.offsetY) || 0;
+
+  let dragging = false;
+  let pointerId: number | null = null;
+
+  let startMouseX = 0;
+  let startMouseY = 0;
+
+  let startOffsetX = 0;
+  let startOffsetY = 0;
+
+  // Trạng thái map trước khi kéo
+  let wasDragPanEnabled = true;
+
+  const side = label.dataset.side;
+
+  const renderPosition = () => {
+    const x = baseX + offsetX;
+    const y = baseY + offsetY;
+
+    label.style.left = `${x}px`;
+    label.style.top = `${y}px`;
+
+    label.style.transform =
+      side === "right" ? "translate(0,-50%)" : "translate(-100%,-50%)";
+
+    line.setAttribute("points", `0,0 0,${-LEADER_STUB} ${x},${y}`);
+  };
+
+  const onPointerDown = (e: PointerEvent) => {
+    if (e.button !== 0) return;
+
+    // Cho phép click số điện thoại
+    if ((e.target as HTMLElement).closest("[data-location-phone]")) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    dragging = true;
+    pointerId = e.pointerId;
+
+    startMouseX = e.clientX;
+    startMouseY = e.clientY;
+
+    startOffsetX = offsetX;
+    startOffsetY = offsetY;
+
+    wasDragPanEnabled = map.dragPan.isEnabled();
+
+    map.dragPan.disable();
+
+    label.setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e: PointerEvent) => {
+    if (!dragging || e.pointerId !== pointerId) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    offsetX = startOffsetX + e.clientX - startMouseX;
+    offsetY = startOffsetY + e.clientY - startMouseY;
+
+    renderPosition();
+  };
+
+  const finishDrag = (e: PointerEvent) => {
+    if (!dragging || e.pointerId !== pointerId) return;
+
+    dragging = false;
+    pointerId = null;
+
+    if (wasDragPanEnabled) {
+      map.dragPan.enable();
+    }
+
+    // Lưu offset ngay lập tức
+    locationOffsets.set(locId, {
+      x: offsetX,
+      y: offsetY,
+    });
+  };
+
+  label.addEventListener("pointerdown", onPointerDown);
+  label.addEventListener("pointermove", onPointerMove);
+  label.addEventListener("pointerup", finishDrag);
+  label.addEventListener("pointercancel", finishDrag);
+
+  return () => {
+    label.removeEventListener("pointerdown", onPointerDown);
+    label.removeEventListener("pointermove", onPointerMove);
+    label.removeEventListener("pointerup", finishDrag);
+    label.removeEventListener("pointercancel", finishDrag);
+
+    if (dragging && wasDragPanEnabled) {
+      map.dragPan.enable();
+    }
+  };
+}
 //==========================
 //   LOCATION MARKER
 //=========================
@@ -1196,11 +1381,17 @@ export function addAzimuthLayers(
 export function updateLocationLabels(map: MapLibreMap, locations: Place[]) {
   const activeIds = new Set(locations.map((loc) => loc.id));
 
-  // Xóa marker của địa điểm đã bị xóa khỏi danh sách
+  // Xóa Marker của Place không còn tồn tại
   locationMarkers.forEach((marker, id) => {
     if (activeIds.has(id)) return;
+
+    locationDragCleanups.get(id)?.();
+    locationDragCleanups.delete(id);
+
     marker.remove();
     locationMarkers.delete(id);
+
+    locationOffsets.delete(id);
   });
 
   locations.forEach((loc) => {
@@ -1208,9 +1399,13 @@ export function updateLocationLabels(map: MapLibreMap, locations: Place[]) {
 
     if (!marker) {
       const element = document.createElement("div");
+
       element.style.cssText = "width:0;height:0;pointer-events:none;";
 
-      marker = new Marker({ element, anchor: "center" })
+      marker = new Marker({
+        element,
+        anchor: "center",
+      })
         .setLngLat([loc.lng, loc.lat])
         .addTo(map);
 
@@ -1219,13 +1414,22 @@ export function updateLocationLabels(map: MapLibreMap, locations: Place[]) {
 
     marker.setLngLat([loc.lng, loc.lat]);
 
-    // Chỉ rebuild DOM khi nội dung thay đổi
     const html = buildLocationHtml(loc);
     const element = marker.getElement();
 
+    // Chỉ render lại DOM khi HTML thay đổi
     if (element.dataset.labelHtml !== html) {
+      // Gỡ listener cũ trước khi thay DOM
+      locationDragCleanups.get(loc.id)?.();
+      locationDragCleanups.delete(loc.id);
+
       element.innerHTML = html;
       element.dataset.labelHtml = html;
+
+      // Gắn kéo vào DOM mới
+      const cleanup = enableLocationLabelDrag(map, marker, loc.id);
+
+      locationDragCleanups.set(loc.id, cleanup);
     }
   });
 }
@@ -1248,6 +1452,11 @@ export function initializeMapLayers(map: MapLibreMap) {
     // cleanupLocations();
     clearFirstWaypointLabels();
 
+    // Cleanup Location labels + drag listeners
+    locationDragCleanups.forEach((cleanup) => cleanup());
+    locationDragCleanups.clear();
+
+    locationMarkers.forEach((marker) => marker.remove());
     // Dọn cache theo map instance
     flightRouteCache.delete(map);
     waypointDataCache.delete(map);
