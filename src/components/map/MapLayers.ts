@@ -18,9 +18,10 @@ import { addMeasurementTool } from "../MapTiler/utils/measurement.tool";
 import { addCursorTracker } from "../MapTiler/utils/cursor.tracker";
 import { smoothLine } from "../MapTiler/utils/smooth-line";
 import { CENTER } from "../MapTiler/map.constants";
+import bearing from "@turf/bearing";
 
 // =========================
-// HẰNG SỐ & HÀM DÙNG CHUNG
+// CONSTANTS & SHARED HELPERS
 // =========================
 
 const EMPTY_FEATURE_COLLECTION = {
@@ -39,7 +40,6 @@ const SOURCE = {
 const getGeoJSONSource = (map: MapLibreMap, id: string) =>
   map.getSource(id) as GeoJSONSource | undefined;
 
-// Giá trị thay đổi theo zoom: byZoom(zoom1, value1, zoom2, value2, ...)
 const byZoom = (...stops: number[]) =>
   ["interpolate", ["linear"], ["zoom"], ...stops] as ExpressionSpecification;
 
@@ -60,7 +60,6 @@ const AZIMUTH_TEXT_SIZE = byZoom(
   20,
 );
 
-// undefined / null -> chuỗi rỗng (tránh hiện chữ "undefined" trên nhãn)
 const escapeHtml = (value: unknown) =>
   String(value).replace(
     /[&<>"']/g,
@@ -75,10 +74,9 @@ const escapeHtml = (value: unknown) =>
   );
 
 // =========================
-// LƯỚI Ô VUÔNG
+// GRID
 // =========================
 
-// Mỗi ô vuông -> 1 điểm ở tâm ô (giữ nguyên properties) để label không bị nhân bản theo tile
 function createGridLabelPoints(grid: ReturnType<typeof createGrid>) {
   return {
     type: "FeatureCollection" as const,
@@ -90,19 +88,24 @@ function createGridLabelPoints(grid: ReturnType<typeof createGrid>) {
   };
 }
 
-// Cấp lưới phụ: lớp tô gần như trong suốt (để bắt sự kiện) + lớp viền
 function addGridLevel(
   map: MapLibreMap,
   id: string,
   line: { color: string; width: number; opacity: number },
 ) {
-  map.addSource(id, { type: "geojson", data: emptyGrid() });
+  map.addSource(id, {
+    type: "geojson",
+    data: emptyGrid(),
+  });
 
   map.addLayer({
     id: `${id}-fill`,
     type: "fill",
     source: id,
-    paint: { "fill-color": "#ffffff", "fill-opacity": 0.001 },
+    paint: {
+      "fill-color": "#ffffff",
+      "fill-opacity": 0.001,
+    },
   });
 
   map.addLayer({
@@ -120,7 +123,11 @@ function addGridLevel(
 export function addGridLayers(map: MapLibreMap) {
   const grid = createGrid();
 
-  map.addSource(SOURCE.grid, { type: "geojson", data: grid });
+  map.addSource(SOURCE.grid, {
+    type: "geojson",
+    data: grid,
+  });
+
   map.addSource(SOURCE.gridLabel, {
     type: "geojson",
     data: createGridLabelPoints(grid),
@@ -130,7 +137,10 @@ export function addGridLayers(map: MapLibreMap) {
     id: "grid-fill",
     type: "fill",
     source: SOURCE.grid,
-    paint: { "fill-color": "#ffffff", "fill-opacity": 0.001 },
+    paint: {
+      "fill-color": "#ffffff",
+      "fill-opacity": 0.001,
+    },
   });
 
   map.addLayer({
@@ -144,7 +154,6 @@ export function addGridLayers(map: MapLibreMap) {
     },
   });
 
-  // Tọa độ của ô vuông
   map.addLayer({
     id: "grid-label",
     type: "symbol",
@@ -173,6 +182,7 @@ export function addGridLayers(map: MapLibreMap) {
     width: 0.8,
     opacity: 0.5,
   });
+
   addGridLevel(map, "grid-level-3", {
     color: "#64748b",
     width: 0.7,
@@ -180,22 +190,20 @@ export function addGridLayers(map: MapLibreMap) {
   });
 }
 
-// Cập nhật label cho các ô lưới
 export function updateGridLabels(map: MapLibreMap, labels: string[]) {
   const source = getGeoJSONSource(map, SOURCE.grid);
   if (!source) return;
 
   const gridData = createGrid(labels);
 
-  // Sắp xếp từ trên xuống dưới, trái sang phải
   const sortedFeatures = [...gridData.features].sort((a, b) => {
     const rowDiff = Number(a.properties?.row) - Number(b.properties?.row);
+
     if (rowDiff !== 0) return rowDiff;
 
     return Number(a.properties?.col) - Number(b.properties?.col);
   });
 
-  // Gán label theo thứ tự; ô không có label tùy chỉnh thì quay về label mặc định
   sortedFeatures.forEach((feature, index) => {
     const properties = { ...(feature.properties ?? {}) };
 
@@ -209,13 +217,14 @@ export function updateGridLabels(map: MapLibreMap, labels: string[]) {
   });
 
   source.setData(gridData);
+
   getGeoJSONSource(map, SOURCE.gridLabel)?.setData(
     createGridLabelPoints(gridData),
   );
 }
 
 // =========================
-// ẢNH ICON
+// WAYPOINT ICONS
 // =========================
 
 function addWaypointCircleImage(map: MapLibreMap) {
@@ -223,6 +232,7 @@ function addWaypointCircleImage(map: MapLibreMap) {
 
   const size = 50;
   const canvas = document.createElement("canvas");
+
   canvas.width = size;
   canvas.height = size;
 
@@ -232,59 +242,56 @@ function addWaypointCircleImage(map: MapLibreMap) {
   ctx.strokeStyle = "#ffffff";
   ctx.lineWidth = 5;
   ctx.beginPath();
-  // Vẽ đúng tâm ảnh (25, 25) để khớp với icon-anchor "center"
   ctx.arc(size / 2, size / 2, 12, 0, Math.PI * 2);
   ctx.stroke();
 
-  // SDF để đổi màu theo "icon-color"
   map.addImage("waypoint-circle", ctx.getImageData(0, 0, size, size), {
     sdf: true,
   });
 }
 
-function addHalfVImage(map: MapLibreMap) {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-      <path d="M12 52 L52 12"
-            stroke="#4e1010"
-            stroke-width="10"
-            stroke-linecap="round"
-            fill="none"/>
-    </svg>`;
+function addWaypointTickImage(map: MapLibreMap) {
+  if (map.hasImage("waypoint-tick")) return;
 
-  const img = new Image(64, 64);
-  img.onload = () => {
-    if (!map.hasImage("half-v")) {
-      map.addImage("half-v", img);
-    }
-  };
-  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.strokeStyle = "#ffffff"; // SDF: màu thật lấy từ icon-color
+  ctx.lineWidth = 6;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(size / 2, size / 2); // gốc vạch tại tâm
+  ctx.lineTo(size - 4, size / 2); // đầu vạch bên phải
+  ctx.stroke();
+
+  map.addImage("waypoint-tick", ctx.getImageData(0, 0, size, size), {
+    sdf: true,
+  });
 }
-
 // =========================
-// NHÃN WAYPOINT ĐẦU TIÊN
+// HOVER STATE
 // =========================
-//
-//   401)  ──0122──  ◯ 01
-//          005
-//
-// Marker có kích thước 0x0 đặt đúng tâm vòng tròn, các phần tử bên trong
-// dùng position:absolute để lệch ra xung quanh tâm.
-
-// =========================
-// HOVER: ĐƯỜNG BAY + NHÃN
-// =========================
-// Hai nguồn hover độc lập. Gộp lại để chuyển chuột từ đường sang nhãn
-// (hoặc ngược lại) không bị nguồn này xóa mất hiệu ứng của nguồn kia.
 
 const hoverState = {
   line: null as string | null,
   label: null as string | null,
 };
-let appliedHoverId = "";
 
-function syncLabelHighlight() {
+let appliedHoverId = "";
+let appliedLabelHoverId = "";
+
+const firstWaypointMarkers = new Map<string, Marker>();
+
+function syncLabelHighlight(force = false) {
   const activeId = hoverState.label ?? hoverState.line;
+
+  if (!force && activeId === appliedLabelHoverId) return;
+  appliedLabelHoverId = activeId ?? "";
 
   firstWaypointMarkers.forEach((marker, aircraftId) => {
     const active = aircraftId === activeId;
@@ -294,6 +301,7 @@ function syncLabelHighlight() {
       .querySelectorAll<HTMLElement>("[data-hit]")
       .forEach((el) => {
         el.style.background = active ? "rgba(255,255,255,0.85)" : "transparent";
+
         el.style.boxShadow = active ? "0 0 0 1.5px currentColor" : "none";
       });
   });
@@ -304,27 +312,52 @@ function setHover(
   source: "line" | "label",
   aircraftId: string | null,
 ) {
+  if (hoverState[source] === aircraftId) return;
+
   hoverState[source] = aircraftId;
 
-  const id = hoverState.label ?? hoverState.line ?? "";
-  if (id === appliedHoverId) return;
-  appliedHoverId = id;
+  const activeId = hoverState.label ?? hoverState.line ?? "";
 
-  // Tô sáng đường bay (layer route-line-hover)
-  if (map.getLayer("route-line-hover")) {
-    map.setFilter("route-line-hover", ["==", ["get", "aircraftId"], id]);
+  if (activeId !== appliedHoverId) {
+    appliedHoverId = activeId;
+
+    if (map.getLayer("route-line-hover")) {
+      map.setFilter("route-line-hover", [
+        "==",
+        ["get", "aircraftId"],
+        activeId,
+      ]);
+    }
   }
 
-  // Tô sáng nhãn
   syncLabelHighlight();
 }
 
-function resetHover() {
+function resetHover(map?: MapLibreMap) {
   hoverState.line = null;
   hoverState.label = null;
+
   appliedHoverId = "";
+  appliedLabelHoverId = "";
+
+  if (map?.getLayer("route-line-hover")) {
+    map.setFilter("route-line-hover", ["==", ["get", "aircraftId"], ""]);
+  }
+
+  firstWaypointMarkers.forEach((marker) => {
+    marker
+      .getElement()
+      .querySelectorAll<HTMLElement>("[data-hit]")
+      .forEach((el) => {
+        el.style.background = "transparent";
+        el.style.boxShadow = "none";
+      });
+  });
 }
-const firstWaypointMarkers = new Map<string, Marker>();
+
+// =========================
+// FIRST WAYPOINT LABEL
+// =========================
 
 function buildFirstWaypointHtml(
   aircraft: AirCraft,
@@ -336,13 +369,11 @@ function buildFirstWaypointHtml(
 
   const outline = "text-shadow:-1px 0 #fff,1px 0 #fff,0 -1px #fff,0 1px #fff;";
 
-  // Nhãn chính: bên phải điểm -> left:8px, bên trái điểm -> right:8px
   const boxSide = isRight ? "left:8px;" : "right:8px;";
-  // Giờ xuất hiện nằm phía đối diện nhãn chính để không bị chồng
   const timeSide = isRight ? "right:7px;" : "left:7px;";
-  // row-reverse: đảo thứ tự [ID][khối mã/độ cao] thành [khối mã/độ cao][ID]
   const flexDir = isRight ? "row-reverse" : "row";
   const bracket = isRight ? "(" : ")";
+
   const bracketMargin = isRight
     ? "margin-left:-8px; margin-right:-2px;"
     : "margin-left:-2px; margin-right:-8px;";
@@ -351,7 +382,8 @@ function buildFirstWaypointHtml(
   <div data-hit style="
     position:absolute; ${boxSide} top:0;
     transform:translateY(-50%);
-    display:flex; flex-direction:${flexDir}; align-items:center; gap:5px;
+    display:flex; flex-direction:${flexDir};
+    align-items:center; gap:5px;
     padding:4px 0px; border-radius:6px;
     white-space:nowrap; pointer-events:auto; cursor:pointer;
     color:${color}; font-weight:700; font-size:16px;
@@ -360,12 +392,20 @@ function buildFirstWaypointHtml(
   ">
     <span style="
       display:inline-flex; align-items:center;
-      flex-direction:${isRight ? "row" : "row"};
+      flex-direction:row;
       font-size:16px; font-weight:700; position:relative;
     ">
-      ${isRight ? `<span style="font-size:25px; font-weight:300; line-height:0.5; ${bracketMargin}">${bracket}</span>` : ""}
+      ${
+        isRight
+          ? `<span style="font-size:25px; font-weight:300; line-height:0.5; ${bracketMargin}">${bracket}</span>`
+          : ""
+      }
       ${escapeHtml(aircraft.id)}
-      ${!isRight ? `<span style="font-size:25px; font-weight:300; line-height:0.5; ${bracketMargin}">${bracket}</span>` : ""}
+      ${
+        !isRight
+          ? `<span style="font-size:25px; font-weight:300; line-height:0.5; ${bracketMargin}">${bracket}</span>`
+          : ""
+      }
     </span>
 
     <div style="
@@ -390,6 +430,7 @@ function buildFirstWaypointHtml(
   ">${escapeHtml(firstPoint.appearanceTime)}</span>
 `;
 }
+
 function getAircraftLabelDirection(
   map: MapLibreMap,
   aircraftLng: number,
@@ -403,64 +444,79 @@ function updateFirstWaypointLabels(map: MapLibreMap, aircrafts: AirCraft[]) {
   const aircraftsWithPoints = aircrafts.filter(
     (aircraft) => aircraft.points.length > 0,
   );
+
   const activeIds = new Set(aircraftsWithPoints.map((aircraft) => aircraft.id));
 
-  // Xóa nhãn của máy bay không còn
   firstWaypointMarkers.forEach((marker, id) => {
     if (activeIds.has(id)) return;
 
     marker.remove();
     firstWaypointMarkers.delete(id);
 
-    if (hoverState.label === id) setHover(map, "label", null);
-    if (hoverState.line === id) setHover(map, "line", null);
+    if (hoverState.label === id) {
+      setHover(map, "label", null);
+    }
+
+    if (hoverState.line === id) {
+      setHover(map, "line", null);
+    }
   });
 
   aircraftsWithPoints.forEach((aircraft) => {
-    const [firstPoint] = aircraft.points;
+    const firstPoint = aircraft.points[0];
 
     let marker = firstWaypointMarkers.get(aircraft.id);
+
     if (!marker) {
       const element = document.createElement("div");
-      // Phần tử gốc 0x0 không nhận chuột, chỉ các phần tử con (data-hit) nhận
+
       element.style.cssText = "width:0;height:0;pointer-events:none;";
 
-      // mouseenter/mouseleave của phần tử gốc vẫn kích hoạt khi chuột
-      // vào các phần tử con, và không bị mất khi innerHTML được vẽ lại
-      element.addEventListener("mouseenter", () =>
-        setHover(map, "label", aircraft.id),
-      );
-      element.addEventListener("mouseleave", () =>
-        setHover(map, "label", null),
-      );
+      element.addEventListener("mouseenter", () => {
+        setHover(map, "label", aircraft.id);
+      });
 
-      marker = new Marker({ element, anchor: "center" })
+      element.addEventListener("mouseleave", () => {
+        setHover(map, "label", null);
+      });
+
+      marker = new Marker({
+        element,
+        anchor: "center",
+      })
         .setLngLat([firstPoint.lng, firstPoint.lat])
         .addTo(map);
 
       firstWaypointMarkers.set(aircraft.id, marker);
     }
-    const direction = getAircraftLabelDirection(map, aircraft.points[0].lng);
+
+    const direction = getAircraftLabelDirection(map, firstPoint.lng);
 
     marker.setLngLat([firstPoint.lng, firstPoint.lat]);
-    marker.getElement().innerHTML = buildFirstWaypointHtml(
-      aircraft,
-      firstPoint,
-      direction,
-    );
+
+    const html = buildFirstWaypointHtml(aircraft, firstPoint, direction);
+
+    const element = marker.getElement();
+
+    // Chỉ rebuild DOM khi nội dung label thay đổi.
+    if (element.dataset.labelHtml !== html) {
+      element.innerHTML = html;
+      element.dataset.labelHtml = html;
+    }
   });
 
-  // innerHTML vừa được vẽ lại nên cần áp lại màu tô sáng
-  syncLabelHighlight();
+  syncLabelHighlight(true);
 }
 
 function clearFirstWaypointLabels() {
   firstWaypointMarkers.forEach((marker) => marker.remove());
   firstWaypointMarkers.clear();
+
+  appliedLabelHoverId = "";
 }
 
 // =========================
-// ĐƯỜNG BAY, MÁY BAY, WAYPOINT
+// ROUTE / AIRCRAFT LAYERS
 // =========================
 
 function addRouteLines(map: MapLibreMap) {
@@ -469,7 +525,10 @@ function addRouteLines(map: MapLibreMap) {
     data: EMPTY_FEATURE_COLLECTION,
   });
 
-  const roundLine = { "line-cap": "round", "line-join": "round" } as const;
+  const roundLine = {
+    "line-cap": "round",
+    "line-join": "round",
+  } as const;
 
   map.addLayer({
     id: "route-line",
@@ -483,7 +542,6 @@ function addRouteLines(map: MapLibreMap) {
     },
   });
 
-  // Vùng trong suốt, rộng hơn đường bay, để dễ bắt hover
   map.addLayer({
     id: "route-line-hitbox",
     type: "line",
@@ -523,16 +581,64 @@ function addAircraftLayer(map: MapLibreMap) {
   });
 }
 
+// Góc giữa nửa vạch và đường bay (độ)
+const TICK_ANGLE = 40;
+
+// Đưa góc về khoảng (-180, 180]
+const normalizeAngle = (angle: number) => ((angle + 540) % 360) - 180;
+
+// Góc xoay của nửa vạch tại điểm index
+function getTickRotation(coordinates: [number, number][], index: number) {
+  if (coordinates.length < 2) return 0;
+
+  const prev = coordinates[Math.max(index - 1, 0)];
+  const current = coordinates[index];
+  const next = coordinates[Math.min(index + 1, coordinates.length - 1)];
+
+  // Hướng tiếp tuyến của đường bay tại điểm
+  const tangent = bearing(prev, next);
+
+  // Mặc định (điểm đầu, điểm cuối, đường thẳng): vạch ở bên phải
+  let side: "left" | "right" = "right";
+
+  if (index > 0 && index < coordinates.length - 1) {
+    // turn > 40: rẽ phải => góc nhỏ ở bên phải => vạch ở bên trái (góc lớn)
+    // turn < 40: rẽ trái => góc nhỏ ở bên trái => vạch ở bên phải (góc lớn)
+    const turn = normalizeAngle(
+      bearing(current, next) - bearing(prev, current),
+    );
+
+    if (turn > 40) side = "left";
+  }
+
+  // Nửa vạch lùi về sau, lệch TICK_ANGLE so với đường bay
+  return side === "right"
+    ? tangent + 180 - TICK_ANGLE - 90
+    : tangent + 180 + TICK_ANGLE - 90;
+}
 function addWaypointLayers(map: MapLibreMap) {
   addWaypointCircleImage(map);
-  addHalfVImage(map);
+  addWaypointTickImage(map);
 
   map.addSource(SOURCE.points, {
     type: "geojson",
     data: EMPTY_FEATURE_COLLECTION,
   });
+  // Vạch ngang waypoint
+  map.addLayer({
+    id: "waypoint-ticks",
+    type: "line",
+    source: SOURCE.points,
+    paint: {
+      "line-color": ["get", "color"],
+      "line-width": 2,
+      "line-opacity": 1,
+    },
+    layout: {
+      "line-cap": "round",
+    },
+  });
 
-  // Waypoint đầu: hình tròn, các waypoint còn lại: nửa chữ V
   map.addLayer({
     id: "points-layer",
     type: "symbol",
@@ -542,9 +648,11 @@ function addWaypointLayers(map: MapLibreMap) {
         "case",
         ["==", ["get", "isFirst"], true],
         "waypoint-circle",
-        "half-v",
+        "waypoint-tick",
       ],
-      "icon-size": ["case", ["==", ["get", "isFirst"], true], 0.5, 0.2],
+      "icon-size": ["case", ["==", ["get", "isFirst"], true], 0.5, 0.4],
+      "icon-rotate": ["get", "tickRotate"],
+      "icon-rotation-alignment": "map",
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
       "icon-anchor": "center",
@@ -554,8 +662,6 @@ function addWaypointLayers(map: MapLibreMap) {
     },
   });
 
-  // Thời gian xuất hiện bên dưới các waypoint thường.
-  // Waypoint đầu hiển thị thời gian ở góc trên phải vòng tròn (xem nhãn Marker).
   map.addLayer({
     id: "points-label",
     type: "symbol",
@@ -576,13 +682,15 @@ function addWaypointLayers(map: MapLibreMap) {
   });
 }
 
-// Làm nổi bật đường bay khi rê chuột (lọc theo aircraftId)
 function addRouteHoverLayer(map: MapLibreMap) {
   map.addLayer({
     id: "route-line-hover",
     type: "line",
     source: SOURCE.route,
-    layout: { "line-cap": "round", "line-join": "round" },
+    layout: {
+      "line-cap": "round",
+      "line-join": "round",
+    },
     paint: {
       "line-color": "#4bf035e8",
       "line-width": byZoom(4, 2, 8, 2.5, 12, 3, 16, 4),
@@ -600,17 +708,35 @@ export function addRouteLayers(map: MapLibreMap) {
 }
 
 export function addRouteHoverEvents(map: MapLibreMap) {
-  const handleMouseMove = (e: MapLayerMouseEvent) => {
-    map.getCanvas().style.cursor = "pointer";
+  let cursorActive = false;
 
+  const handleMouseMove = (e: MapLayerMouseEvent) => {
     const aircraftId = e.features?.[0]?.properties?.aircraftId;
-    if (aircraftId === undefined) return;
+
+    if (aircraftId === undefined || aircraftId === null) {
+      if (cursorActive) {
+        map.getCanvas().style.cursor = "";
+        cursorActive = false;
+      }
+
+      setHover(map, "line", null);
+      return;
+    }
+
+    if (!cursorActive) {
+      map.getCanvas().style.cursor = "pointer";
+      cursorActive = true;
+    }
 
     setHover(map, "line", String(aircraftId));
   };
 
   const handleMouseLeave = () => {
-    map.getCanvas().style.cursor = "";
+    if (cursorActive) {
+      map.getCanvas().style.cursor = "";
+      cursorActive = false;
+    }
+
     setHover(map, "line", null);
   };
 
@@ -620,20 +746,64 @@ export function addRouteHoverEvents(map: MapLibreMap) {
   return () => {
     map.off("mousemove", "route-line-hitbox", handleMouseMove);
     map.off("mouseleave", "route-line-hitbox", handleMouseLeave);
-    resetHover();
+
+    map.getCanvas().style.cursor = "";
+    resetHover(map);
   };
 }
 
-// Cập nhật đường bay và vị trí máy bay từ một danh sách tọa độ
+// =========================
+// FLIGHT ROUTE UPDATE
+// =========================
+
+// Cache theo map, tránh nhầm dữ liệu giữa nhiều map instance.
+const flightRouteCache = new WeakMap<MapLibreMap, string>();
+
+// Cache route-waypoint data theo map.
+const waypointDataCache = new WeakMap<MapLibreMap, string>();
+
+// Cache đường đã smooth theo map + aircraft.
+const routeGeometryCache = new WeakMap<
+  MapLibreMap,
+  Map<
+    string,
+    {
+      signature: string;
+      coordinates: [number, number][];
+    }
+  >
+>();
+
+function getRouteCache(map: MapLibreMap) {
+  let cache = routeGeometryCache.get(map);
+
+  if (!cache) {
+    cache = new Map();
+    routeGeometryCache.set(map, cache);
+  }
+
+  return cache;
+}
+
 export function updateFlightRoute(
   map: MapLibreMap,
   coordinates: [number, number][],
 ) {
   const routeSource = getGeoJSONSource(map, SOURCE.route);
   const aircraftSource = getGeoJSONSource(map, SOURCE.aircraft);
+
   if (!routeSource || !aircraftSource) return;
 
-  // Không có điểm: xóa cả máy bay và đường bay
+  const signature = JSON.stringify(coordinates);
+
+  if (flightRouteCache.get(map) === signature) return;
+
+  flightRouteCache.set(map, signature);
+
+  // Hai API cùng dùng route/aircraft source:
+  // invalidate cache updateWaypoints để tránh source bị stale.
+  waypointDataCache.delete(map);
+
   if (coordinates.length === 0) {
     routeSource.setData(EMPTY_FEATURE_COLLECTION);
     aircraftSource.setData(EMPTY_FEATURE_COLLECTION);
@@ -642,16 +812,22 @@ export function updateFlightRoute(
 
   const aircraft: Feature<Point> = {
     type: "Feature",
-    properties: { type: "aircraft", name: "Aircraft", color: "#ef4444" },
+    properties: {
+      type: "aircraft",
+      name: "Aircraft",
+      color: "#ef4444",
+    },
     geometry: {
       type: "Point",
       coordinates: coordinates[coordinates.length - 1],
     },
   };
 
-  aircraftSource.setData({ type: "FeatureCollection", features: [aircraft] });
+  aircraftSource.setData({
+    type: "FeatureCollection",
+    features: [aircraft],
+  });
 
-  // Đường bay cần ít nhất 2 điểm
   routeSource.setData(
     coordinates.length >= 2
       ? lineString(coordinates, { color: "#ef4444" })
@@ -659,41 +835,97 @@ export function updateFlightRoute(
   );
 }
 
+// =========================
+// WAYPOINT UPDATE
+// =========================
+
+function getSmoothedRoute(
+  map: MapLibreMap,
+  aircraftId: string,
+  coordinates: [number, number][],
+): [number, number][] {
+  const cache = getRouteCache(map);
+  const signature = JSON.stringify(coordinates);
+  const cached = cache.get(aircraftId);
+
+  if (cached?.signature === signature) {
+    return cached.coordinates;
+  }
+
+  const smoothed = smoothLine(coordinates, 1.0, 24);
+
+  cache.set(aircraftId, {
+    signature,
+    coordinates: smoothed,
+  });
+
+  return smoothed;
+}
+
 export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
   const pointsSource = getGeoJSONSource(map, SOURCE.points);
   const routeSource = getGeoJSONSource(map, SOURCE.route);
   const aircraftSource = getGeoJSONSource(map, SOURCE.aircraft);
+
   if (!pointsSource || !routeSource || !aircraftSource) return;
+
+  // Signature theo từng aircraft, tránh serialize lặp cả mảng lớn
+  // và cho phép chỉ smooth lại route thay đổi.
+  const aircraftSignatures = aircrafts.map((aircraft) =>
+    JSON.stringify(aircraft),
+  );
+
+  const signature = JSON.stringify(aircraftSignatures);
+
+  if (waypointDataCache.get(map) === signature) return;
+
+  waypointDataCache.set(map, signature);
+
+  // Cache smooth route của aircraft đã bị loại bỏ.
+  const activeIds = new Set(aircrafts.map((aircraft) => aircraft.id));
+  const routeCache = getRouteCache(map);
+  routeCache.forEach((_, aircraftId) => {
+    if (!activeIds.has(aircraftId)) {
+      routeCache.delete(aircraftId);
+    }
+  });
+
+  // updateWaypoints là nguồn dữ liệu chính cho các source này.
+  flightRouteCache.delete(map);
 
   const pointFeatures: Feature<Point>[] = [];
   const aircraftFeatures: Feature<Point>[] = [];
   const routeFeatures: Feature<LineString>[] = [];
 
   aircrafts.forEach((aircraft) => {
-    const coordinates: [number, number][] = aircraft.points.map(
-      (point, index) => {
-        pointFeatures.push({
-          type: "Feature",
-          properties: {
-            name: `${aircraft.id} - ${index + 1}`,
-            aircraftId: aircraft.id,
-            color: aircraft.color,
-            isFirst: index === 0,
-            // Lấy theo thông tin người dùng nhập (chưa nhập thì để rỗng)
-            aircraftCode: aircraft.aircraftCode ?? "",
-            altitude: aircraft.altitude ?? "",
-            appearanceTime: point.appearanceTime,
-          },
-          geometry: { type: "Point", coordinates: [point.lng, point.lat] },
-        });
+    // Tạo coordinates trước để tính bearing
+    const coordinates: [number, number][] = aircraft.points.map((point) => [
+      point.lng,
+      point.lat,
+    ]);
 
-        return [point.lng, point.lat];
-      },
-    );
+    aircraft.points.forEach((point, index) => {
+      pointFeatures.push({
+        type: "Feature",
+        properties: {
+          name: `${aircraft.id} - ${index + 1}`,
+          aircraftId: aircraft.id,
+          color: aircraft.color,
+          isFirst: index === 0,
+          aircraftCode: aircraft.aircraftCode ?? "",
+          altitude: aircraft.altitude ?? "",
+          appearanceTime: point.appearanceTime,
+          tickRotate: getTickRotation(coordinates, index),
+        },
+        geometry: {
+          type: "Point",
+          coordinates: [point.lng, point.lat],
+        },
+      });
+    });
 
     if (coordinates.length === 0) return;
 
-    // Máy bay nằm ở waypoint cuối
     aircraftFeatures.push({
       type: "Feature",
       properties: {
@@ -707,7 +939,6 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
       },
     });
 
-    // Nối các waypoint khi có từ 2 điểm
     if (coordinates.length >= 2) {
       routeFeatures.push({
         type: "Feature",
@@ -717,14 +948,22 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
         },
         geometry: {
           type: "LineString",
-          coordinates: smoothLine(coordinates, 1.0, 24), // sửa o.4 để bo nhiều hơn
+          coordinates: getSmoothedRoute(map, aircraft.id, coordinates),
         },
       });
     }
   });
 
-  pointsSource.setData({ type: "FeatureCollection", features: pointFeatures });
-  routeSource.setData({ type: "FeatureCollection", features: routeFeatures });
+  pointsSource.setData({
+    type: "FeatureCollection",
+    features: pointFeatures,
+  });
+
+  routeSource.setData({
+    type: "FeatureCollection",
+    features: routeFeatures,
+  });
+
   aircraftSource.setData({
     type: "FeatureCollection",
     features: aircraftFeatures,
@@ -734,27 +973,34 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
 }
 
 // =========================
-// VÙNG SÂN BAY
+// AIRPORT AREA
 // =========================
 
 export function addAirportLayer(map: MapLibreMap) {
   const airportCircle = circle(
     MAP_CONFIG.CENTER,
     MAP_CONFIG.AIRPORT_RADIUS_KM,
-    { steps: 128, units: "kilometers" },
+    {
+      steps: 128,
+      units: "kilometers",
+    },
   );
 
-  map.addSource("kep-airport", { type: "geojson", data: airportCircle });
+  map.addSource("kep-airport", {
+    type: "geojson",
+    data: airportCircle,
+  });
 
-  // Vùng cấm / nguy hiểm
   map.addLayer({
     id: "kep-airport-fill",
     type: "fill",
     source: "kep-airport",
-    paint: { "fill-color": "#ef4444", "fill-opacity": 0.22 },
+    paint: {
+      "fill-color": "#ef4444",
+      "fill-opacity": 0.22,
+    },
   });
 
-  // Viền vùng cấm
   map.addLayer({
     id: "kep-airport-outline",
     type: "line",
@@ -769,7 +1015,7 @@ export function addAirportLayer(map: MapLibreMap) {
 }
 
 // =========================
-// VÒNG TRÒN PHƯƠNG VỊ (độ + mil)
+// AZIMUTH
 // =========================
 
 export function addAzimuthLayers(
@@ -779,11 +1025,11 @@ export function addAzimuthLayers(
 ) {
   const data = createAzimuth(center, radiusKm, 6);
 
-  // Vòng tròn chung
   map.addSource("azimuth-circle-source", {
     type: "geojson",
     data: data.circle,
   });
+
   map.addLayer({
     id: "azimuth-circle",
     type: "line",
@@ -795,8 +1041,11 @@ export function addAzimuthLayers(
     },
   });
 
-  // Vạch chia chung
-  map.addSource("azimuth-ticks-source", { type: "geojson", data: data.ticks });
+  map.addSource("azimuth-ticks-source", {
+    type: "geojson",
+    data: data.ticks,
+  });
+
   map.addLayer({
     id: "azimuth-ticks",
     type: "line",
@@ -808,7 +1057,6 @@ export function addAzimuthLayers(
     },
   });
 
-  // Nhãn độ (ngoài) và mil (trong) dùng chung 1 source, phân biệt bằng "kind"
   map.addSource("azimuth-labels-source", {
     type: "geojson",
     data: data.labels,
@@ -857,11 +1105,9 @@ export function addAzimuthLayers(
 }
 
 // =========================
-// KHỞI TẠO
+// INITIALIZATION & CLEANUP
 // =========================
 
-// Thêm lưới, đường bay, sân bay, vòng phương vị và các công cụ đo.
-// Trả về hàm dọn dẹp.
 export function initializeMapLayers(map: MapLibreMap) {
   addGridLayers(map);
   addRouteLayers(map);
@@ -870,12 +1116,22 @@ export function initializeMapLayers(map: MapLibreMap) {
   const cleanupMeasurement = addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);
   const cleanupCursor = addCursorTracker(map);
 
-  addAzimuthLayers(map, MAP_CONFIG.CENTER_MIL, 40); // bán kính 40km
+  addAzimuthLayers(map, MAP_CONFIG.CENTER_MIL, 40);
+
   const cleanupRouteHover = addRouteHoverEvents(map);
+
   return () => {
     cleanupRouteHover();
     cleanupMeasurement();
     cleanupCursor();
+
     clearFirstWaypointLabels();
+
+    // Dọn cache theo map instance
+    flightRouteCache.delete(map);
+    waypointDataCache.delete(map);
+    routeGeometryCache.delete(map);
+
+    resetHover(map);
   };
 }
