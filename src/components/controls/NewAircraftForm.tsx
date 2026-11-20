@@ -7,11 +7,25 @@ const SIDE_LABEL: Record<AircraftSide, string> = {
   enemy: "địch",
 };
 
+// Lấy giờ hiện tại theo local time, định dạng HHmm
+function getCurrentTime(): string {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  return `${hours}${minutes}`;
+}
+
+// Chuẩn hóa thành 4 số HHmm
+function normalizeTime(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  return digits.padStart(4, "0");
+}
+
 type Props = {
   side: AircraftSide;
-  initialTime: string; // thời gian xuất hiện điền sẵn
+  initialTime: string;
   onSubmit: (details: AircraftDetails) => void;
-  onBack: () => void; // quay lại bước chọn phe
+  onBack: () => void;
 };
 
 export default function NewAircraftForm({
@@ -21,23 +35,35 @@ export default function NewAircraftForm({
   onBack,
 }: Props) {
   const [form, setForm] = useState({
+    name: "",
     aircraftCode: "",
     altitude: "",
-    appearanceTime: initialTime,
+    appearanceTime: initialTime ? normalizeTime(initialTime) : getCurrentTime(),
   });
 
   const change =
-    (field: keyof typeof form) => (e: ChangeEvent<HTMLInputElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    (field: keyof typeof form) => (e: ChangeEvent<HTMLInputElement>) => {
+      let value = e.target.value;
+
+      if (field === "appearanceTime") {
+        value = value.replace(/\D/g, "").slice(0, 4);
+      }
+
+      setForm((prev) => ({ ...prev, [field]: value }));
+    };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
-    // Ô trống -> undefined (đúng với AircraftDetails)
+    const appearanceTime = form.appearanceTime.trim()
+      ? normalizeTime(form.appearanceTime)
+      : getCurrentTime();
+
     onSubmit({
-      aircraftCode: form.aircraftCode.trim() || undefined,
-      altitude: form.altitude.trim() || undefined,
-      appearanceTime: form.appearanceTime.trim() || undefined,
+      name: form.name.trim() || "chưa xác định",
+      aircraftCode: form.aircraftCode.trim() || "chưa xác định",
+      altitude: form.altitude.trim() || "chưa xác định",
+      appearanceTime,
     });
   };
 
@@ -47,8 +73,19 @@ export default function NewAircraftForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2 px-1 pt-2">
       <div className="text-sm font-semibold text-gray-800">
-        Thông tin top máy bay {SIDE_LABEL[side]}
+        Thông tin máy bay {SIDE_LABEL[side]}
       </div>
+
+      <label className="text-xs text-gray-500">
+        Tên máy bay
+        <input
+          value={form.name}
+          onChange={change("name")}
+          className={inputClass}
+          placeholder="Nhập tên máy bay"
+          autoFocus
+        />
+      </label>
 
       <label className="text-xs text-gray-500">
         Số hiệu (vd: 0122)
@@ -56,7 +93,7 @@ export default function NewAircraftForm({
           value={form.aircraftCode}
           onChange={change("aircraftCode")}
           className={inputClass}
-          autoFocus
+          placeholder="0122"
         />
       </label>
 
@@ -66,16 +103,31 @@ export default function NewAircraftForm({
           value={form.altitude}
           onChange={change("altitude")}
           className={inputClass}
+          placeholder="005"
         />
       </label>
 
       <label className="text-xs text-gray-500">
-        Thời gian xuất hiện (phút)
+        Thời gian xuất hiện (HHmm)
         <input
           value={form.appearanceTime}
           onChange={change("appearanceTime")}
+          onBlur={() => {
+            setForm((prev) => ({
+              ...prev,
+              appearanceTime: prev.appearanceTime
+                ? normalizeTime(prev.appearanceTime)
+                : getCurrentTime(),
+            }));
+          }}
           className={inputClass}
+          placeholder="1030"
+          inputMode="numeric"
+          maxLength={4}
         />
+        <span className="mt-0.5 block text-[10px] text-gray-400">
+          Định dạng 24 giờ, ví dụ 0631 = 06:31
+        </span>
       </label>
 
       <div className="mt-1 flex justify-end gap-2">
@@ -86,6 +138,7 @@ export default function NewAircraftForm({
         >
           Quay lại
         </button>
+
         <button
           type="submit"
           className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"

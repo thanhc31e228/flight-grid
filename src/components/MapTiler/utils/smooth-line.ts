@@ -20,11 +20,6 @@ export function smoothLine(
 
   const result: Position[] = [];
 
-  const lerp = (a: Position, b: Position, t: number): Position => [
-    a[0] + (b[0] - a[0]) * t,
-    a[1] + (b[1] - a[1]) * t,
-  ];
-
   const subtract = (a: Position, b: Position): Position => [
     a[0] - b[0],
     a[1] - b[1],

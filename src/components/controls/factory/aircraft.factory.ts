@@ -3,22 +3,22 @@ import { AirCraft, Point } from "../../MapTiler/types/map.types";
 export type AircraftSide = "friendly" | "enemy";
 
 const SIDE_CONFIG = {
-  enemy: { prefix: 4, color: "#dc2626" }, // 401, 402, ...
-  friendly: { prefix: 5, color: "#2563eb" }, // 501, 502, ...
+  enemy: { prefix: 4, color: "#dc2626" },
+  friendly: { prefix: 5, color: "#2563eb" },
 } as const;
 
-// Giá trị mặc định cho máy bay mới (khi không nhập gì)
-const DEFAULT_AIRCRAFT_CODE = undefined;
-const DEFAULT_ALTITUDE = undefined;
+// Giá trị mặc định
+const DEFAULT_AIRCRAFT_CODE = "chưa xác định";
+const DEFAULT_ALTITUDE = "chưa xác định";
+const DEFAULT_AIRCRAFT_NAME = "chưa xác định";
 
-// Thông tin nhập thêm khi tạo / sửa máy bay
 export type AircraftDetails = {
+  name?: string;
   aircraftCode?: string;
   altitude?: string;
   appearanceTime?: string;
 };
 
-// Id nhỏ nhất còn trống của phe đó (4xx hoặc 5xx). Đủ 99 máy bay thì trả về null.
 function getNextAircraftId(
   aircrafts: AirCraft[],
   side: AircraftSide,
@@ -38,19 +38,18 @@ export function createAircraft(
   aircrafts: AirCraft[],
   side: AircraftSide,
   firstPoint: Point,
-  details?: AircraftDetails, // thông tin người dùng nhập (không bắt buộc)
+  details?: AircraftDetails,
 ): AirCraft | null {
   const id = getNextAircraftId(aircrafts, side);
   if (!id) return null;
 
   return {
     id,
-    name: id, // name giống id
+    name: details?.name ?? DEFAULT_AIRCRAFT_NAME,
     color: SIDE_CONFIG[side].color,
     points: [firstPoint],
     aircraftCode: details?.aircraftCode ?? DEFAULT_AIRCRAFT_CODE,
     altitude: details?.altitude ?? DEFAULT_ALTITUDE,
-    // Thời gian của máy bay luôn khớp với waypoint đầu
     appearanceTime: firstPoint.appearanceTime,
   };
 }

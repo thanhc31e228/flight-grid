@@ -61,7 +61,7 @@ const AZIMUTH_TEXT_SIZE = byZoom(
 
 // undefined / null -> chuỗi rỗng (tránh hiện chữ "undefined" trên nhãn)
 const escapeHtml = (value: unknown) =>
-  String(value ?? "").replace(
+  String(value).replace(
     /[&<>"']/g,
     (char) =>
       ({
@@ -343,7 +343,7 @@ function buildFirstWaypointHtml(
       white-space:nowrap; pointer-events:auto; cursor:pointer;
       color:${color}; font-weight:700; font-size:15px; ${outline}
     ">
-      <span>${escapeHtml(aircraft.name)})</span>
+      <span>${escapeHtml(aircraft.id)})</span>
 
       <div style="
         display:grid; grid-template-rows:auto 2px auto;
