@@ -352,7 +352,7 @@ function buildFirstWaypointHtml(
     position:absolute; ${boxSide} top:0;
     transform:translateY(-50%);
     display:flex; flex-direction:${flexDir}; align-items:center; gap:5px;
-    padding:4px 7px; border-radius:6px;
+    padding:4px 0px; border-radius:6px;
     white-space:nowrap; pointer-events:auto; cursor:pointer;
     color:${color}; font-weight:700; font-size:16px;
     background:rgba(255,255,255,0.9);
