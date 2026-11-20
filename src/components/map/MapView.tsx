@@ -148,9 +148,7 @@ export default function MapView({
 
   useEffect(() => {
     const map = mapRef.current;
-
     if (!map || !map.isStyleLoaded()) return;
-
     updateAircraftRoutes(map, aircraftList);
   }, [aircraftList]);
 
@@ -196,7 +194,24 @@ export default function MapView({
   // ======================================
   // INITIALIZE MAP
   // ======================================
+  // cấu hình zoom gần xa,ẩn hiện địa danh
+  function configurePlaceLabelZoom(map: MapLibreMap) {
+    const zoomRules: Record<string, number> = {
+      "Village labels": 20,
+      "Town labels": 8,
+      "City labels": 6,
+      "Capital city labels": 4,
+    };
 
+    for (const [layerId, minZoom] of Object.entries(zoomRules)) {
+      if (!map.getLayer(layerId)) {
+        console.warn(`[Map] Layer not found: ${layerId}`);
+        continue;
+      }
+
+      map.setLayerZoomRange(layerId, minZoom, 24);
+    }
+  }
   useEffect(() => {
     const container = containerRef.current;
 
@@ -223,7 +238,6 @@ export default function MapView({
     });
 
     mapRef.current = map;
-
     map.addControl(new NavigationControl(), "bottom-right");
 
     // ======================================
@@ -234,6 +248,19 @@ export default function MapView({
       if (disposed || initialized) return;
 
       initialized = true;
+      // cấu hình tên địa danh là tiếng việt
+      map
+        .getStyle()
+        .layers.filter((l) => l.type === "symbol" && l.layout?.["text-field"])
+        .forEach((l) => {
+          map.setLayoutProperty(l.id, "text-field", [
+            "coalesce",
+            ["get", "name:vi"],
+            ["get", "name"],
+          ]);
+        });
+      // Điều chỉnh độ chi tiết tên địa danh theo zoom
+      configurePlaceLabelZoom(map);
 
       // Khởi tạo toàn bộ source và layer.
       initializeMapLayers(map);
