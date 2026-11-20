@@ -1,15 +1,20 @@
 export type Position = [number, number];
 
 /**
- * Bo tròn góc đường nối waypoint.
+ * Catmull-Rom spline
+ * - Đi qua tất cả waypoint
+ * - Chuyển hướng mượt hơn
+ * - Không bo góc độc lập từng waypoint
  *
- * cornerCut: tỷ lệ chiều dài đoạn đường được bo trước/sau waypoint.
- * curveSegments: số đoạn nhỏ để dựng đường cong.
+ * smoothness:
+ *   0.5 = ít cong
+ *   1.0 = tự nhiên
+ *   1.3 = cong mềm hơn
  */
 export function smoothLine(
   points: Position[],
-  cornerCut = 0.25,
-  curveSegments = 12,
+  smoothness = 1.0,
+  curveSegments = 24,
 ): Position[] {
   if (points.length <= 2) return points;
 
@@ -20,58 +25,63 @@ export function smoothLine(
     a[1] + (b[1] - a[1]) * t,
   ];
 
-  const distance = (a: Position, b: Position) =>
-    Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const subtract = (a: Position, b: Position): Position => [
+    a[0] - b[0],
+    a[1] - b[1],
+  ];
 
-  // Điểm đầu giữ nguyên
-  result.push(points[0]);
+  const add = (a: Position, b: Position): Position => [
+    a[0] + b[0],
+    a[1] + b[1],
+  ];
 
-  for (let i = 1; i < points.length - 1; i++) {
-    const prev = points[i - 1];
-    const current = points[i];
-    const next = points[i + 1];
+  const scale = (p: Position, s: number): Position => [p[0] * s, p[1] * s];
 
-    const d1 = distance(prev, current);
-    const d2 = distance(current, next);
+  const tension = Math.max(0, smoothness);
+  const segments = Math.max(4, curveSegments);
 
-    if (d1 === 0 || d2 === 0) {
-      result.push(current);
-      continue;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p1 = points[i];
+    const p2 = points[i + 1];
+
+    // Ngoại suy điểm đầu/cuối để tangent không bị khựng
+    const p0 = i === 0 ? subtract(scale(p1, 2), p2) : points[i - 1];
+
+    const p3 =
+      i + 2 >= points.length ? subtract(scale(p2, 2), p1) : points[i + 2];
+
+    // Tangent Catmull-Rom
+    const m1 = scale(subtract(p2, p0), tension / 6);
+    const m2 = scale(subtract(p3, p1), tension / 6);
+
+    // Cubic Bezier control points
+    const c1 = add(p1, m1);
+    const c2 = subtract(p2, m2);
+
+    if (i === 0) {
+      result.push(p1);
     }
 
-    // Tỷ lệ bo góc dựa trên đoạn ngắn hơn
-    const cut = Math.min(d1, d2) * cornerCut;
+    // Nội suy cubic Bezier từ p1 đến p2
+    for (let j = 1; j <= segments; j++) {
+      const t = j / segments;
+      const u = 1 - t;
 
-    // Điểm bắt đầu bo góc (trước waypoint)
-    const entry = lerp(current, prev, cut / d1);
+      const x =
+        u * u * u * p1[0] +
+        3 * u * u * t * c1[0] +
+        3 * u * t * t * c2[0] +
+        t * t * t * p2[0];
 
-    // Điểm kết thúc bo góc (sau waypoint)
-    const exit = lerp(current, next, cut / d2);
+      const y =
+        u * u * u * p1[1] +
+        3 * u * u * t * c1[1] +
+        3 * u * t * t * c2[1] +
+        t * t * t * p2[1];
 
-    result.push(entry);
-
-    // Quadratic Bezier:
-    // entry -> current (control) -> exit
-    for (let j = 1; j <= curveSegments; j++) {
-      const t = j / curveSegments;
-      const oneMinusT = 1 - t;
-
-      const lng =
-        oneMinusT * oneMinusT * entry[0] +
-        2 * oneMinusT * t * current[0] +
-        t * t * exit[0];
-
-      const lat =
-        oneMinusT * oneMinusT * entry[1] +
-        2 * oneMinusT * t * current[1] +
-        t * t * exit[1];
-
-      result.push([lng, lat]);
+      result.push([x, y]);
     }
   }
-
-  // Điểm cuối giữ nguyên
-  result.push(points[points.length - 1]);
 
   return result;
 }

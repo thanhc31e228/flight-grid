@@ -680,7 +680,7 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
         },
         geometry: {
           type: "LineString",
-          coordinates: smoothLine(coordinates, 0.5, 24), // sửa o.4 để bo nhiều hơn
+          coordinates: smoothLine(coordinates, 1.0, 24), // sửa o.4 để bo nhiều hơn
         },
       });
     }
