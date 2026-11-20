@@ -184,11 +184,11 @@ export default function MapView({
       col: Number(properties.col),
     };
 
-    onOpenGridContextMenuRef.current({
-      cell,
-      x: e.originalEvent.clientX,
-      y: e.originalEvent.clientY,
-    });
+    // onOpenGridContextMenuRef.current({
+    //   cell,
+    //   x: e.originalEvent.clientX,
+    //   y: e.originalEvent.clientY,
+    // });
   };
 
   // ======================================
