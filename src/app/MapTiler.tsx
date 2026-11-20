@@ -48,6 +48,12 @@ export default function MapTiler() {
   const handleFocusPlace = useCallback((place: Place) => {
     setFocusTarget({ lat: place.lat, lng: place.lng, nonce: Date.now() });
   }, []);
+  const handleAddPlace = useCallback(
+    (data: Omit<Place, "id">) => {
+      addLocation(data);
+    },
+    [addLocation],
+  );
   const DEFAULT_GRID_LABELS = [
     "47",
     "46",
@@ -302,7 +308,6 @@ export default function MapTiler() {
     setSelectedAircraftId(aircraft.id); // các click tiếp theo thêm waypoint cho top này
     closePick();
   };
-
   return (
     <div className="map-container flex h-screen w-full flex-col overflow-hidden">
       {/* ================= THANH TỌA ĐỘ ================= */}
@@ -368,13 +373,20 @@ export default function MapTiler() {
             />
           )}
         </div>
+        <button
+          type="button"
+          onClick={() => setIsPlacePanelOpen((prev) => !prev)}
+          className="absolute right-4 top-3 z-[1000] rounded-lg bg-white px-3 py-2 text-sm font-semibold shadow-lg hover:bg-gray-100"
+        >
+          📍 Địa điểm
+        </button>
         {/* ================= ĐỊA ĐIỂM ================= */}
         <div className="absolute right-4 top-16 z-[1000] flex flex-col items-end gap-2">
           {isPlacePanelOpen && (
             <div className="max-h-[60vh] overflow-y-auto rounded-lg shadow-lg">
               <LocationPanel
                 locations={locations}
-                onAdd={addLocation}
+                onAdd={handleAddPlace}
                 onRemove={removeLocation}
                 onFocus={handleFocusPlace}
               />

@@ -30,9 +30,15 @@ export function LocationPanel({ locations, onAdd, onRemove, onFocus }: Props) {
   const handleAdd = () => {
     const parsed = parseCoords(coords);
 
-    if (!name.trim()) return setError("Chưa nhập tên địa điểm");
-    if (!parsed)
-      return setError("Tọa độ sai, nhập dạng: 21.363411, 106.265561");
+    if (!name.trim()) {
+      setError("Chưa nhập tên địa điểm");
+      return;
+    }
+
+    if (!parsed) {
+      setError("Tọa độ sai, nhập dạng: 21.363411, 106.265561");
+      return;
+    }
 
     onAdd({
       name: name.trim(),

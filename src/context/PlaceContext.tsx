@@ -1,22 +1,38 @@
-import { createContext, ReactNode, useMemo } from "react";
-import { usePlace } from "../hooks/usePlace";
-import { Place } from "../features/places/place.types";
+import { createContext, useContext, useState } from "react";
+import type { Place } from "../features/places/place.types";
 
-interface PlaceContextType {
+type PlaceContextType = {
   places: Place[];
-  addPlace: (place: Place) => number;
-}
+  addPlace: (place: Place) => void;
+  removePlace: (id: string) => void;
+};
+
 const PlaceContext = createContext<PlaceContextType | undefined>(undefined);
-export default function MakerProvider({ children }: { children: ReactNode }) {
-  const { addPlace, places } = usePlace();
-  const value = useMemo(
-    () => ({
-      places,
-      addPlace,
-    }),
-    [places, addPlace],
-  );
+
+export function PlaceProvider({ children }: { children: React.ReactNode }) {
+  const [places, setPlaces] = useState<Place[]>([]);
+
+  const addPlace = (place: Place) => {
+    setPlaces((prev) => [...prev, place]);
+  };
+
+  const removePlace = (id: string) => {
+    setPlaces((prev) => prev.filter((place) => place.id !== id));
+  };
+
   return (
-    <PlaceContext.Provider value={value}>{children}</PlaceContext.Provider>
+    <PlaceContext.Provider value={{ places, addPlace, removePlace }}>
+      {children}
+    </PlaceContext.Provider>
   );
+}
+
+export function usePlace() {
+  const context = useContext(PlaceContext);
+
+  if (!context) {
+    throw new Error("usePlace phải được sử dụng bên trong PlaceProvider");
+  }
+
+  return context;
 }

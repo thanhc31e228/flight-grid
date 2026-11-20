@@ -1204,7 +1204,42 @@ export function addAzimuthLayers(
 // =========================
 // INITIALIZATION & CLEANUP
 // =========================
+export function updateLocationLabels(map: MapLibreMap, locations: Place[]) {
+  const activeIds = new Set(locations.map((loc) => loc.id));
 
+  // Xóa marker của địa điểm đã bị xóa khỏi danh sách
+  locationMarkers.forEach((marker, id) => {
+    if (activeIds.has(id)) return;
+    marker.remove();
+    locationMarkers.delete(id);
+  });
+
+  locations.forEach((loc) => {
+    let marker = locationMarkers.get(loc.id);
+
+    if (!marker) {
+      const element = document.createElement("div");
+      element.style.cssText = "width:0;height:0;pointer-events:none;";
+
+      marker = new Marker({ element, anchor: "center" })
+        .setLngLat([loc.lng, loc.lat])
+        .addTo(map);
+
+      locationMarkers.set(loc.id, marker);
+    }
+
+    marker.setLngLat([loc.lng, loc.lat]);
+
+    // Chỉ rebuild DOM khi nội dung thay đổi
+    const html = buildLocationHtml(loc);
+    const element = marker.getElement();
+
+    if (element.dataset.labelHtml !== html) {
+      element.innerHTML = html;
+      element.dataset.labelHtml = html;
+    }
+  });
+}
 export function initializeMapLayers(map: MapLibreMap) {
   addGridLayers(map);
   addRouteLayers(map);

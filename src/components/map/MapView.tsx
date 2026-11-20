@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Map as MapLibreMap,
@@ -14,9 +14,9 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { MAP_CONFIG, MAP_GRID_CONFIG } from "../../config/map.config";
 
 import {
-  addLocationLabels,
   initializeMapLayers,
   updateGridLabels,
+  updateLocationLabels,
   updateWaypoints,
 } from "./MapLayers";
 
@@ -29,8 +29,7 @@ import { createRoundedRoute } from "../../features/route/route.geometry";
 import type { GridCell, AirCraft } from "../MapTiler/types/map.types";
 
 import { useAirCraftContext } from "../../context/MakerContext";
-import { Place } from "../../features/places/place.types";
-import { usePlace } from "../../hooks/usePlace";
+import type { Place } from "../../features/places/place.types";
 
 // ======================================
 // TYPES
@@ -40,6 +39,7 @@ type MapViewProps = {
   // Giữ prop này để không làm hỏng component cha hiện tại.
   // Dữ liệu từ Context được ưu tiên.
   aircrafts: AirCraft[];
+  // Danh sách địa điểm: nguồn duy nhất là prop này (từ useLocations ở trang cha)
   places: Place[];
   focusTarget?: { lat: number; lng: number; nonce: number } | null;
   onOpenGridContextMenu: (data: {
@@ -70,24 +70,17 @@ setWorkerUrl(
 
 export default function MapView({
   aircrafts: propAircrafts,
-  places: propPlaces,
+  places,
   onOpenGridContextMenu,
   gridLabels,
   focusTarget,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  // Bay tới địa điểm được chọn
-  useEffect(() => {
-    const map = mapRef.current; // đổi theo cách bạn giữ map
-    if (!map || !focusTarget) return;
-
-    map.flyTo({
-      center: [focusTarget.lng, focusTarget.lat], // MapLibre là [lng, lat], đừng đảo
-      zoom: Math.max(map.getZoom(), 14),
-      essential: true,
-    });
-  }, [focusTarget]);
   const mapRef = useRef<MapLibreMap | null>(null);
+
+  // Map đã load xong và đã khởi tạo layer chưa.
+  // Dùng state (không dùng ref) để các effect phía dưới chạy lại khi map sẵn sàng.
+  const [mapReady, setMapReady] = useState(false);
 
   // ======================================
   // CONTEXT
@@ -99,19 +92,16 @@ export default function MapView({
     addPoint,
     getLastPoint,
   } = useAirCraftContext();
-  const { addPlace, places: contextPlaces } = usePlace();
 
   // Context là nguồn dữ liệu chính.
   // Props chỉ là phương án dự phòng.
   const aircraftList = contextAircrafts ?? propAircrafts;
-  const placeList = contextPlaces ?? propPlaces;
 
   // ======================================
   // LATEST VALUES REFS
   // ======================================
 
   const aircraftsRef = useRef<AirCraft[]>(aircraftList);
-  const placeRef = useRef<Place[]>(placeList);
 
   const selectedAircraftIdRef = useRef<string | null>(selectedAircraftId);
 
@@ -128,9 +118,6 @@ export default function MapView({
   useEffect(() => {
     aircraftsRef.current = aircraftList;
   }, [aircraftList]);
-  useEffect(() => {
-    placeRef.current = placeList;
-  }, [placeList]);
 
   useEffect(() => {
     selectedAircraftIdRef.current = selectedAircraftId;
@@ -147,6 +134,30 @@ export default function MapView({
   useEffect(() => {
     onOpenGridContextMenuRef.current = onOpenGridContextMenu;
   }, [onOpenGridContextMenu]);
+
+  // ======================================
+  // UPDATE PLACE LABELS
+  // Chạy khi map sẵn sàng và mỗi khi danh sách địa điểm đổi (thêm/sửa/xóa)
+  // ======================================
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    updateLocationLabels(map, places);
+  }, [mapReady, places]);
+
+  // Bay tới địa điểm được chọn
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !focusTarget) return;
+
+    map.flyTo({
+      center: [focusTarget.lng, focusTarget.lat], // MapLibre là [lng, lat], đừng đảo
+      zoom: Math.max(map.getZoom(), 14),
+      essential: true,
+    });
+  }, [mapReady, focusTarget]);
 
   // ======================================
   // UPDATE GRID LABELS
@@ -237,7 +248,6 @@ export default function MapView({
 
   useEffect(() => {
     const container = containerRef.current;
-
     if (!container || !API_KEY) {
       console.error("Không tìm thấy MapTiler API Key");
       return;
@@ -246,6 +256,7 @@ export default function MapView({
     let disposed = false;
     let initialized = false;
 
+    let cleanupLayers: (() => void) | undefined;
     let cleanupEvents: (() => void) | undefined;
     let cleanupAnimation: (() => void) | undefined;
     let cleanupHover: (() => void) | undefined;
@@ -286,21 +297,13 @@ export default function MapView({
       configurePlaceLabelZoom(map);
 
       // Khởi tạo toàn bộ source và layer.
-      initializeMapLayers(map);
+      // Giữ lại hàm dọn dẹp (xóa marker label, hover, cache...) để gọi khi unmount.
+      cleanupLayers = initializeMapLayers(map);
 
       // Đồng bộ dữ liệu mới nhất.
       updateGridLabels(map, gridLabelsRef.current);
 
       updateAircraftRoutes(map, aircraftsRef.current);
-      addLocationLabels(map, [
-        {
-          id: "kkk",
-          name: "asdasd",
-          phone: "13123",
-          lat: 21.390734,
-          lng: 106.266576,
-        },
-      ]);
 
       // Đăng ký hover.
       cleanupHover = registerWaypointHoverEvents(map);
@@ -319,6 +322,9 @@ export default function MapView({
       map.on("contextmenu", "grid-fill", handleGridContextMenu);
 
       map.getCanvas().style.cursor = "crosshair";
+
+      // Báo map đã sẵn sàng -> effect "UPDATE PLACE LABELS" sẽ vẽ các địa điểm
+      setMapReady(true);
     };
 
     // ======================================
@@ -338,6 +344,7 @@ export default function MapView({
 
     return () => {
       disposed = true;
+      setMapReady(false);
 
       map.off("load", handleLoad);
       map.off("error", handleError);
@@ -348,6 +355,7 @@ export default function MapView({
       cleanupHover?.();
       cleanupEvents?.();
       cleanupAnimation?.();
+      cleanupLayers?.();
 
       // Xóa map.
       map.remove();
