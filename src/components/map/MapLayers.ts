@@ -371,17 +371,6 @@ interface LocationLabel {
   side?: "left" | "right"; // label nằm bên nào so với điểm
 }
 
-const LOCATION_LABELS: LocationLabel[] = [
-  {
-    id: "bchqs",
-    name: "BCHQS",
-    phone: "0xxx xxx xxx", // thay số điện thoại thật
-    lng: 106.265561, // lưu ý: lng trước, lat sau
-    lat: 21.363411,
-    side: "left",
-  },
-];
-
 const locationMarkers = new Map<string, Marker>();
 
 // Kích thước đường kẻ (pixel)

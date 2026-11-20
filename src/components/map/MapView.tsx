@@ -212,11 +212,6 @@ export default function MapView({
       return;
     }
 
-    const cell: GridCell = {
-      row: Number(properties.row),
-      col: Number(properties.col),
-    };
-
     // onOpenGridContextMenuRef.current({
     //   cell,
     //   x: e.originalEvent.clientX,
