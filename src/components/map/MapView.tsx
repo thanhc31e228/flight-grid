@@ -28,6 +28,7 @@ import { createRoundedRoute } from "../../features/route/route.geometry";
 import type { GridCell, AirCraft } from "../MapTiler/types/map.types";
 
 import { useAirCraftContext } from "../../context/MakerContext";
+import { Place } from "../../features/places/place.types";
 
 // ======================================
 // TYPES
@@ -37,7 +38,8 @@ type MapViewProps = {
   // Giữ prop này để không làm hỏng component cha hiện tại.
   // Dữ liệu từ Context được ưu tiên.
   aircrafts: AirCraft[];
-
+  places: Place[];
+  focusTarget?: { lat: number; lng: number; nonce: number } | null;
   onOpenGridContextMenu: (data: {
     cell: GridCell;
     x: number;
@@ -68,9 +70,20 @@ export default function MapView({
   aircrafts: propAircrafts,
   onOpenGridContextMenu,
   gridLabels,
+  focusTarget,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Bay tới địa điểm được chọn
+  useEffect(() => {
+    const map = mapRef.current; // đổi theo cách bạn giữ map
+    if (!map || !focusTarget) return;
 
+    map.flyTo({
+      center: [focusTarget.lng, focusTarget.lat], // MapLibre là [lng, lat], đừng đảo
+      zoom: Math.max(map.getZoom(), 14),
+      essential: true,
+    });
+  }, [focusTarget]);
   const mapRef = useRef<MapLibreMap | null>(null);
 
   // ======================================
@@ -212,6 +225,7 @@ export default function MapView({
       map.setLayerZoomRange(layerId, minZoom, 24);
     }
   }
+
   useEffect(() => {
     const container = containerRef.current;
 

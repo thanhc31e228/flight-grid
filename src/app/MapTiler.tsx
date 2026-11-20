@@ -18,6 +18,9 @@ import {
   type AircraftSide,
 } from "../components/controls/factory/aircraft.factory";
 import NewAircraftForm from "../components/controls/NewAircraftForm";
+import { useLocations } from "../hooks/useLocations";
+import { Place } from "../features/places/place.types";
+import { LocationPanel } from "../components/controls/LocationPanel";
 
 export default function MapTiler() {
   const {
@@ -29,7 +32,22 @@ export default function MapTiler() {
   } = useAirCraftContext();
   // Máy bay đang được chọn
   // Danh sách tọa độ mặc định
+  // Danh sách địa điểm (lưu localStorage)
+  const { locations, addLocation, removeLocation } = useLocations();
 
+  // Đóng/mở panel địa điểm
+  const [isPlacePanelOpen, setIsPlacePanelOpen] = useState(false);
+
+  // Yêu cầu bay tới 1 địa điểm. nonce đổi mỗi lần bấm để bấm lại cùng 1 chỗ vẫn chạy
+  const [focusTarget, setFocusTarget] = useState<{
+    lat: number;
+    lng: number;
+    nonce: number;
+  } | null>(null);
+
+  const handleFocusPlace = useCallback((place: Place) => {
+    setFocusTarget({ lat: place.lat, lng: place.lng, nonce: Date.now() });
+  }, []);
   const DEFAULT_GRID_LABELS = [
     "47",
     "46",
@@ -297,6 +315,8 @@ export default function MapTiler() {
           <MapView
             gridLabels={gridLabels}
             aircrafts={aircrafts}
+            places={locations}
+            focusTarget={focusTarget}
             onOpenGridContextMenu={handleOpenGridContextMenu}
           />
         </div>
@@ -348,7 +368,27 @@ export default function MapTiler() {
             />
           )}
         </div>
+        {/* ================= ĐỊA ĐIỂM ================= */}
+        <div className="absolute right-4 top-16 z-[1000] flex flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={() => setIsPlacePanelOpen((open) => !open)}
+            className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-lg hover:bg-blue-50 hover:text-blue-600"
+          >
+            📍 Địa điểm ({locations.length})
+          </button>
 
+          {isPlacePanelOpen && (
+            <div className="max-h-[60vh] overflow-y-auto rounded-lg shadow-lg">
+              <LocationPanel
+                locations={locations}
+                onAdd={addLocation}
+                onRemove={removeLocation}
+                onFocus={handleFocusPlace}
+              />
+            </div>
+          )}
+        </div>
         {/* ================= PANEL BÊN TRÁI ================= */}
         <div
           className={`
