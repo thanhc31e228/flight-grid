@@ -370,14 +370,6 @@ export default function MapTiler() {
         </div>
         {/* ================= ĐỊA ĐIỂM ================= */}
         <div className="absolute right-4 top-16 z-[1000] flex flex-col items-end gap-2">
-          <button
-            type="button"
-            onClick={() => setIsPlacePanelOpen((open) => !open)}
-            className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-lg hover:bg-blue-50 hover:text-blue-600"
-          >
-            📍 Địa điểm ({locations.length})
-          </button>
-
           {isPlacePanelOpen && (
             <div className="max-h-[60vh] overflow-y-auto rounded-lg shadow-lg">
               <LocationPanel
