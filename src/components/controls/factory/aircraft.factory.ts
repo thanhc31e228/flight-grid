@@ -7,46 +7,38 @@ export const SIDE_CONFIG = {
   friendly: { prefix: 5, color: "#dc2626" },
 } as const;
 
-// Giá trị mặc định
 const DEFAULT_AIRCRAFT_CODE = "chưa xác định";
 const DEFAULT_ALTITUDE = "chưa xác định";
 
 export type AircraftDetails = {
+  id: string;
   aircraftCode?: string;
   altitude?: string;
   appearanceTime?: string;
 };
 
-function getNextAircraftId(
-  aircrafts: AirCraft[],
-  side: AircraftSide,
-): string | null {
-  const { prefix } = SIDE_CONFIG[side];
-  const used = new Set(aircrafts.map((aircraft) => aircraft.id));
-
-  for (let n = 1; n <= 99; n++) {
-    const id = `${prefix}${String(n).padStart(2, "0")}`;
-    if (!used.has(id)) return id;
-  }
-
-  return null;
-}
-
 export function createAircraft(
   aircrafts: AirCraft[],
   side: AircraftSide,
   firstPoint: Point,
-  details?: AircraftDetails,
+  details: AircraftDetails,
 ): AirCraft | null {
-  const id = getNextAircraftId(aircrafts, side);
+  const id = details.id.trim();
+
+  // Không cho phép ID trống
   if (!id) return null;
+
+  // Không cho phép ID trùng
+  if (aircrafts.some((aircraft) => aircraft.id === id)) {
+    return null;
+  }
 
   return {
     id,
     color: SIDE_CONFIG[side].color,
     points: [firstPoint],
-    aircraftCode: details?.aircraftCode ?? DEFAULT_AIRCRAFT_CODE,
-    altitude: details?.altitude ?? DEFAULT_ALTITUDE,
-    appearanceTime: firstPoint.appearanceTime,
+    aircraftCode: details.aircraftCode ?? DEFAULT_AIRCRAFT_CODE,
+    altitude: details.altitude ?? DEFAULT_ALTITUDE,
+    appearanceTime: details.appearanceTime ?? firstPoint.appearanceTime,
   };
 }

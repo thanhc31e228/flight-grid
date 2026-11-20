@@ -17,6 +17,7 @@ import type { AirCraft } from "../MapTiler/types/map.types";
 import { addMeasurementTool } from "../MapTiler/utils/measurement.tool";
 import { addCursorTracker } from "../MapTiler/utils/cursor.tracker";
 import { smoothLine } from "../MapTiler/utils/smooth-line";
+import { CENTER } from "../MapTiler/map.constants";
 
 // =========================
 // HẰNG SỐ & HÀM DÙNG CHUNG
@@ -328,39 +329,44 @@ const firstWaypointMarkers = new Map<string, Marker>();
 function buildFirstWaypointHtml(
   aircraft: AirCraft,
   firstPoint: AirCraft["points"][number],
+  direction: "left" | "right",
 ) {
   const color = escapeHtml(aircraft.color);
+  const isRight = direction === "right";
 
-  // Viền trắng quanh chữ để đọc được trên mọi nền bản đồ
   const outline = "text-shadow:-1px 0 #fff,1px 0 #fff,0 -1px #fff,0 1px #fff;";
+
+  // Nhãn chính: bên phải điểm -> left:8px, bên trái điểm -> right:8px
+  const boxSide = isRight ? "left:8px;" : "right:8px;";
+  // Giờ xuất hiện nằm phía đối diện nhãn chính để không bị chồng
+  const timeSide = isRight ? "right:7px;" : "left:7px;";
+  // row-reverse: đảo thứ tự [ID][khối mã/độ cao] thành [khối mã/độ cao][ID]
+  const flexDir = isRight ? "row-reverse" : "row";
+  const bracket = isRight ? "(" : ")";
+  const bracketMargin = isRight
+    ? "margin-left:-8px; margin-right:-2px;"
+    : "margin-left:-2px; margin-right:-8px;";
 
   return `
   <div data-hit style="
-    position:absolute; right:8px; top:0;
+    position:absolute; ${boxSide} top:0;
     transform:translateY(-50%);
-    display:flex; align-items:center; gap:5px;
+    display:flex; flex-direction:${flexDir}; align-items:center; gap:5px;
     padding:4px 7px; border-radius:6px;
     white-space:nowrap; pointer-events:auto; cursor:pointer;
     color:${color}; font-weight:700; font-size:16px;
     background:rgba(255,255,255,0.9);
     ${outline}
   ">
-<span style="
-  display:inline-flex;
-  align-items:center;
-  font-size:16px;
-  font-weight:700;
-  position:relative;
-">
-  ${escapeHtml(aircraft.id)}
-  <span style="
-    font-size:25px;
-    font-weight:300;
-    line-height:0.5;
-    margin-left:-2px;
-    margin-right:-8px;
-  "> ) </span>
-</span>
+    <span style="
+      display:inline-flex; align-items:center;
+      flex-direction:${isRight ? "row" : "row"};
+      font-size:16px; font-weight:700; position:relative;
+    ">
+      ${isRight ? `<span style="font-size:25px; font-weight:300; line-height:0.5; ${bracketMargin}">${bracket}</span>` : ""}
+      ${escapeHtml(aircraft.id)}
+      ${!isRight ? `<span style="font-size:25px; font-weight:300; line-height:0.5; ${bracketMargin}">${bracket}</span>` : ""}
+    </span>
 
     <div style="
       display:grid; grid-template-rows:auto 3px auto;
@@ -369,15 +375,13 @@ function buildFirstWaypointHtml(
       gap:2px;
     ">
       <span>${escapeHtml(aircraft.aircraftCode)}</span>
-
       <span style="background:${color};"></span>
-
       <span>${escapeHtml(aircraft.altitude)}</span>
     </div>
   </div>
 
   <span data-hit style="
-    position:absolute; left:7px; bottom:7px;
+    position:absolute; ${timeSide} bottom:7px;
     padding:2px 5px; border-radius:4px;
     white-space:nowrap; pointer-events:auto; cursor:pointer;
     color:${color}; font-weight:700; font-size:14px;
@@ -385,6 +389,14 @@ function buildFirstWaypointHtml(
     ${outline}
   ">${escapeHtml(firstPoint.appearanceTime)}</span>
 `;
+}
+function getAircraftLabelDirection(
+  map: MapLibreMap,
+  aircraftLng: number,
+): "left" | "right" {
+  const centerLng = CENTER[0];
+
+  return aircraftLng >= centerLng ? "right" : "left";
 }
 
 function updateFirstWaypointLabels(map: MapLibreMap, aircrafts: AirCraft[]) {
@@ -428,11 +440,13 @@ function updateFirstWaypointLabels(map: MapLibreMap, aircrafts: AirCraft[]) {
 
       firstWaypointMarkers.set(aircraft.id, marker);
     }
+    const direction = getAircraftLabelDirection(map, aircraft.points[0].lng);
 
     marker.setLngLat([firstPoint.lng, firstPoint.lat]);
     marker.getElement().innerHTML = buildFirstWaypointHtml(
       aircraft,
       firstPoint,
+      direction,
     );
   });
 

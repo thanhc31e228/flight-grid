@@ -29,6 +29,7 @@ type Props = {
 
 export default function NewAircraftForm({ side, onSubmit, onBack }: Props) {
   const [form, setForm] = useState({
+    id: "",
     name: "",
     aircraftCode: "",
     altitude: "",
@@ -49,11 +50,16 @@ export default function NewAircraftForm({ side, onSubmit, onBack }: Props) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
+    const id = form.id.trim();
+
+    if (!id) return;
+
     const appearanceTime = form.appearanceTime.trim()
       ? normalizeTime(form.appearanceTime)
       : getCurrentTime();
 
     onSubmit({
+      id,
       aircraftCode: form.aircraftCode.trim() || "chưa xác định",
       altitude: form.altitude.trim() || "chưa xác định",
       appearanceTime,
@@ -68,6 +74,16 @@ export default function NewAircraftForm({ side, onSubmit, onBack }: Props) {
       <div className="text-sm font-semibold text-gray-800">
         Thông tin máy bay {SIDE_LABEL[side]}
       </div>
+      <label className="text-xs text-gray-500">
+        Số tốp
+        <input
+          value={form.id}
+          onChange={change("id")}
+          className={inputClass}
+          placeholder={side === "enemy" ? "401" : "501"}
+          required
+        />
+      </label>
       <label className="text-xs text-gray-500">
         SL-KL (vd: 0122)
         <input
