@@ -308,12 +308,13 @@ export default function MapTiler() {
     setSelectedAircraftId(aircraft.id); // các click tiếp theo thêm waypoint cho top này
     closePick();
   };
+
   return (
-    <div className="map-container flex h-screen w-full flex-col overflow-hidden">
+    <div className="map-container flex h-screen w-full flex-col overflow-hidden bg-slate-50">
       {/* ================= THANH TỌA ĐỘ ================= */}
       <MeasurementBar />
 
-      {/* ================= VÙNG BẢN ĐỒ (nằm dưới thanh bar) ================= */}
+      {/* ================= VÙNG BẢN ĐỒ ================= */}
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {/* ================= MAP ================= */}
         <div className="absolute inset-0 z-0">
@@ -328,14 +329,16 @@ export default function MapTiler() {
 
         {/* ================= CHỌN MÁY BAY ================= */}
         <div
-          className={`
-            absolute right-4 top-3 z-[1000]
-            flex items-center gap-2
-            rounded-lg bg-white p-2 shadow-lg
-            transition-all duration-300
-          `}
+          className="
+          absolute right-4 top-3 z-[1000]
+          flex items-center gap-2
+          rounded-xl border border-slate-200
+          bg-white/95 p-2.5 shadow-lg shadow-slate-900/5
+          backdrop-blur-sm
+          transition-all duration-300
+        "
         >
-          <span className="whitespace-nowrap text-sm font-semibold text-gray-700">
+          <span className="whitespace-nowrap text-sm font-semibold text-slate-600">
             Máy bay:
           </span>
 
@@ -344,11 +347,16 @@ export default function MapTiler() {
             onChange={(event) => handleSelectAircraft(event.target.value)}
             disabled={aircrafts.length === 0}
             className="
-              max-w-[180px] rounded-md border border-gray-200
-              bg-white px-3 py-2 text-sm text-gray-700
-              outline-none focus:border-blue-500
-              disabled:cursor-not-allowed disabled:bg-gray-100
-            "
+            max-w-[180px] cursor-pointer
+            rounded-lg border border-slate-200
+            bg-white px-3 py-2
+            text-sm font-medium text-slate-700
+            outline-none transition
+            hover:border-blue-300
+            focus:border-blue-500 focus:ring-2 focus:ring-blue-100
+            disabled:cursor-not-allowed disabled:bg-slate-100
+            disabled:text-slate-400
+          "
           >
             {aircrafts.length === 0 ? (
               <option value="">Chưa có máy bay</option>
@@ -363,7 +371,10 @@ export default function MapTiler() {
 
           {selectedAircraftId && (
             <span
-              className="h-3 w-3 shrink-0 rounded-full"
+              className="
+              h-3 w-3 shrink-0 rounded-full
+              ring-2 ring-white shadow-sm
+            "
               style={{
                 backgroundColor:
                   aircrafts.find(
@@ -373,17 +384,49 @@ export default function MapTiler() {
             />
           )}
         </div>
+
+        {/* ================= NÚT ĐỊA ĐIỂM ================= */}
         <button
           type="button"
           onClick={() => setIsPlacePanelOpen((prev) => !prev)}
-          className="absolute right-4 top-3 z-[1000] rounded-lg bg-white px-3 py-2 text-sm font-semibold shadow-lg hover:bg-gray-100"
+          className="
+          absolute right-4 top-[68px] z-[1000]
+          flex items-center gap-2
+          rounded-xl border border-slate-200
+          bg-white/95 px-4 py-2.5
+          text-sm font-semibold text-slate-700
+          shadow-lg shadow-slate-900/5
+          backdrop-blur-sm
+          transition-all duration-200
+          hover:border-blue-200 hover:bg-blue-50
+          hover:text-blue-600
+          active:scale-[0.98]
+        "
         >
-          📍 Địa điểm
+          <span>📍</span>
+          <span>Địa điểm</span>
+          <span
+            className={`
+            text-xs transition-transform duration-200
+            ${isPlacePanelOpen ? "rotate-180" : ""}
+          `}
+          >
+            ▾
+          </span>
         </button>
-        {/* ================= ĐỊA ĐIỂM ================= */}
-        <div className="absolute right-4 top-16 z-[1000] flex flex-col items-end gap-2">
+
+        {/* ================= PANEL ĐỊA ĐIỂM ================= */}
+        <div className="absolute right-4 top-[116px] z-[1000] flex flex-col items-end gap-2">
           {isPlacePanelOpen && (
-            <div className="max-h-[60vh] overflow-y-auto rounded-lg shadow-lg">
+            <div
+              className="
+              max-h-[60vh] overflow-y-auto
+              rounded-xl border border-slate-200
+              bg-white shadow-xl shadow-slate-900/10
+              animate-in fade-in slide-in-from-top-2
+              duration-200
+            "
+            >
               <LocationPanel
                 locations={locations}
                 onAdd={handleAddPlace}
@@ -393,14 +436,15 @@ export default function MapTiler() {
             </div>
           )}
         </div>
+
         {/* ================= PANEL BÊN TRÁI ================= */}
         <div
           className={`
-            absolute inset-y-0 left-0 z-[999]
-            w-[300px] max-w-[90vw]
-            transition-transform duration-300 ease-in-out
-            ${isPanelOpen ? "translate-x-0" : "-translate-x-full"}
-          `}
+          absolute inset-y-0 left-0 z-[999]
+          w-[300px] max-w-[90vw]
+          transition-transform duration-300 ease-in-out
+          ${isPanelOpen ? "translate-x-0" : "-translate-x-full"}
+        `}
         >
           <MapControlPanel
             gridIndex={gridIndex}
@@ -414,12 +458,14 @@ export default function MapTiler() {
             type="button"
             onClick={() => setIsPanelOpen(false)}
             className="
-              absolute top-3 -right-10
-              flex h-9 w-9 items-center justify-center
-              rounded-r-lg bg-white
-              text-gray-700 shadow-lg
-              transition hover:bg-red-50 hover:text-red-600
-            "
+            absolute -right-10 top-3
+            flex h-9 w-9 items-center justify-center
+            rounded-r-xl border border-l-0 border-slate-200
+            bg-white text-slate-600
+            shadow-lg shadow-slate-900/5
+            transition-all duration-200
+            hover:bg-red-50 hover:text-red-600
+          "
             title="Ẩn bảng điều khiển"
           >
             ✕
@@ -431,42 +477,61 @@ export default function MapTiler() {
           type="button"
           onClick={() => setIsPanelOpen(true)}
           className={`
-            absolute top-3 left-3 z-[1000]
-            flex items-center gap-2
-            rounded-lg bg-white px-4 py-2.5
-            text-sm font-semibold text-gray-700
-            shadow-lg transition-all duration-300
-            hover:bg-blue-50 hover:text-blue-600
-            ${
-              isPanelOpen
-                ? "pointer-events-none -translate-x-4 opacity-0"
-                : "translate-x-0 opacity-100"
-            }
-          `}
+          absolute left-3 top-3 z-[1000]
+          flex items-center gap-2
+          rounded-xl border border-slate-200
+          bg-white/95 px-4 py-2.5
+          text-sm font-semibold text-slate-700
+          shadow-lg shadow-slate-900/5
+          backdrop-blur-sm
+          transition-all duration-300
+          hover:border-blue-200 hover:bg-blue-50
+          hover:text-blue-600
+          active:scale-[0.98]
+          ${
+            isPanelOpen
+              ? "pointer-events-none -translate-x-4 opacity-0"
+              : "translate-x-0 opacity-100"
+          }
+        `}
           title="Mở bảng điều khiển"
         >
-          ☰ Bảng điều khiển
+          <span className="text-lg">☰</span>
+          <span>Bảng điều khiển</span>
         </button>
       </div>
 
-      {/* ================= CONTEXT MENU (fixed nên để ngoài vùng bản đồ) ================= */}
+      {/* ================= CONTEXT MENU ================= */}
       {contextMenu && (
         <div
           className="
-            fixed z-[999999]
-            min-w-[160px]
-            rounded-lg border border-gray-200
-            bg-white p-2 shadow-xl
-          "
+          fixed z-[999999]
+          min-w-[180px]
+          overflow-hidden rounded-xl
+          border border-slate-200
+          bg-white p-1.5
+          shadow-2xl shadow-slate-900/15
+          animate-in fade-in zoom-in-95
+          duration-150
+        "
           style={{
             left: contextMenu.x,
             top: contextMenu.y,
           }}
           onContextMenu={(event) => event.preventDefault()}
         >
-          <div className="border-b border-gray-100 px-3 py-2 text-sm font-semibold text-gray-800">
-            Tọa độ: {contextMenu.cell.row}
-            {contextMenu.cell.col}
+          <div
+            className="
+            border-b border-slate-100
+            px-3 py-2.5
+            text-sm font-semibold text-slate-800
+          "
+          >
+            <span className="text-slate-400">Tọa độ: </span>
+            <span className="text-blue-600">
+              {contextMenu.cell.row}
+              {contextMenu.cell.col}
+            </span>
           </div>
 
           <button
@@ -476,11 +541,13 @@ export default function MapTiler() {
               setContextMenu(null);
             }}
             className="
-              block w-full rounded-md px-3 py-2
-              text-left text-sm text-gray-700
-              hover:bg-blue-50 hover:text-blue-600
-            "
+            block w-full rounded-lg px-3 py-2.5
+            text-left text-sm font-medium text-slate-700
+            transition-colors
+            hover:bg-blue-50 hover:text-blue-600
+          "
           >
+            <span className="mr-2">▦</span>
             Chọn ô này
           </button>
 
@@ -488,10 +555,10 @@ export default function MapTiler() {
             type="button"
             onClick={() => setContextMenu(null)}
             className="
-              block w-full rounded-md px-3 py-2
-              text-left text-sm text-gray-500
-              hover:bg-gray-100
-            "
+            block w-full rounded-lg px-3 py-2.5
+            text-left text-sm text-slate-500
+            transition-colors hover:bg-slate-100
+          "
           >
             Đóng
           </button>
@@ -501,9 +568,9 @@ export default function MapTiler() {
       {/* ================= MENU CHỐT ĐIỂM ĐO ================= */}
       {pick && (
         <>
-          {/* Lớp nền bắt click ngoài menu để đóng, nên click đó không lọt xuống bản đồ */}
+          {/* Lớp nền bắt click bên ngoài để đóng menu */}
           <div
-            className="fixed inset-0 z-[999998]"
+            className="fixed inset-0 z-[999998] bg-transparent"
             onClick={closePick}
             onContextMenu={(event) => {
               event.preventDefault();
@@ -513,12 +580,15 @@ export default function MapTiler() {
 
           <div
             className="
-    fixed z-[999999]
-    w-[240px] max-w-[calc(100vw-16px)]
-    rounded-lg border border-gray-200
-    bg-white p-2 shadow-xl
-    overflow-y-auto
-  "
+            fixed z-[999999]
+            w-[240px] max-w-[calc(100vw-16px)]
+            overflow-y-auto
+            rounded-xl border border-slate-200
+            bg-white p-2
+            shadow-2xl shadow-slate-900/15
+            animate-in fade-in zoom-in-95
+            duration-150
+          "
             style={{
               left: Math.max(
                 8,
@@ -534,57 +604,92 @@ export default function MapTiler() {
               maxHeight: "calc(100dvh - 16px)",
             }}
           >
-            <div className="border-b border-gray-100 px-3 pb-2 pt-1 text-xs leading-5 text-gray-500">
-              <div>
-                Phương vị: <b className="text-orange-700">{pick.mil}</b> (
-                {pick.bearingDeg.toFixed(1)}°)
+            {/* Thông tin đo */}
+            <div className="border-b border-slate-100 px-3 pb-2.5 pt-1 text-xs leading-6 text-slate-500">
+              <div className="flex items-center justify-between">
+                <span>Phương vị</span>
+                <span className="font-bold text-orange-600">
+                  {pick.mil} ({pick.bearingDeg.toFixed(1)}°)
+                </span>
               </div>
-              <div>
-                Cự ly:{" "}
-                <b className="text-gray-800">{pick.distanceKm.toFixed(2)} km</b>
+
+              <div className="flex items-center justify-between">
+                <span>Cự ly</span>
+                <span className="font-bold text-slate-800">
+                  {pick.distanceKm.toFixed(2)} km
+                </span>
               </div>
             </div>
 
             {pendingSide ? (
-              // Bước 2: nhập thông tin top máy bay
+              /* Bước 2: nhập thông tin máy bay */
               <NewAircraftForm
                 side={pendingSide}
                 onSubmit={handleCreateAircraft}
                 onBack={() => setPendingSide(null)}
               />
             ) : (
-              // Bước 1: chọn phe
+              /* Bước 1: chọn phe */
               <>
                 <button
                   type="button"
                   onClick={() => setPendingSide("friendly")}
-                  className="mt-1 block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-[var(--friendly-color)]"
+                  className="
+                  mt-1 flex w-full items-center gap-2
+                  rounded-lg px-3 py-2.5
+                  text-left text-sm font-medium text-slate-700
+                  transition-colors
+                  hover:bg-blue-50
+                "
                   style={
                     {
                       "--friendly-color": SIDE_CONFIG.friendly.color,
                     } as React.CSSProperties
                   }
                 >
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{
+                      backgroundColor: SIDE_CONFIG.friendly.color,
+                    }}
+                  />
                   Thêm top máy bay ta
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPendingSide("enemy")}
-                  className="mt-1 block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-[var(--enemy-color)]"
+                  className="
+                  mt-1 flex w-full items-center gap-2
+                  rounded-lg px-3 py-2.5
+                  text-left text-sm font-medium text-slate-700
+                  transition-colors
+                  hover:bg-red-50
+                "
                   style={
                     {
                       "--enemy-color": SIDE_CONFIG.enemy.color,
                     } as React.CSSProperties
                   }
                 >
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{
+                      backgroundColor: SIDE_CONFIG.enemy.color,
+                    }}
+                  />
                   Thêm top máy bay địch
                 </button>
 
                 <button
                   type="button"
                   onClick={closePick}
-                  className="block w-full rounded-md px-3 py-2 text-left text-sm text-gray-500 hover:bg-gray-100"
+                  className="
+                  mt-1 block w-full rounded-lg
+                  px-3 py-2.5 text-left text-sm
+                  text-slate-500 transition-colors
+                  hover:bg-slate-100
+                "
                 >
                   Hủy
                 </button>

@@ -156,7 +156,7 @@ export default function MapControlPanel({
   return (
     <>
       {/* Main control panel */}
-      <div className="relative h-full w-full overflow-y-auto bg-white p-4 shadow-lg">
+      <div className="relative h-full w-full  bg-white p-4 shadow-lg">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-sm font-semibold text-gray-800">

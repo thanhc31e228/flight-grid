@@ -1,5 +1,3 @@
-// import { hidePointPopup } from "../map/MapPopup";
-
 type Props = {
   count: number;
   aircraftId: string | null;
@@ -13,51 +11,82 @@ export default function RouteControls({
   onUndo,
   onClear,
 }: Props) {
+  const disabled = !aircraftId || count === 0;
+
   const handleUndo = () => {
-    if (!aircraftId) return;
-
+    if (!aircraftId || count === 0) return;
     onUndo(aircraftId);
-
-    // if (remainingPoints === 0) {
-    //   hidePointPopup();
-    // }
   };
 
   const handleClear = () => {
-    if (!aircraftId) return;
-
+    if (!aircraftId || count === 0) return;
     onClear(aircraftId);
-    // hidePointPopup();
   };
 
   return (
-    <div className="route-controls">
-      <strong>QUẢN LÝ TUYẾN ĐƯỜNG</strong>
+    <div className="w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold tracking-wide text-slate-800">
+            QUẢN LÝ TUYẾN ĐƯỜNG
+          </h3>
+          <p className="mt-1 text-xs text-slate-400">
+            Điều khiển các điểm trên tuyến bay
+          </p>
+        </div>
 
-      <p>
-        Số điểm: <strong>{count}</strong>
-      </p>
-
-      <div className="grid-info">
-        <div>Grid cấp 1: 20.000m</div>
-        <div>Grid cấp 2: 2000m × 2000m</div>
-        <div>Grid cấp 3: 5 ô / ô cấp 2</div>
+        <div className="flex h-10 min-w-10 items-center justify-center rounded-lg bg-blue-50 px-3 text-sm font-bold text-blue-600">
+          {count}
+        </div>
       </div>
 
-      <div className="route-buttons">
+      {/* Statistics */}
+      <div className="mb-4 flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
+        <span className="text-sm text-slate-500">Tổng số waypoint</span>
+
+        <span className="text-lg font-bold tabular-nums text-slate-800">
+          {count}
+        </span>
+      </div>
+
+      {/* Actions */}
+      <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={handleUndo}
-          disabled={!aircraftId || count === 0}
+          disabled={disabled}
+          className="
+            flex items-center justify-center gap-2
+            rounded-lg border border-amber-200
+            bg-amber-50 px-3 py-2.5
+            text-sm font-semibold text-amber-700
+            transition-all duration-200
+            hover:border-amber-300 hover:bg-amber-100
+            active:scale-[0.98]
+            disabled:cursor-not-allowed disabled:opacity-40
+          "
         >
+          <span className="text-lg">↶</span>
           Hoàn tác
         </button>
 
         <button
           type="button"
           onClick={handleClear}
-          disabled={!aircraftId || count === 0}
+          disabled={disabled}
+          className="
+            flex items-center justify-center gap-2
+            rounded-lg border border-red-200
+            bg-red-50 px-3 py-2.5
+            text-sm font-semibold text-red-600
+            transition-all duration-200
+            hover:border-red-300 hover:bg-red-100
+            active:scale-[0.98]
+            disabled:cursor-not-allowed disabled:opacity-40
+          "
         >
+          <span className="text-base">⌫</span>
           Xóa tất cả
         </button>
       </div>
