@@ -6,7 +6,7 @@ const STORAGE_KEY = "map-locations";
 const DEFAULT_LOCATIONS: Place[] = [
   {
     id: "bchqs",
-    name: "BCHQS",
+    name: "BCHQS Xã Lạng Giang",
     phone: "0xxx xxx xxx",
     lat: 21.363411,
     lng: 106.265561,
@@ -15,14 +15,7 @@ const DEFAULT_LOCATIONS: Place[] = [
 ];
 
 export function useLocations() {
-  const [locations, setLocations] = useState<Place[]>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as Place[]) : DEFAULT_LOCATIONS;
-    } catch {
-      return DEFAULT_LOCATIONS;
-    }
-  });
+  const [locations, setLocations] = useState<Place[]>([...DEFAULT_LOCATIONS]);
 
   useEffect(() => {
     try {
