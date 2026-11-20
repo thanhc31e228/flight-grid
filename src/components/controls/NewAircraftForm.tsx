@@ -23,22 +23,16 @@ function normalizeTime(value: string): string {
 
 type Props = {
   side: AircraftSide;
-  initialTime: string;
   onSubmit: (details: AircraftDetails) => void;
   onBack: () => void;
 };
 
-export default function NewAircraftForm({
-  side,
-  initialTime,
-  onSubmit,
-  onBack,
-}: Props) {
+export default function NewAircraftForm({ side, onSubmit, onBack }: Props) {
   const [form, setForm] = useState({
     name: "",
     aircraftCode: "",
     altitude: "",
-    appearanceTime: initialTime ? normalizeTime(initialTime) : getCurrentTime(),
+    appearanceTime: getCurrentTime(),
   });
 
   const change =
@@ -60,7 +54,6 @@ export default function NewAircraftForm({
       : getCurrentTime();
 
     onSubmit({
-      name: form.name.trim() || "chưa xác định",
       aircraftCode: form.aircraftCode.trim() || "chưa xác định",
       altitude: form.altitude.trim() || "chưa xác định",
       appearanceTime,
@@ -75,20 +68,8 @@ export default function NewAircraftForm({
       <div className="text-sm font-semibold text-gray-800">
         Thông tin máy bay {SIDE_LABEL[side]}
       </div>
-
       <label className="text-xs text-gray-500">
-        Tên máy bay
-        <input
-          value={form.name}
-          onChange={change("name")}
-          className={inputClass}
-          placeholder="Nhập tên máy bay"
-          autoFocus
-        />
-      </label>
-
-      <label className="text-xs text-gray-500">
-        Số hiệu (vd: 0122)
+        SL-KL (vd: 0122)
         <input
           value={form.aircraftCode}
           onChange={change("aircraftCode")}

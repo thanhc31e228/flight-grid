@@ -18,9 +18,6 @@ import {
 } from "../components/controls/factory/aircraft.factory";
 import NewAircraftForm from "../components/controls/NewAircraftForm";
 
-// Thời gian xuất hiện điền sẵn cho top mới (đổi theo quy ước thời gian của bạn)
-const DEFAULT_APPEARANCE_TIME = "00";
-
 export default function MapTiler() {
   const {
     aircrafts,
@@ -272,7 +269,7 @@ export default function MapTiler() {
       {
         lng: pick.lng,
         lat: pick.lat,
-        appearanceTime: details.appearanceTime ?? DEFAULT_APPEARANCE_TIME,
+        appearanceTime: details.appearanceTime,
       },
       details,
     );
@@ -470,13 +467,26 @@ export default function MapTiler() {
           />
 
           <div
-            className="fixed z-[999999] w-[240px] rounded-lg border border-gray-200 bg-white p-2 shadow-xl"
+            className="
+    fixed z-[999999]
+    w-[240px] max-w-[calc(100vw-16px)]
+    rounded-lg border border-gray-200
+    bg-white p-2 shadow-xl
+    overflow-y-auto
+  "
             style={{
-              left: Math.min(pick.clientX, window.innerWidth - 252),
-              top: Math.min(
-                pick.clientY,
-                window.innerHeight - (pendingSide ? 330 : 170),
+              left: Math.max(
+                8,
+                Math.min(pick.clientX, window.innerWidth - 248),
               ),
+              top: Math.max(
+                8,
+                Math.min(
+                  pick.clientY,
+                  window.innerHeight - (pendingSide ? 450 : 190),
+                ),
+              ),
+              maxHeight: "calc(100dvh - 16px)",
             }}
           >
             <div className="border-b border-gray-100 px-3 pb-2 pt-1 text-xs leading-5 text-gray-500">
@@ -494,7 +504,6 @@ export default function MapTiler() {
               // Bước 2: nhập thông tin top máy bay
               <NewAircraftForm
                 side={pendingSide}
-                initialTime={DEFAULT_APPEARANCE_TIME}
                 onSubmit={handleCreateAircraft}
                 onBack={() => setPendingSide(null)}
               />

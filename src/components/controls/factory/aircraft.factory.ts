@@ -10,10 +10,8 @@ const SIDE_CONFIG = {
 // Giá trị mặc định
 const DEFAULT_AIRCRAFT_CODE = "chưa xác định";
 const DEFAULT_ALTITUDE = "chưa xác định";
-const DEFAULT_AIRCRAFT_NAME = "chưa xác định";
 
 export type AircraftDetails = {
-  name?: string;
   aircraftCode?: string;
   altitude?: string;
   appearanceTime?: string;
@@ -45,7 +43,6 @@ export function createAircraft(
 
   return {
     id,
-    name: details?.name ?? DEFAULT_AIRCRAFT_NAME,
     color: SIDE_CONFIG[side].color,
     points: [firstPoint],
     aircraftCode: details?.aircraftCode ?? DEFAULT_AIRCRAFT_CODE,

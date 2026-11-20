@@ -335,33 +335,41 @@ function buildFirstWaypointHtml(
   const outline = "text-shadow:-1px 0 #fff,1px 0 #fff,0 -1px #fff,0 1px #fff;";
 
   return `
-    <div data-hit style="
-      position:absolute; right:8px; top:0;
-      transform:translateY(-50%);
-      display:flex; align-items:center; gap:2px;
-      padding:1px 3px; border-radius:4px;
-      white-space:nowrap; pointer-events:auto; cursor:pointer;
-      color:${color}; font-weight:700; font-size:15px; ${outline}
+  <div data-hit style="
+    position:absolute; right:8px; top:0;
+    transform:translateY(-50%);
+    display:flex; align-items:center; gap:5px;
+    padding:4px 7px; border-radius:6px;
+    white-space:nowrap; pointer-events:auto; cursor:pointer;
+    color:${color}; font-weight:700; font-size:16px;
+    background:rgba(255,255,255,0.9);
+    ${outline}
+  ">
+    <span>${escapeHtml(aircraft.id)}</span>
+
+    <div style="
+      display:grid; grid-template-rows:auto 3px auto;
+      min-width:80px; text-align:center;
+      font-size:14px; line-height:1.3;
+      gap:2px;
     ">
-      <span>${escapeHtml(aircraft.id)})</span>
+      <span>${escapeHtml(aircraft.aircraftCode)}</span>
 
-      <div style="
-        display:grid; grid-template-rows:auto 2px auto;
-        min-width:56px; text-align:center;
-        font-size:13px; line-height:1.15;
-      ">
-        <span>${escapeHtml(aircraft.aircraftCode)}</span>
-        <span style="background:${color};"></span>
-        <span>${escapeHtml(aircraft.altitude)}</span>
-      </div>
+      <span style="background:${color};"></span>
+
+      <span>${escapeHtml(aircraft.altitude)}</span>
     </div>
+  </div>
 
-    <span data-hit style="
-      position:absolute; left:7px; bottom:7px;
-      padding:0 2px; border-radius:4px;
-      white-space:nowrap; pointer-events:auto; cursor:pointer;
-      color:${color}; font-weight:700; font-size:13px; ${outline}
-    ">${escapeHtml(firstPoint.appearanceTime)}</span>`;
+  <span data-hit style="
+    position:absolute; left:7px; bottom:7px;
+    padding:2px 5px; border-radius:4px;
+    white-space:nowrap; pointer-events:auto; cursor:pointer;
+    color:${color}; font-weight:700; font-size:14px;
+    background:rgba(255,255,255,0.9);
+    ${outline}
+  ">${escapeHtml(firstPoint.appearanceTime)}</span>
+`;
 }
 
 function updateFirstWaypointLabels(map: MapLibreMap, aircrafts: AirCraft[]) {
