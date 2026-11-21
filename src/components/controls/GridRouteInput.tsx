@@ -20,6 +20,12 @@ export default function GridRouteInput({ gridIndex }: Props) {
   const [history, setHistory] = useState<CoordinateHistory[]>([]);
   const [nextId, setNextId] = useState(0);
 
+  // Tốp đang chọn
+  const [selectedTop, setSelectedTop] = useState<string | null>(null);
+
+  // Tìm Tốp
+  const [searchTop, setSearchTop] = useState("");
+
   const {
     addAircraft,
     addPoint,
@@ -44,12 +50,11 @@ export default function GridRouteInput({ gridIndex }: Props) {
 
   // Hoàn tác tọa độ
   const handleUndo = (item: CoordinateHistory) => {
-    // Tìm phần tử cuối cùng của máy bay tương ứng
     const lastEntry = [...history]
       .reverse()
-      .find((entry: CoordinateHistory) => entry.aircraftId === item.aircraftId);
+      .find((entry) => entry.aircraftId === item.aircraftId);
 
-    // Chỉ cho phép hoàn tác waypoint cuối cùng
+    // Chỉ cho phép hoàn tác waypoint cuối cùng của Tốp
     if (!lastEntry || lastEntry.id !== item.id) {
       return;
     }
@@ -132,26 +137,56 @@ export default function GridRouteInput({ gridIndex }: Props) {
 
     setSelectedAircraftId(idTop);
 
-    // Lưu chính xác chuỗi đã nhập
+    // Lưu lịch sử
     addToHistory(idTop, lastLine);
 
-    // Clear input sau khi thêm thành công
+    // Tự động chọn Tốp vừa nhập
+    setSelectedTop(idTop);
+
+    // Xóa input sau khi thêm thành công
     setValue("");
   };
 
+  // Gom lịch sử theo Tốp
+  const groupedHistory = history.reduce<Record<string, CoordinateHistory[]>>(
+    (groups, item) => {
+      if (!groups[item.aircraftId]) {
+        groups[item.aircraftId] = [];
+      }
+
+      groups[item.aircraftId].push(item);
+
+      return groups;
+    },
+    {},
+  );
+
+  // Sắp xếp Tốp
+  const sortedTopIds = Object.keys(groupedHistory).sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true }),
+  );
+
+  // Lọc Tốp theo ô tìm kiếm
+  const filteredTopIds = sortedTopIds.filter((id) =>
+    id.toLowerCase().includes(searchTop.trim().toLowerCase()),
+  );
+
+  // Tốp đang được hiển thị
+  const activeTop =
+    selectedTop && groupedHistory[selectedTop]
+      ? selectedTop
+      : (history[history.length - 1]?.aircraftId ?? null);
+
+  // Lịch sử của Tốp đang chọn
+  const selectedHistory = activeTop
+    ? (groupedHistory[activeTop]?.slice().sort((a, b) => a.id - b.id) ?? [])
+    : [];
+
   return (
-    <div className="w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="flex h-full w-full flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       {/* Header */}
       <div className="mb-3">
-        {/* <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-            ⌖
-          </span>
-
-          <h3 className="text-sm font-bold text-slate-800">NỐI Ô GRID CẤP 3</h3>
-        </div> */}
-
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-slate-500">
           Nhập tọa độ và nhấn Enter để thêm.
         </p>
       </div>
@@ -184,17 +219,18 @@ export default function GridRouteInput({ gridIndex }: Props) {
         />
       </div>
 
-      {/* Footer */}
+      {/* Footer Input */}
       <div className="mt-2 flex items-center justify-between">
         <span className="text-[11px] text-slate-400">Enter để thêm tọa độ</span>
       </div>
 
       {/* Lịch sử tọa độ */}
-      <div className="mt-4 border-t border-slate-100 pt-3">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden border-t border-slate-100 pt-3">
+        {/* Header lịch sử */}
+        <div className="mb-3 flex shrink-0 items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-slate-700">
-              Danh sách tọa độ
+              Lịch sử tọa độ
             </span>
 
             <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600">
@@ -210,45 +246,161 @@ export default function GridRouteInput({ gridIndex }: Props) {
             </p>
           </div>
         ) : (
-          /* Chỉ phần tử này được scroll */
-          <div className="h-[220px] overflow-y-auto overscroll-contain pr-2">
-            <div className="flex flex-col gap-1.5">
-              {history
-                .slice()
-                .sort((a, b) => b.id - a.id)
-                .map((item, index) => (
-                  <div
-                    key={item.id}
-                    className="group flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-2 hover:border-blue-200 hover:bg-blue-50/50"
-                  >
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white text-[10px] font-semibold text-slate-400">
-                      {index + 1}
-                    </span>
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            {/* Tìm Tốp */}
+            <div className="relative shrink-0">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="h-4 w-4"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m16 16 4 4" />
+                </svg>
+              </span>
 
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-mono text-xs font-semibold tracking-wide text-slate-700">
-                        {item.value}
-                      </p>
-                      <p className="mt-0.5 text-[10px] text-slate-400">
-                        Máy bay: {item.aircraftId}
-                      </p>
-                    </div>
+              <input
+                type="text"
+                value={searchTop}
+                onChange={(event) => setSearchTop(event.target.value)}
+                placeholder="Tìm Tốp..."
+                className="
+                  w-full rounded-lg border border-slate-200
+                  bg-slate-50 py-2 pl-9 pr-3
+                  text-xs text-slate-700
+                  outline-none transition
+                  placeholder:text-slate-400
+                  focus:border-blue-400 focus:bg-white
+                  focus:ring-2 focus:ring-blue-100
+                "
+              />
+            </div>
 
-                    <button
-                      type="button"
-                      disabled={!canUndo(item)}
-                      onClick={() => handleUndo(item)}
-                      title={
-                        canUndo(item)
-                          ? "Hoàn tác tọa độ"
-                          : "Hãy hoàn tác tọa độ phía sau trước"
-                      }
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-25"
+            {/* Danh sách Tốp - scroll riêng */}
+            <div className="max-h-[125px] shrink-0 overflow-y-auto overscroll-contain pr-1">
+              {filteredTopIds.length === 0 ? (
+                <div className="rounded-lg bg-slate-50 px-3 py-4 text-center">
+                  <p className="text-xs text-slate-400">
+                    Không tìm thấy Tốp {searchTop}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-1.5">
+                  {filteredTopIds.map((aircraftId) => {
+                    const isSelected = activeTop === aircraftId;
+                    const count = groupedHistory[aircraftId].length;
+
+                    return (
+                      <button
+                        key={aircraftId}
+                        type="button"
+                        onClick={() => setSelectedTop(aircraftId)}
+                        className={`
+                          flex min-w-0 items-center justify-between
+                          rounded-lg border px-2.5 py-2
+                          transition-all duration-150
+                          ${
+                            isSelected
+                              ? "border-blue-300 bg-blue-50 text-blue-700 shadow-sm"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-slate-50"
+                          }
+                        `}
+                      >
+                        <span className="truncate text-xs font-semibold">
+                          Tốp {aircraftId}
+                        </span>
+
+                        <span
+                          className={`
+                            ml-1 shrink-0 rounded-full px-1.5 py-0.5
+                            text-[10px] font-bold
+                            ${
+                              isSelected
+                                ? "bg-blue-100 text-blue-600"
+                                : "bg-slate-100 text-slate-500"
+                            }
+                          `}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Lịch sử Tốp được chọn */}
+            <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+              {/* Header Tốp đang chọn */}
+              <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-100 text-[10px] font-bold text-blue-700">
+                    {activeTop}
+                  </span>
+
+                  <span className="text-xs font-semibold text-slate-700">
+                    Tốp {activeTop}
+                  </span>
+                </div>
+
+                <span className="text-[10px] text-slate-400">
+                  {selectedHistory.length} tọa độ
+                </span>
+              </div>
+
+              {/* Danh sách tọa độ - scroll riêng */}
+              <div className="h-[180px] max-h-[180px] shrink-0 overflow-y-auto overscroll-contain p-2">
+                <div className="flex flex-col gap-1.5">
+                  {selectedHistory.reverse().map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="
+                        group flex items-center gap-2
+                        rounded-lg border border-slate-100
+                        bg-slate-50 px-2.5 py-2
+                        transition
+                        hover:border-blue-200 hover:bg-blue-50/50
+                      "
                     >
-                      <span className="text-lg leading-none">×</span>
-                    </button>
-                  </div>
-                ))}
+                      {/* Số thứ tự */}
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white text-[10px] font-semibold text-slate-400">
+                        {selectedHistory.length - index}
+                      </span>
+
+                      {/* Nội dung tọa độ */}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-mono text-xs font-semibold tracking-wide text-slate-700">
+                          {item.value}
+                        </p>
+                      </div>
+
+                      {/* Undo */}
+                      <button
+                        type="button"
+                        disabled={!canUndo(item)}
+                        onClick={() => handleUndo(item)}
+                        title={
+                          canUndo(item)
+                            ? "Hoàn tác tọa độ"
+                            : "Hãy hoàn tác tọa độ phía sau trước"
+                        }
+                        className="
+                          flex h-7 w-7 shrink-0 items-center justify-center
+                          rounded-md text-slate-400 transition
+                          hover:bg-red-100 hover:text-red-600
+                          disabled:cursor-not-allowed disabled:opacity-25
+                        "
+                      >
+                        <span className="text-lg leading-none">×</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}

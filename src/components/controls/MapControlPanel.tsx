@@ -210,7 +210,6 @@ export default function MapControlPanel({
         />
 
         <GridRouteInput gridIndex={gridIndex} />
-        {/* <PointList points={points} /> */}
       </div>
 
       {/* Coordinate editor modal */}
