@@ -9,15 +9,7 @@ export default function MeasurementBar({ onOpenSettings }: Props) {
   const coords = useCursorCoords();
 
   return (
-    <div
-      className="
-        relative z-[1001] flex h-11 w-full shrink-0
-        items-center justify-center
-        border-b border-gray-200 bg-white px-4
-        text-sm text-gray-700 shadow-sm
-      "
-    >
-      {/* Tọa độ chuột */}
+    <div className="relative z-[1001] flex h-11 w-full shrink-0 items-center justify-center border-b border-gray-200 bg-white px-4 text-sm text-gray-700 shadow-sm">
       <div className="flex items-center gap-8 overflow-x-auto whitespace-nowrap">
         <div className="flex items-center gap-2">
           <span className="font-semibold">Kinh độ:</span>
@@ -34,16 +26,14 @@ export default function MeasurementBar({ onOpenSettings }: Props) {
         </div>
       </div>
 
-      {/* Settings nằm bên phải */}
       <button
         type="button"
         onClick={onOpenSettings}
         title="Cài đặt"
         className="
           absolute right-3 flex h-8 w-8 items-center justify-center
-          rounded-lg border border-gray-200 bg-white
-          text-gray-600 transition-all
-          hover:bg-gray-100 hover:text-gray-900
+          rounded-lg border border-gray-200 bg-white text-gray-600
+          transition-all hover:bg-gray-100 hover:text-gray-900
           active:scale-95
         "
       >

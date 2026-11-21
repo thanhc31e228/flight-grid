@@ -309,12 +309,21 @@ export default function MapTiler() {
     setSelectedAircraftId(aircraft.id); // các click tiếp theo thêm waypoint cho top này
     closePick();
   };
-  const [onOpenSetting, setOpenSetting] = useState<boolean>(false);
-  function handleOpenSetting() {
-    setOpenSetting(true);
-  }
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const handleOpenSetting = () => {
+    setContextMenu(null);
+    setIsPlacePanelOpen(false);
+    setPendingSide(null);
+    setPick(null);
+    setIsSettingsOpen(true);
+  };
+
+  const handleBackFromSettings = () => {
+    setIsSettingsOpen(false);
+  };
   return (
-    <div className="map-container flex h-screen w-full flex-col overflow-hidden bg-slate-50">
+    <div className="map-container relative flex h-screen w-full flex-col overflow-hidden bg-slate-50">
       {/* ================= THANH TỌA ĐỘ ================= */}
       <MeasurementBar onOpenSettings={handleOpenSetting} />
       {/* ================= VÙNG BẢN ĐỒ ================= */}
@@ -505,7 +514,7 @@ export default function MapTiler() {
       </div>
 
       {/* ================= CONTEXT MENU ================= */}
-      {contextMenu && (
+      {contextMenu && !isSettingsOpen && (
         <div
           className="
           fixed z-[999999]
@@ -569,7 +578,7 @@ export default function MapTiler() {
       )}
 
       {/* ================= MENU CHỐT ĐIỂM ĐO ================= */}
-      {pick && (
+      {pick && !isSettingsOpen && (
         <>
           {/* Lớp nền bắt click bên ngoài để đóng menu */}
           <div
@@ -700,6 +709,17 @@ export default function MapTiler() {
             )}
           </div>
         </>
+      )}
+      {/* ================= TRANG CÀI ĐẶT ================= */}
+      {isSettingsOpen && (
+        <div className="absolute inset-0 z-[2000]">
+          <SettingsPage
+            labelInput={labelInput}
+            onLabelInputChange={setLabelInput}
+            onSaveLabels={handleSaveLabels}
+            onBack={handleBackFromSettings}
+          />
+        </div>
       )}
     </div>
   );
