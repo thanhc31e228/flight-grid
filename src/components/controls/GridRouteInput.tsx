@@ -183,65 +183,51 @@ export default function GridRouteInput({ gridIndex }: Props) {
     : [];
 
   return (
-    <div className="flex h-full w-full flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      {/* Header */}
-      <div className="mb-3">
-        <p className="mt-1 text-xs text-slate-500">
-          Nhập tọa độ và nhấn Enter để thêm.
-        </p>
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col border-t border-gray-200 pt-4">
+      {/* Nhập tọa độ */}
+      <label
+        htmlFor="coordinates-ids"
+        className="text-sm font-medium text-gray-900"
+      >
+        Nhập tọa độ
+      </label>
 
-      {/* Input */}
-      <div className="relative">
-        <textarea
-          id="coordinates-ids"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              handleSubmit();
-            }
-          }}
-          placeholder="Ví dụ: 401 80 441 0122 005 04"
-          rows={2}
-          className="
-            w-full resize-none rounded-lg
-            border border-slate-200
-            bg-slate-50 px-3 py-3
-            font-mono text-sm text-slate-800
-            placeholder:font-sans placeholder:text-slate-400
-            outline-none transition-all duration-200
-            focus:border-blue-400
-            focus:bg-white
-            focus:ring-2 focus:ring-blue-100
-          "
-        />
-      </div>
+      <textarea
+        id="coordinates-ids"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            handleSubmit();
+          }
+        }}
+        placeholder="Ví dụ: 401 80 441 0122 005 04"
+        rows={2}
+        className="
+          mt-2 w-full resize-none rounded-md border border-gray-300
+          bg-white px-3 py-2 font-mono text-sm text-gray-900 outline-none
+          transition-colors placeholder:font-sans placeholder:text-gray-400
+          focus:border-gray-900 focus:ring-1 focus:ring-gray-900
+        "
+      />
 
-      {/* Footer Input */}
-      <div className="mt-2 flex items-center justify-between">
-        <span className="text-[11px] text-slate-400">Enter để thêm tọa độ</span>
-      </div>
+      <p className="mt-1.5 text-xs text-gray-500">
+        Enter để thêm, Shift + Enter để xuống dòng.
+      </p>
 
       {/* Lịch sử tọa độ */}
-      <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden border-t border-slate-100 pt-3">
-        {/* Header lịch sử */}
+      <div className="mt-5 flex min-h-0 flex-1 flex-col">
         <div className="mb-3 flex shrink-0 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-slate-700">
-              Lịch sử tọa độ
-            </span>
-
-            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600">
-              {history.length}
-            </span>
-          </div>
+          <h3 className="text-sm font-medium text-gray-900">Lịch sử tọa độ</h3>
+          <span className="text-xs tabular-nums text-gray-500">
+            {history.length}
+          </span>
         </div>
 
         {history.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center">
-            <p className="text-xs text-slate-400">
+          <div className="rounded-md border border-dashed border-gray-300 px-3 py-6 text-center">
+            <p className="text-sm text-gray-500">
               Chưa có tọa độ nào được nhập
             </p>
           </div>
@@ -249,7 +235,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
           <div className="flex min-h-0 flex-1 flex-col gap-3">
             {/* Tìm Tốp */}
             <div className="relative shrink-0">
-              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -267,14 +253,12 @@ export default function GridRouteInput({ gridIndex }: Props) {
                 value={searchTop}
                 onChange={(event) => setSearchTop(event.target.value)}
                 placeholder="Tìm Tốp..."
+                aria-label="Tìm Tốp"
                 className="
-                  w-full rounded-lg border border-slate-200
-                  bg-slate-50 py-2 pl-9 pr-3
-                  text-xs text-slate-700
-                  outline-none transition
-                  placeholder:text-slate-400
-                  focus:border-blue-400 focus:bg-white
-                  focus:ring-2 focus:ring-blue-100
+                  h-9 w-full rounded-md border border-gray-300 bg-white
+                  pl-9 pr-3 text-sm text-gray-900 outline-none
+                  transition-colors placeholder:text-gray-400
+                  focus:border-gray-900 focus:ring-1 focus:ring-gray-900
                 "
               />
             </div>
@@ -282,11 +266,9 @@ export default function GridRouteInput({ gridIndex }: Props) {
             {/* Danh sách Tốp - scroll riêng */}
             <div className="max-h-[125px] shrink-0 overflow-y-auto overscroll-contain pr-1">
               {filteredTopIds.length === 0 ? (
-                <div className="rounded-lg bg-slate-50 px-3 py-4 text-center">
-                  <p className="text-xs text-slate-400">
-                    Không tìm thấy Tốp {searchTop}
-                  </p>
-                </div>
+                <p className="py-3 text-center text-sm text-gray-500">
+                  Không tìm thấy Tốp {searchTop}
+                </p>
               ) : (
                 <div className="grid grid-cols-2 gap-1.5">
                   {filteredTopIds.map((aircraftId) => {
@@ -298,32 +280,21 @@ export default function GridRouteInput({ gridIndex }: Props) {
                         key={aircraftId}
                         type="button"
                         onClick={() => setSelectedTop(aircraftId)}
+                        aria-pressed={isSelected}
                         className={`
-                          flex min-w-0 items-center justify-between
-                          rounded-lg border px-2.5 py-2
-                          transition-all duration-150
+                          flex h-9 min-w-0 items-center justify-between
+                          rounded-md border px-2.5 text-sm transition-colors
+                          focus:outline-none focus-visible:ring-2
+                          focus-visible:ring-gray-900
                           ${
                             isSelected
-                              ? "border-blue-300 bg-blue-50 text-blue-700 shadow-sm"
-                              : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-slate-50"
+                              ? "border-gray-900 bg-gray-100 font-medium text-gray-900"
+                              : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
                           }
                         `}
                       >
-                        <span className="truncate text-xs font-semibold">
-                          Tốp {aircraftId}
-                        </span>
-
-                        <span
-                          className={`
-                            ml-1 shrink-0 rounded-full px-1.5 py-0.5
-                            text-[10px] font-bold
-                            ${
-                              isSelected
-                                ? "bg-blue-100 text-blue-600"
-                                : "bg-slate-100 text-slate-500"
-                            }
-                          `}
-                        >
+                        <span className="truncate">Tốp {aircraftId}</span>
+                        <span className="ml-2 shrink-0 text-xs tabular-nums text-gray-500">
                           {count}
                         </span>
                       </button>
@@ -334,73 +305,59 @@ export default function GridRouteInput({ gridIndex }: Props) {
             </div>
 
             {/* Lịch sử Tốp được chọn */}
-            <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
-              {/* Header Tốp đang chọn */}
-              <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-100 text-[10px] font-bold text-blue-700">
-                    {activeTop}
-                  </span>
-
-                  <span className="text-xs font-semibold text-slate-700">
-                    Tốp {activeTop}
-                  </span>
-                </div>
-
-                <span className="text-[10px] text-slate-400">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-gray-200">
+              <div className="flex shrink-0 items-center justify-between border-b border-gray-200 bg-gray-50 px-3 py-2">
+                <span className="text-sm font-medium text-gray-900">
+                  Tốp {activeTop}
+                </span>
+                <span className="text-xs tabular-nums text-gray-500">
                   {selectedHistory.length} tọa độ
                 </span>
               </div>
 
               {/* Danh sách tọa độ - scroll riêng */}
-              <div className="h-[180px] max-h-[180px] shrink-0 overflow-y-auto overscroll-contain p-2">
-                <div className="flex flex-col gap-1.5">
-                  {selectedHistory.reverse().map((item, index) => (
-                    <div
-                      key={item.id}
+              <ul className="min-h-[120px] flex-1 divide-y divide-gray-100 overflow-y-auto overscroll-contain">
+                {[...selectedHistory].reverse().map((item, index) => (
+                  <li
+                    key={item.id}
+                    className="flex items-center gap-3 px-3 py-1.5 hover:bg-gray-50"
+                  >
+                    <span className="w-6 shrink-0 text-xs tabular-nums text-gray-400">
+                      {selectedHistory.length - index}
+                    </span>
+
+                    <p className="min-w-0 flex-1 truncate font-mono text-xs text-gray-900">
+                      {item.value}
+                    </p>
+
+                    <button
+                      type="button"
+                      disabled={!canUndo(item)}
+                      onClick={() => handleUndo(item)}
+                      aria-label="Hoàn tác tọa độ"
+                      title={
+                        canUndo(item)
+                          ? "Hoàn tác tọa độ"
+                          : "Hãy hoàn tác tọa độ phía sau trước"
+                      }
                       className="
-                        group flex items-center gap-2
-                        rounded-lg border border-slate-100
-                        bg-slate-50 px-2.5 py-2
-                        transition
-                        hover:border-blue-200 hover:bg-blue-50/50
+                        flex h-7 w-7 shrink-0 items-center justify-center
+                        rounded-md text-gray-400 transition-colors
+                        hover:bg-gray-100 hover:text-gray-900
+                        focus:outline-none focus-visible:ring-2
+                        focus-visible:ring-gray-900
+                        disabled:cursor-not-allowed disabled:opacity-30
+                        disabled:hover:bg-transparent
+                        disabled:hover:text-gray-400
                       "
                     >
-                      {/* Số thứ tự */}
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white text-[10px] font-semibold text-slate-400">
-                        {selectedHistory.length - index}
+                      <span aria-hidden="true" className="text-lg leading-none">
+                        ×
                       </span>
-
-                      {/* Nội dung tọa độ */}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-mono text-xs font-semibold tracking-wide text-slate-700">
-                          {item.value}
-                        </p>
-                      </div>
-
-                      {/* Undo */}
-                      <button
-                        type="button"
-                        disabled={!canUndo(item)}
-                        onClick={() => handleUndo(item)}
-                        title={
-                          canUndo(item)
-                            ? "Hoàn tác tọa độ"
-                            : "Hãy hoàn tác tọa độ phía sau trước"
-                        }
-                        className="
-                          flex h-7 w-7 shrink-0 items-center justify-center
-                          rounded-md text-slate-400 transition
-                          hover:bg-red-100 hover:text-red-600
-                          disabled:cursor-not-allowed disabled:opacity-25
-                        "
-                      >
-                        <span className="text-lg leading-none">×</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         )}

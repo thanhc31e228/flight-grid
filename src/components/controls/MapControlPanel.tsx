@@ -150,21 +150,21 @@ export default function MapControlPanel({
 
   return (
     <>
-      <div className="relative h-full w-full bg-white p-4 shadow-lg">
-        <div className="my-4 border-t border-gray-100" />
-
-        {/* Aircraft route controls */}
-        <div className="mb-3 flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+      <div className="relative flex h-full w-full flex-col gap-3 bg-white p-4 shadow-lg">
+        {/* Máy bay đang chọn */}
+        <div className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
           <span
             className="h-3 w-3 shrink-0 rounded-full"
             style={{ backgroundColor: selectedAircraft?.color }}
           />
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-gray-800">
+            <p className="truncate text-sm font-medium text-gray-900">
               {selectedAircraft?.name ?? "Chưa chọn máy bay"}
             </p>
-            <p className="text-xs text-gray-500">{points.length} waypoint</p>
+            <p className="text-xs tabular-nums text-gray-500">
+              {points.length} waypoint
+            </p>
           </div>
         </div>
 
