@@ -5,7 +5,7 @@ export const SETTINGS_MENU_ITEMS: SettingsMenuItem[] = [
   {
     id: "coordinates",
     label: "Cấu hình tọa độ",
-    description: "Quản lý hệ thống ô lưới",
+    description: "Quản lý hệ thống ô vuông",
     icon: Grid2X2,
   },
   {

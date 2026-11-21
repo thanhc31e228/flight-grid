@@ -48,45 +48,29 @@ export default function SettingsPage({
     }
   };
 
-  const ActiveIcon = activeItem.icon;
-
   return (
-    <div className="flex h-full min-h-0 flex-col bg-slate-50">
-      {/* Header */}
+    <div className="flex h-full min-h-0 flex-col bg-gray-50">
       <SettingsHeader onBack={onBack} />
 
-      {/* Body */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Sidebar */}
         <SettingsSidebar
           activeMenu={activeMenu}
           onSelect={setActiveMenu}
           onBack={onBack}
         />
 
-        {/* Content */}
         <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="mx-auto max-w-5xl space-y-6">
-            {/* Heading */}
-            <div className="border-b border-slate-200 pb-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                  <ActiveIcon size={21} />
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">
-                    {activeItem.label}
-                  </h2>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    {activeItem.description}
-                  </p>
-                </div>
-              </div>
+          <div className="mx-auto max-w-5xl">
+            {/* Tiêu đề */}
+            <div className="mb-5 border-b border-gray-200 pb-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                {activeItem.label}
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                {activeItem.description}
+              </p>
             </div>
 
-            {/* Active component */}
             {renderContent()}
           </div>
         </main>

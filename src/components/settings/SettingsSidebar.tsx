@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { SettingsMenu } from "../../types/settings";
 import { SETTINGS_MENU_ITEMS } from "./settings.menu";
 
@@ -14,16 +14,16 @@ export default function SettingsSidebar({
   onBack,
 }: Props) {
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-slate-200 bg-white">
-      {/* Sidebar heading */}
-      <div className="border-b border-slate-100 px-4 py-4">
-        <h2 className="text-sm font-bold text-slate-800">Thiết lập hệ thống</h2>
-
-        <p className="mt-1 text-xs text-slate-500">Chọn danh mục cài đặt</p>
+    <aside className="flex w-60 shrink-0 flex-col border-r border-gray-200 bg-white">
+      {/* Tiêu đề */}
+      <div className="border-b border-gray-200 px-4 py-3.5">
+        <h2 className="text-sm font-semibold text-gray-900">
+          Thiết lập hệ thống
+        </h2>
       </div>
 
       {/* Menu */}
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
         {SETTINGS_MENU_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = activeMenu === item.id;
@@ -33,75 +33,38 @@ export default function SettingsSidebar({
               key={item.id}
               type="button"
               onClick={() => onSelect(item.id)}
+              aria-current={isActive ? "page" : undefined}
               className={`
-                group flex w-full items-center gap-3 rounded-xl
-                px-3 py-3 text-left transition-all duration-200
+                flex w-full items-center gap-2.5 rounded-md px-3 py-2
+                text-left text-sm transition-colors
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900
                 ${
                   isActive
-                    ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    ? "bg-gray-100 font-medium text-gray-900"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }
               `}
             >
-              {/* Icon */}
-              <div
-                className={`
-                  flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
-                  transition-colors
-                  ${
-                    isActive
-                      ? "bg-blue-100 text-blue-600"
-                      : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
-                  }
-                `}
-              >
-                <Icon size={18} />
-              </div>
-
-              {/* Label */}
-              <div className="min-w-0 flex-1">
-                <div
-                  className={`text-sm font-semibold ${
-                    isActive ? "text-blue-700" : "text-slate-700"
-                  }`}
-                >
-                  {item.label}
-                </div>
-
-                <div className="mt-0.5 text-[11px] leading-4 text-slate-400">
-                  {item.description}
-                </div>
-              </div>
-
-              {/* Arrow */}
-              <ChevronRight
-                size={16}
-                className={`
-                  shrink-0 transition-all
-                  ${
-                    isActive
-                      ? "translate-x-0 text-blue-500 opacity-100"
-                      : "-translate-x-1 text-slate-300 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
-                  }
-                `}
-              />
+              <Icon size={16} className="shrink-0" />
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
             </button>
           );
         })}
       </nav>
 
-      {/* Sidebar footer */}
-      <div className="border-t border-slate-100 p-3">
+      {/* Quay lại */}
+      <div className="border-t border-gray-200 p-2">
         <button
           type="button"
           onClick={onBack}
           className="
-            flex w-full items-center gap-2 rounded-lg px-3 py-2
-            text-sm text-slate-500 transition-colors
-            hover:bg-slate-100 hover:text-slate-800
+            flex w-full items-center gap-2.5 rounded-md px-3 py-2
+            text-sm text-gray-600 transition-colors
+            hover:bg-gray-50 hover:text-gray-900
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900
           "
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={16} className="shrink-0" />
           Quay lại bản đồ
         </button>
       </div>
