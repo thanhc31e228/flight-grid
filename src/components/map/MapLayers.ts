@@ -3,6 +3,7 @@ import centroid from "@turf/centroid";
 import { lineString } from "@turf/helpers";
 import {
   MapLayerMouseEvent,
+  MapMouseEvent,
   Marker,
   type ExpressionSpecification,
   type GeoJSONSource,
@@ -477,7 +478,6 @@ function enableLocationLabelDrag(
   const root = marker.getElement();
 
   const label = root.querySelector<HTMLElement>("[data-location-label]");
-
   const line = root.querySelector<SVGPolylineElement>("[data-location-line]");
 
   if (!label || !line) return () => {};
@@ -489,6 +489,7 @@ function enableLocationLabelDrag(
   let offsetY = Number(label.dataset.offsetY) || 0;
 
   let dragging = false;
+  let hasMoved = false;
   let pointerId: number | null = null;
 
   let startMouseX = 0;
@@ -499,6 +500,9 @@ function enableLocationLabelDrag(
 
   // Trạng thái map trước khi kéo
   let wasDragPanEnabled = true;
+
+  // Ngưỡng xác định thao tác drag (px)
+  const DRAG_THRESHOLD = 3;
 
   const side = label.dataset.side;
 
@@ -527,6 +531,7 @@ function enableLocationLabelDrag(
     e.stopPropagation();
 
     dragging = true;
+    hasMoved = false;
     pointerId = e.pointerId;
 
     startMouseX = e.clientX;
@@ -548,8 +553,18 @@ function enableLocationLabelDrag(
     e.preventDefault();
     e.stopPropagation();
 
-    offsetX = startOffsetX + e.clientX - startMouseX;
-    offsetY = startOffsetY + e.clientY - startMouseY;
+    const dx = e.clientX - startMouseX;
+    const dy = e.clientY - startMouseY;
+
+    // Chỉ xác nhận drag khi di chuyển vượt ngưỡng
+    if (!hasMoved && Math.hypot(dx, dy) < DRAG_THRESHOLD) {
+      return;
+    }
+
+    hasMoved = true;
+
+    offsetX = startOffsetX + dx;
+    offsetY = startOffsetY + dy;
 
     renderPosition();
   };
@@ -564,12 +579,31 @@ function enableLocationLabelDrag(
       map.dragPan.enable();
     }
 
-    // Lưu offset ngay lập tức
-    locationOffsets.set(locId, {
-      x: offsetX,
-      y: offsetY,
-    });
+    // Chỉ lưu khi thực sự kéo
+    if (hasMoved) {
+      locationOffsets.set(locId, {
+        x: offsetX,
+        y: offsetY,
+      });
+
+      // Chặn click MapLibre phát sinh sau thao tác drag
+      suppressNextMapClick = true;
+    }
   };
+
+  // Chặn click map nếu vừa kéo label
+  let suppressNextMapClick = false;
+
+  const onMapClick = (e: MapMouseEvent) => {
+    if (!suppressNextMapClick) return;
+
+    suppressNextMapClick = false;
+
+    e.preventDefault();
+    e.originalEvent.stopPropagation();
+  };
+
+  map.on("click", onMapClick);
 
   label.addEventListener("pointerdown", onPointerDown);
   label.addEventListener("pointermove", onPointerMove);
@@ -581,6 +615,8 @@ function enableLocationLabelDrag(
     label.removeEventListener("pointermove", onPointerMove);
     label.removeEventListener("pointerup", finishDrag);
     label.removeEventListener("pointercancel", finishDrag);
+
+    map.off("click", onMapClick);
 
     if (dragging && wasDragPanEnabled) {
       map.dragPan.enable();
