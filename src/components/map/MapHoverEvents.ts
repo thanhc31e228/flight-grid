@@ -3,6 +3,7 @@ import {
   type Map as MapLibreMap,
   type MapMouseEvent,
 } from "maplibre-gl";
+import { formatGridId } from "../../utils/formatGridId";
 
 export function registerWaypointHoverEvents(map: MapLibreMap) {
   let popup: Popup | null = null;
@@ -25,7 +26,9 @@ export function registerWaypointHoverEvents(map: MapLibreMap) {
 
     const coordinates = feature.geometry.coordinates as [number, number];
 
-    const name = String(feature.properties?.name ?? "Waypoint");
+    const name = String(
+      formatGridId(feature.properties?.coordinate) ?? "Waypoint",
+    ); // hiển thị ở điểm point khi hover vào
 
     map.getCanvas().style.cursor = "pointer";
 

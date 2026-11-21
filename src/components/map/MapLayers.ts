@@ -317,7 +317,6 @@ function setHover(
   hoverState[source] = aircraftId;
 
   const activeId = hoverState.label ?? hoverState.line ?? "";
-
   if (activeId !== appliedHoverId) {
     appliedHoverId = activeId;
 
@@ -353,24 +352,6 @@ function resetHover(map?: MapLibreMap) {
         el.style.boxShadow = "none";
       });
   });
-}
-
-// =========================
-// FIRST WAYPOINT LABEL
-// =========================
-// =========================
-// LOCATION LABEL (địa điểm cố định + số điện thoại)
-// =========================
-
-interface LocationLabel {
-  id: string;
-  name: string;
-  phone?: string;
-  lng: number;
-  lat: number;
-  side?: "left" | "right"; // label nằm bên nào so với điểm
-  offsetX?: number;
-  offsetY?: number;
 }
 
 const locationMarkers = new Map<string, Marker>();
@@ -455,17 +436,17 @@ function buildLocationHtml(loc: Place) {
     </svg>
 
     <!-- Draggable location label -->
-    <div
-  data-location-label
-  data-location-id="${escapeHtml(String(loc.id))}"
-  data-side="${loc.side ?? "right"}"
-  data-base-x="${endX}"
-  data-base-y="${endY}"
-  data-offset-x="${offset.x}"
-  data-offset-y="${offset.y}"
-  class="absolute z-10 pointer-events-auto cursor-grab active:cursor-grabbing select-none"
-  style="top:${labelY}px; ${boxPos} touch-action:none;"
->
+        <div
+              data-location-label
+              data-location-id="${escapeHtml(String(loc.id))}"
+              data-side="${loc.side ?? "right"}"
+              data-base-x="${endX}"
+              data-base-y="${endY}"
+              data-offset-x="${offset.x}"
+              data-offset-y="${offset.y}"
+              class="absolute z-10 pointer-events-auto cursor-grab active:cursor-grabbing select-none"
+              style="top:${labelY}px; ${boxPos} touch-action:none;"
+            >
       <div
         class="
           min-w-[110px]
@@ -1180,6 +1161,8 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
         type: "Feature",
         properties: {
           name: `${aircraft.id} - ${index + 1}`,
+          id: aircraft.id,
+          coordinate: point.coordinateGrid ?? `${aircraft.id} - ${index + 1}`,
           aircraftId: aircraft.id,
           color: aircraft.color,
           isFirst: index === 0,

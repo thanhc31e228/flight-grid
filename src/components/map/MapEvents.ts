@@ -116,32 +116,37 @@ export function registerMapEvents(
   // ======================================
 
   const handleClick = (event: MapMouseEvent) => {
-    // Ctrl + click là thao tác đo / chốt điểm, không thêm waypoint
+    // Ctrl + click dùng cho đo đạc
     if (event.originalEvent.ctrlKey) return;
     if (!map.isStyleLoaded()) return;
-    const features = map.queryRenderedFeatures(event.point, {
+
+    // Click vào waypoint có sẵn thì không tạo waypoint mới
+    const pointFeatures = map.queryRenderedFeatures(event.point, {
       layers: ["points-layer"],
     });
+    if (pointFeatures.length > 0) return;
 
-    // Nếu click vào waypoint thì không tạo waypoint mới
-    if (features.length > 0) return;
+    // Lấy ID ô lưới cấp 3
+    const gridFeatures = map.queryRenderedFeatures(event.point, {
+      layers: ["grid-level-3-fill"],
+    });
+    const gridId = gridFeatures[0]?.properties?.id;
     const selectedAircraftId = getSelectedAircraftId();
-    // Chưa chọn máy bay thì không thêm điểm
-    if (!selectedAircraftId) {
-      // them top may bay moi
-      return;
-    }
+
+    if (!selectedAircraftId) return;
+
     const lastPoint = getLastPoint(selectedAircraftId);
-    // neu co diem cuoi thi tao them diem moi
-    if (lastPoint) {
-      const point: Point = {
-        lng: event.lngLat.lng,
-        lat: event.lngLat.lat,
-        appearanceTime: lastPoint.appearanceTime,
-      };
-      // Thêm điểm vào đúng máy bay
-      onAddPoint(selectedAircraftId, point);
-    }
+
+    if (!lastPoint) return;
+
+    const point: Point = {
+      lng: event.lngLat.lng,
+      lat: event.lngLat.lat,
+      appearanceTime: lastPoint.appearanceTime,
+      coordinateGrid: gridId != null ? String(gridId) : undefined,
+    };
+
+    onAddPoint(selectedAircraftId, point);
   };
 
   map.on("mousemove", handleMouseMove);
