@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Grid2X2, X, Check, AlertCircle } from "lucide-react";
+import { Grid2X2 } from "lucide-react";
 
 type Props = {
   labelInput: string;
@@ -8,65 +8,104 @@ type Props = {
   onSaveLabels: (labels: string[]) => Promise<void>;
 };
 
+type Toast = {
+  type: "success" | "error";
+  message: string;
+};
+
 const inputClass = `
-  h-12 w-full min-w-0 rounded-lg border border-gray-200
-  bg-gray-50 px-2 text-center text-sm font-medium outline-none
-  transition-all duration-200
+  h-8 w-full min-w-0 rounded-md border border-gray-200
+  bg-gray-50 px-0.5 text-center text-xs font-medium outline-none
+  transition-colors duration-200
   focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100
   disabled:cursor-not-allowed disabled:opacity-60
 `;
+
+const SIZE = 10;
+const TOAST_DURATION = 3500;
+
+// Tách 100 label thành label hàng / cột
+const parseLabels = (labels: string[]) => {
+  if (labels.length === SIZE * SIZE) {
+    return {
+      rows: Array.from(
+        { length: SIZE },
+        (_, i) => labels[i * SIZE]?.slice(0, -1) ?? "",
+      ),
+      cols: Array.from({ length: SIZE }, (_, i) => labels[i]?.slice(-1) ?? ""),
+    };
+  }
+
+  return {
+    rows: Array<string>(SIZE).fill(""),
+    cols: Array<string>(SIZE).fill(""),
+  };
+};
 
 export default function CoordinateSettings({
   labelInput,
   onLabelInputChange,
   onSaveLabels,
 }: Props) {
-  const [showEditor, setShowEditor] = useState(false);
-  const [editorAnimated, setEditorAnimated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const [rowLabels, setRowLabels] = useState<string[]>([]);
-  const [colLabels, setColLabels] = useState<string[]>([]);
+  // Popup xác nhận + thông báo kết quả
+  const [pendingLabels, setPendingLabels] = useState<string[] | null>(null);
+  const [confirmAnimated, setConfirmAnimated] = useState(false);
+  const [toast, setToast] = useState<Toast | null>(null);
+
+  const [rowLabels, setRowLabels] = useState<string[]>(() =>
+    Array<string>(SIZE).fill(""),
+  );
+  const [colLabels, setColLabels] = useState<string[]>(() =>
+    Array<string>(SIZE).fill(""),
+  );
 
   const gridLabels = useMemo(
     () => labelInput.trim().split(/\s+/).filter(Boolean),
     [labelInput],
   );
 
-  // Animation
+  // Đồng bộ editor mỗi khi labelInput thay đổi (lúc mount + sau khi lưu)
   useEffect(() => {
-    if (!showEditor) {
-      setEditorAnimated(false);
+    const { rows, cols } = parseLabels(gridLabels);
+    setRowLabels(rows);
+    setColLabels(cols);
+    setError("");
+  }, [gridLabels]);
+
+  // Animation popup xác nhận
+  useEffect(() => {
+    if (!pendingLabels) {
+      setConfirmAnimated(false);
       return;
     }
 
-    const frame = requestAnimationFrame(() => setEditorAnimated(true));
+    const frame = requestAnimationFrame(() => setConfirmAnimated(true));
 
     return () => cancelAnimationFrame(frame);
-  }, [showEditor]);
+  }, [pendingLabels]);
 
-  // Khởi tạo label
-  const handleOpenEditor = () => {
-    if (gridLabels.length === 100) {
-      setRowLabels(
-        Array.from(
-          { length: 10 },
-          (_, i) => gridLabels[i * 10]?.slice(0, -1) ?? "",
-        ),
-      );
+  // Đóng popup bằng phím Esc
+  useEffect(() => {
+    if (!pendingLabels) return;
 
-      setColLabels(
-        Array.from({ length: 10 }, (_, i) => gridLabels[i]?.slice(-1) ?? ""),
-      );
-    } else {
-      setRowLabels(Array(10).fill(""));
-      setColLabels(Array(10).fill(""));
-    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !saving) setPendingLabels(null);
+    };
 
-    setError("");
-    setShowEditor(true);
-  };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pendingLabels, saving]);
+
+  // Tự ẩn thông báo
+  useEffect(() => {
+    if (!toast) return;
+
+    const timer = setTimeout(() => setToast(null), TOAST_DURATION);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const handleRowChange = (index: number, value: string) => {
     setRowLabels((prev) => prev.map((item, i) => (i === index ? value : item)));
@@ -76,8 +115,16 @@ export default function CoordinateSettings({
     setColLabels((prev) => prev.map((item, i) => (i === index ? value : item)));
   };
 
-  // Lưu tọa độ
-  const handleAccept = async () => {
+  // Khôi phục về tọa độ đang lưu
+  const handleReset = () => {
+    const { rows, cols } = parseLabels(gridLabels);
+    setRowLabels(rows);
+    setColLabels(cols);
+    setError("");
+  };
+
+  // Bấm "Lưu tọa độ": kiểm tra dữ liệu rồi mở popup xác nhận
+  const handleRequestSave = () => {
     const rows = rowLabels.map((label) => label.trim());
     const cols = colLabels.map((label) => label.trim());
 
@@ -88,20 +135,36 @@ export default function CoordinateSettings({
 
     const labels = rows.flatMap((row) => cols.map((col) => `${row}${col}`));
 
-    if (new Set(labels).size !== 100) {
+    if (new Set(labels).size !== SIZE * SIZE) {
       setError("Các tọa độ bị trùng nhau. Vui lòng kiểm tra lại label.");
       return;
     }
 
+    setError("");
+    setPendingLabels(labels);
+  };
+
+  // Xác nhận trong popup: gọi lưu và báo kết quả
+  const handleConfirmSave = async () => {
+    if (!pendingLabels) return;
+
     try {
       setSaving(true);
-      setError("");
 
-      await onSaveLabels(labels);
-      onLabelInputChange(labels.join(" "));
-      setShowEditor(false);
+      await onSaveLabels(pendingLabels);
+      onLabelInputChange(pendingLabels.join(" "));
+
+      setPendingLabels(null);
+      setToast({ type: "success", message: "Đã lưu tọa độ thành công." });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể lưu tọa độ.");
+      setPendingLabels(null);
+      setToast({
+        type: "error",
+        message:
+          err instanceof Error && err.message
+            ? `Lưu tọa độ thất bại: ${err.message}`
+            : "Lưu tọa độ thất bại. Vui lòng thử lại.",
+      });
     } finally {
       setSaving(false);
     }
@@ -128,269 +191,213 @@ export default function CoordinateSettings({
 
   return (
     <>
-      {/* Settings card */}
-      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         {/* Header */}
-        <div className="flex items-center gap-3 border-b border-gray-100 p-5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-            <Grid2X2 size={21} />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <h3 className="text-base font-bold text-gray-900">
-              Thiết lập tọa độ
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Tùy chỉnh label hàng, cột và hệ thống tọa độ trên bản đồ.
-            </p>
-          </div>
+        <div className="flex items-center gap-2.5 border-b border-gray-100 px-4 py-3">
+          <Grid2X2 size={18} className="text-blue-600" />
+          <h3 className="text-base font-bold text-gray-900">
+            Thiết lập tọa độ
+          </h3>
         </div>
 
-        {/* Content */}
-        <div className="space-y-5 p-5">
-          {/* Current status */}
-          <div className="flex items-center justify-between rounded-xl bg-gray-50 p-4">
-            <div>
-              <p className="text-sm font-medium text-gray-700">
-                Số tọa độ hiện tại
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                Hệ thống lưới 10 × 10
-              </p>
+        {/* Editor content */}
+        <div className="p-3 sm:p-4">
+          <div className="grid grid-cols-[56px_repeat(10,minmax(0,1fr))] gap-1">
+            <div className="flex h-8 items-center justify-center text-xs text-gray-400">
+              Hàng
             </div>
 
-            <div className="text-right">
-              <span className="text-lg font-bold tabular-nums text-blue-600">
-                {gridLabels.length}
-              </span>
-              <span className="text-sm text-gray-400"> / 100</span>
-            </div>
-          </div>
+            {/* Column labels */}
+            {colLabels.map((label, index) => (
+              <div key={`col-${index}`} className="min-w-0">
+                {renderLabelInput(label, `${index + 1}`, (value) =>
+                  handleColChange(index, value),
+                )}
+              </div>
+            ))}
 
-          {/* Progress */}
-          <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-            <div
-              className="h-full rounded-full bg-blue-500 transition-all duration-300"
-              style={{
-                width: `${Math.min(gridLabels.length, 100)}%`,
-              }}
-            />
-          </div>
+            {/* Row labels and coordinates */}
+            {rowLabels.map((rowLabel, rowIndex) => (
+              <div key={`row-${rowIndex}`} className="contents">
+                {renderLabelInput(rowLabel, `${rowIndex + 1}`, (value) =>
+                  handleRowChange(rowIndex, value),
+                )}
 
-          {/* Preview current labels */}
-          <div>
-            <p className="mb-2 text-sm font-semibold text-gray-700">
-              Xem trước tọa độ hiện tại
-            </p>
+                {colLabels.map((colLabel, colIndex) => {
+                  const coordinate = `${rowLabel.trim()}${colLabel.trim()}`;
 
-            <div className="max-h-32 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-3">
-              {gridLabels.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {gridLabels.map((label, index) => (
-                    <span
-                      key={`${label}-${index}`}
-                      className="
-                        rounded-md border border-blue-100 bg-blue-50
-                        px-2 py-1 font-mono text-xs font-medium text-blue-700
-                      "
+                  return (
+                    <div
+                      key={`${rowIndex}-${colIndex}`}
+                      title={coordinate}
+                      className={`
+                        flex h-8 min-w-0 items-center justify-center
+                        overflow-hidden rounded-md border px-1 text-xs
+                        font-semibold transition-colors
+                        ${
+                          coordinate
+                            ? "border-blue-100 bg-blue-50 text-blue-700"
+                            : "border-gray-200 bg-gray-50 text-gray-300"
+                        }
+                      `}
                     >
-                      {label}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="py-3 text-center text-sm text-gray-400">
-                  Chưa có tọa độ nào được thiết lập
-                </p>
-              )}
-            </div>
+                      <span className="truncate">{coordinate || "—"}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
 
-          {/* Action */}
-          <button
-            type="button"
-            onClick={handleOpenEditor}
-            className="
-              flex w-full items-center justify-center gap-2
-              rounded-xl border border-blue-200 bg-blue-50
-              px-4 py-3 text-sm font-semibold text-blue-700
-              transition-all duration-200
-              hover:border-blue-400 hover:bg-blue-100
-              active:scale-[0.98]
-            "
-          >
-            <Grid2X2 size={17} />
-            Thay đổi tọa độ
-          </button>
+          {/* Error */}
+          {error && (
+            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+              ⚠ {error}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex flex-col gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-xs font-medium text-gray-500">
+            {filledCount}/20 label đã nhập
+          </span>
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleReset}
+              className="
+                rounded-lg border border-gray-300 bg-white px-4 py-2
+                text-sm font-semibold text-gray-600
+                transition-colors hover:bg-gray-100 disabled:opacity-50
+              "
+            >
+              Khôi phục
+            </button>
+
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleRequestSave}
+              className="
+                rounded-lg bg-blue-600 px-4 py-2
+                text-sm font-semibold text-white shadow-sm
+                transition-colors duration-200
+                hover:bg-blue-700
+                disabled:cursor-not-allowed disabled:opacity-60
+              "
+            >
+              ✓ Lưu tọa độ
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Coordinate editor modal */}
-      {showEditor &&
+      {/* Popup xác nhận */}
+      {pendingLabels &&
         createPortal(
           <div
             className={`
               fixed inset-0 z-[99999] flex items-center justify-center
               bg-black/50 p-4 backdrop-blur-sm
               transition-opacity duration-200
-              ${editorAnimated ? "opacity-100" : "opacity-0"}
+              ${confirmAnimated ? "opacity-100" : "opacity-0"}
             `}
-            onClick={() => !saving && setShowEditor(false)}
+            onClick={() => !saving && setPendingLabels(null)}
           >
             <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="coordinate-confirm-title"
               className={`
-                flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden
-                rounded-2xl bg-white shadow-2xl
+                w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl
                 transition-all duration-200
                 ${
-                  editorAnimated
+                  confirmAnimated
                     ? "translate-y-0 scale-100 opacity-100"
                     : "translate-y-3 scale-95 opacity-0"
                 }
               `}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Modal header */}
-              <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4 sm:px-6">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 sm:text-xl">
-                    Thiết lập tọa độ
-                  </h3>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Chỉnh sửa label hàng và cột
-                  </p>
-                </div>
+              <h4
+                id="coordinate-confirm-title"
+                className="text-base font-bold text-gray-900"
+              >
+                Xác nhận lưu tọa độ
+              </h4>
+
+              <p className="mt-2 text-sm text-gray-600">
+                Bạn có chắc muốn thay đổi toàn bộ tọa độ không? Tọa độ cũ sẽ bị
+                ghi đè.
+              </p>
+
+              <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-center text-xs font-semibold text-gray-700">
+                {pendingLabels[0]} … {pendingLabels[pendingLabels.length - 1]}
+              </p>
+
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setPendingLabels(null)}
+                  className="
+                    rounded-lg border border-gray-300 bg-white px-4 py-2
+                    text-sm font-semibold text-gray-600
+                    transition-colors hover:bg-gray-100 disabled:opacity-50
+                  "
+                >
+                  Hủy
+                </button>
 
                 <button
                   type="button"
                   disabled={saving}
-                  onClick={() => setShowEditor(false)}
+                  onClick={handleConfirmSave}
                   className="
-                    flex h-9 w-9 items-center justify-center rounded-full
-                    bg-gray-100 text-gray-500
-                    transition-all duration-200
-                    hover:bg-red-50 hover:text-red-500
-                    disabled:opacity-50
+                    rounded-lg bg-blue-600 px-4 py-2
+                    text-sm font-semibold text-white shadow-sm
+                    transition-colors hover:bg-blue-700
+                    disabled:cursor-not-allowed disabled:opacity-60
                   "
                 >
-                  <X size={18} />
+                  {saving ? "Đang lưu..." : "Xác nhận"}
                 </button>
               </div>
-
-              {/* Editor content */}
-              <div className="min-h-0 flex-1 overflow-auto p-4 sm:p-6">
-                <h4 className="mb-5 text-base font-bold text-gray-800">
-                  Label hàng và xem trước tọa độ
-                </h4>
-
-                <div className="w-full overflow-x-auto">
-                  <div className="min-w-[900px]">
-                    <div className="grid grid-cols-[70px_repeat(10,minmax(0,1fr))] gap-2">
-                      {/* Column header */}
-                      <div className="flex h-12 items-center justify-center text-sm text-gray-400">
-                        Hàng
-                      </div>
-
-                      {colLabels.map((label, index) => (
-                        <div key={`col-${index}`} className="min-w-0">
-                          {renderLabelInput(label, `${index + 1}`, (value) =>
-                            handleColChange(index, value),
-                          )}
-                        </div>
-                      ))}
-
-                      {/* Rows */}
-                      {rowLabels.map((rowLabel, rowIndex) => (
-                        <div key={`row-${rowIndex}`} className="contents">
-                          {renderLabelInput(
-                            rowLabel,
-                            `${rowIndex + 1}`,
-                            (value) => handleRowChange(rowIndex, value),
-                          )}
-
-                          {colLabels.map((colLabel, colIndex) => {
-                            const coordinate = `${rowLabel.trim()}${colLabel.trim()}`;
-
-                            return (
-                              <div
-                                key={`${rowIndex}-${colIndex}`}
-                                className={`
-                                  flex h-12 min-w-0 items-center justify-center
-                                  overflow-hidden rounded-lg border px-2
-                                  text-sm font-semibold transition-colors
-                                  ${
-                                    coordinate
-                                      ? "border-blue-100 bg-blue-50 text-blue-700"
-                                      : "border-gray-200 bg-gray-50 text-gray-300"
-                                  }
-                                `}
-                              >
-                                <span className="truncate">
-                                  {coordinate || "—"}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Error */}
-                {error && (
-                  <div className="mt-6 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                    <AlertCircle size={18} className="mt-0.5 shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="flex shrink-0 flex-col gap-3 border-t border-gray-100 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                <span className="text-sm font-medium text-gray-500">
-                  {filledCount}/20 label đã nhập
-                </span>
-
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    disabled={saving}
-                    onClick={() => setShowEditor(false)}
-                    className="
-                      rounded-lg border border-gray-300 bg-white px-5 py-2.5
-                      text-sm font-semibold text-gray-600
-                      transition-colors hover:bg-gray-100
-                      disabled:opacity-50
-                    "
-                  >
-                    Hủy
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleAccept}
-                    disabled={saving}
-                    className="
-                      flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5
-                      text-sm font-semibold text-white shadow-sm
-                      transition-all duration-200
-                      hover:bg-blue-700 hover:shadow-md
-                      disabled:cursor-not-allowed disabled:opacity-60
-                    "
-                  >
-                    {saving ? (
-                      "Đang lưu..."
-                    ) : (
-                      <>
-                        <Check size={17} />
-                        Xác nhận
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
             </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Thông báo thành công / thất bại */}
+      {toast &&
+        createPortal(
+          <div
+            role="status"
+            className={`
+              fixed right-4 top-4 z-[100000] flex max-w-sm items-start gap-2.5
+              rounded-xl border px-4 py-3 text-sm font-medium shadow-lg
+              ${
+                toast.type === "success"
+                  ? "border-green-200 bg-green-50 text-green-700"
+                  : "border-red-200 bg-red-50 text-red-700"
+              }
+            `}
+          >
+            <span aria-hidden="true">
+              {toast.type === "success" ? "✓" : "⚠"}
+            </span>
+            <span className="flex-1">{toast.message}</span>
+            <button
+              type="button"
+              aria-label="Đóng thông báo"
+              onClick={() => setToast(null)}
+              className="-mr-1 px-1 text-lg leading-none opacity-60 hover:opacity-100"
+            >
+              ×
+            </button>
           </div>,
           document.body,
         )}
