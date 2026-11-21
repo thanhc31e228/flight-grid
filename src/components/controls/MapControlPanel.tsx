@@ -158,16 +158,6 @@ export default function MapControlPanel({
       {/* Main control panel */}
       <div className="relative h-full w-full  bg-white p-4 shadow-lg">
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-semibold text-gray-800">
-              Danh sách tọa độ
-            </label>
-
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
-              {gridLabels.length}/100
-            </span>
-          </div>
-
           <button
             type="button"
             onClick={handleOpenEditor}
