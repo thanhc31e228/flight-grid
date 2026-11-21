@@ -4,7 +4,6 @@ import { createPortal } from "react-dom";
 import type { GridFeature } from "../../features/grid/grid.types";
 import RouteControls from "./RouteControls";
 import GridRouteInput from "./GridRouteInput";
-import PointList from "./PointList";
 import { useAirCraftContext } from "../../context/MakerContext";
 
 type Props = {

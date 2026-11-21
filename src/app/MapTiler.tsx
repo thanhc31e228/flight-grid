@@ -21,6 +21,7 @@ import NewAircraftForm from "../components/controls/NewAircraftForm";
 import { useLocations } from "../hooks/useLocations";
 import { Place } from "../features/places/place.types";
 import { LocationPanel } from "../components/controls/LocationPanel";
+import SettingsPage from "../components/settings/SettingsPage";
 
 export default function MapTiler() {
   const {
@@ -308,12 +309,14 @@ export default function MapTiler() {
     setSelectedAircraftId(aircraft.id); // các click tiếp theo thêm waypoint cho top này
     closePick();
   };
-
+  const [onOpenSetting, setOpenSetting] = useState<boolean>(false);
+  function handleOpenSetting() {
+    setOpenSetting(true);
+  }
   return (
     <div className="map-container flex h-screen w-full flex-col overflow-hidden bg-slate-50">
       {/* ================= THANH TỌA ĐỘ ================= */}
-      <MeasurementBar />
-
+      <MeasurementBar onOpenSettings={handleOpenSetting} />
       {/* ================= VÙNG BẢN ĐỒ ================= */}
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {/* ================= MAP ================= */}

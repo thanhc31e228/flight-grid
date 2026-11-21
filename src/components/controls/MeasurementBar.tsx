@@ -1,31 +1,54 @@
+import { Settings } from "lucide-react";
 import { useCursorCoords } from "../MapTiler/utils/cursor.store";
 
-export default function MeasurementBar() {
+type Props = {
+  onOpenSettings: () => void;
+};
+
+export default function MeasurementBar({ onOpenSettings }: Props) {
   const coords = useCursorCoords();
 
   return (
     <div
       className="
         relative z-[1001] flex h-11 w-full shrink-0
-        items-center justify-center gap-8
-        overflow-x-auto whitespace-nowrap
+        items-center justify-center
         border-b border-gray-200 bg-white px-4
         text-sm text-gray-700 shadow-sm
       "
     >
-      <div className="flex items-center gap-2">
-        <span className="font-semibold">Kinh độ:</span>
-        <span className="w-28 font-mono tabular-nums text-sky-700">
-          {coords ? `${coords.lng.toFixed(6)}°` : "--"}
-        </span>
+      {/* Tọa độ chuột */}
+      <div className="flex items-center gap-8 overflow-x-auto whitespace-nowrap">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">Kinh độ:</span>
+          <span className="w-28 font-mono tabular-nums text-sky-700">
+            {coords ? `${coords.lng.toFixed(6)}°` : "--"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">Vĩ độ:</span>
+          <span className="w-28 font-mono tabular-nums text-orange-700">
+            {coords ? `${coords.lat.toFixed(6)}°` : "--"}
+          </span>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="font-semibold">Vĩ độ:</span>
-        <span className="w-28 font-mono tabular-nums text-orange-700">
-          {coords ? `${coords.lat.toFixed(6)}°` : "--"}
-        </span>
-      </div>
+      {/* Settings nằm bên phải */}
+      <button
+        type="button"
+        onClick={onOpenSettings}
+        title="Cài đặt"
+        className="
+          absolute right-3 flex h-8 w-8 items-center justify-center
+          rounded-lg border border-gray-200 bg-white
+          text-gray-600 transition-all
+          hover:bg-gray-100 hover:text-gray-900
+          active:scale-95
+        "
+      >
+        <Settings size={17} />
+      </button>
     </div>
   );
 }
