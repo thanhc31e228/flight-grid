@@ -6,11 +6,16 @@ import PlaceSettings from "./PlaceSettings";
 import CenterSettings from "./CenterSettings";
 import SettingsHeader from "./SettingsHeader";
 import SettingsSidebar from "./SettingsSidebar";
+import { Place } from "../../features/places/place.types";
 
 type Props = {
   labelInput: string;
   onLabelInputChange: (value: string) => void;
   onSaveLabels: (labels: string[]) => Promise<void>;
+  locations: Place[];
+  onAddLocation: (data: Omit<Place, "id">) => void;
+  onRemoveLocation: (id: string) => void;
+  onFocusLocation: (loc: Place) => void;
   onBack: () => void;
 };
 
@@ -18,6 +23,10 @@ export default function SettingsPage({
   labelInput,
   onLabelInputChange,
   onSaveLabels,
+  locations,
+  onAddLocation,
+  onRemoveLocation,
+  onFocusLocation,
   onBack,
 }: Props) {
   const [activeMenu, setActiveMenu] = useState<SettingsMenu>("coordinates");
@@ -38,7 +47,14 @@ export default function SettingsPage({
         );
 
       case "places":
-        return <PlaceSettings />;
+        return (
+          <PlaceSettings
+            locations={locations}
+            onAdd={onAddLocation}
+            onRemove={onRemoveLocation}
+            onFocus={onFocusLocation}
+          />
+        );
 
       case "center":
         return <CenterSettings />;

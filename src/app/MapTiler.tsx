@@ -33,11 +33,10 @@ export default function MapTiler() {
   } = useAirCraftContext();
   // Máy bay đang được chọn
   // Danh sách tọa độ mặc định
-  // Danh sách địa điểm (lưu localStorage)
+  // Danh sách địa điểm
   const { locations, addLocation, removeLocation } = useLocations();
 
   // Đóng/mở panel địa điểm
-  const [isPlacePanelOpen, setIsPlacePanelOpen] = useState(false);
 
   // Yêu cầu bay tới 1 địa điểm. nonce đổi mỗi lần bấm để bấm lại cùng 1 chỗ vẫn chạy
   const [focusTarget, setFocusTarget] = useState<{
@@ -313,7 +312,6 @@ export default function MapTiler() {
 
   const handleOpenSetting = () => {
     setContextMenu(null);
-    setIsPlacePanelOpen(false);
     setPendingSide(null);
     setPick(null);
     setIsSettingsOpen(true);
@@ -397,58 +395,6 @@ export default function MapTiler() {
           )}
         </div>
 
-        {/* ================= NÚT ĐỊA ĐIỂM ================= */}
-        <button
-          type="button"
-          onClick={() => setIsPlacePanelOpen((prev) => !prev)}
-          className="
-          absolute right-4 top-[68px] z-[1000]
-          flex items-center gap-2
-          rounded-xl border border-slate-200
-          bg-white/95 px-4 py-2.5
-          text-sm font-semibold text-slate-700
-          shadow-lg shadow-slate-900/5
-          backdrop-blur-sm
-          transition-all duration-200
-          hover:border-blue-200 hover:bg-blue-50
-          hover:text-blue-600
-          active:scale-[0.98]
-        "
-        >
-          <span>📍</span>
-          <span>Địa điểm</span>
-          <span
-            className={`
-            text-xs transition-transform duration-200
-            ${isPlacePanelOpen ? "rotate-180" : ""}
-          `}
-          >
-            ▾
-          </span>
-        </button>
-
-        {/* ================= PANEL ĐỊA ĐIỂM ================= */}
-        <div className="absolute right-4 top-[116px] z-[1000] flex flex-col items-end gap-2">
-          {isPlacePanelOpen && (
-            <div
-              className="
-              max-h-[60vh] overflow-y-auto
-              rounded-xl border border-slate-200
-              bg-white shadow-xl shadow-slate-900/10
-              animate-in fade-in slide-in-from-top-2
-              duration-200
-            "
-            >
-              <LocationPanel
-                locations={locations}
-                onAdd={handleAddPlace}
-                onRemove={removeLocation}
-                onFocus={handleFocusPlace}
-              />
-            </div>
-          )}
-        </div>
-
         {/* ================= PANEL BÊN TRÁI ================= */}
         <div
           className={`
@@ -512,7 +458,6 @@ export default function MapTiler() {
           <span>Bảng điều khiển</span>
         </button>
       </div>
-
       {/* ================= CONTEXT MENU ================= */}
       {contextMenu && !isSettingsOpen && (
         <div
@@ -576,7 +521,6 @@ export default function MapTiler() {
           </button>
         </div>
       )}
-
       {/* ================= MENU CHỐT ĐIỂM ĐO ================= */}
       {pick && !isSettingsOpen && (
         <>
@@ -710,10 +654,13 @@ export default function MapTiler() {
           </div>
         </>
       )}
-      {/* ================= TRANG CÀI ĐẶT ================= */}
       {isSettingsOpen && (
         <div className="absolute inset-0 z-[2000]">
           <SettingsPage
+            locations={locations}
+            onAddLocation={handleAddPlace}
+            onFocusLocation={handleFocusPlace}
+            onRemoveLocation={removeLocation}
             labelInput={labelInput}
             onLabelInputChange={setLabelInput}
             onSaveLabels={handleSaveLabels}
