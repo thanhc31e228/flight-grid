@@ -143,16 +143,16 @@ export default function GridRouteInput({ gridIndex }: Props) {
     <div className="w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       {/* Header */}
       <div className="mb-3">
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
             ⌖
           </span>
 
           <h3 className="text-sm font-bold text-slate-800">NỐI Ô GRID CẤP 3</h3>
-        </div>
+        </div> */}
 
         <p className="mt-2 text-xs text-slate-500">
-          Nhập mã tọa độ và nhấn Enter để thêm vào tuyến đường.
+          Nhập tọa độ và nhấn Enter để thêm.
         </p>
       </div>
 
@@ -187,10 +187,6 @@ export default function GridRouteInput({ gridIndex }: Props) {
       {/* Footer */}
       <div className="mt-2 flex items-center justify-between">
         <span className="text-[11px] text-slate-400">Enter để thêm tọa độ</span>
-
-        <span className="text-[11px] text-slate-400">
-          Shift + Enter để xuống dòng
-        </span>
       </div>
 
       {/* Lịch sử tọa độ */}
@@ -198,7 +194,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-slate-700">
-              Lịch sử nhập
+              Danh sách tọa độ
             </span>
 
             <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600">
