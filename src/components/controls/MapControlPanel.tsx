@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useMemo } from "react";
 
 import type { GridFeature } from "../../features/grid/grid.types";
 import RouteControls from "./RouteControls";
@@ -7,27 +7,9 @@ import { useAirCraftContext } from "../../context/MakerContext";
 
 type Props = {
   gridIndex: Map<string, GridFeature>;
-  labelInput: string;
-  onLabelInputChange: (value: string) => void;
-  onSaveLabels: (labels: string[]) => Promise<void>;
 };
 
-const inputClass = `
-  h-12 w-full min-w-0 rounded-lg border border-gray-200
-  bg-gray-50 px-2 text-center text-sm font-medium outline-none
-  transition-all duration-200
-  focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100
-  disabled:cursor-not-allowed disabled:opacity-60
-`;
-
-export default function MapControlPanel({
-  gridIndex,
-  labelInput,
-  onLabelInputChange,
-  onSaveLabels,
-}: Props) {
-  const [showEditor, setShowEditor] = useState(false);
-
+export default function MapControlPanel({ gridIndex }: Props) {
   const { aircrafts, selectedAircraftId, undoPoint, clearPoints } =
     useAirCraftContext();
 
@@ -37,11 +19,6 @@ export default function MapControlPanel({
   );
 
   const points = selectedAircraft?.points ?? [];
-
-  const gridLabels = useMemo(
-    () => labelInput.trim().split(/\s+/).filter(Boolean),
-    [labelInput],
-  );
 
   // Animation modal
 

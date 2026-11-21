@@ -20,7 +20,6 @@ import {
 import NewAircraftForm from "../components/controls/NewAircraftForm";
 import { useLocations } from "../hooks/useLocations";
 import { Place } from "../features/places/place.types";
-import { LocationPanel } from "../components/controls/LocationPanel";
 import SettingsPage from "../components/settings/SettingsPage";
 
 export default function MapTiler() {
@@ -404,12 +403,7 @@ export default function MapTiler() {
           ${isPanelOpen ? "translate-x-0" : "-translate-x-full"}
         `}
         >
-          <MapControlPanel
-            gridIndex={gridIndex}
-            labelInput={labelInput}
-            onLabelInputChange={setLabelInput}
-            onSaveLabels={handleSaveLabels}
-          />
+          <MapControlPanel gridIndex={gridIndex} />
 
           {/* Nút đóng panel */}
           <button
