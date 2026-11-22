@@ -114,7 +114,7 @@ export function registerMapEvents(
   // ======================================
   // CLICK
   // ======================================
-
+  // hàm xử lý click khi có 1 top máy bay đang được select
   const handleClick = (event: MapMouseEvent) => {
     // Ctrl + click dùng cho đo đạc
     if (event.originalEvent.ctrlKey) return;

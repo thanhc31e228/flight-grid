@@ -15,6 +15,7 @@ export type AircraftDetails = {
   aircraftCode?: string;
   altitude?: string;
   appearanceTime?: string;
+  coordinateGrid?: string;
 };
 
 export function createAircraft(
