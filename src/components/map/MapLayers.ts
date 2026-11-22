@@ -956,8 +956,8 @@ function addWaypointLayers(map: MapLibreMap) {
     source: SOURCE.points,
     filter: ["!=", ["get", "isFirst"], true],
     layout: {
-      "text-field": ["get", "appearanceTime"],
-      "text-size": 15,
+      "text-field": ["get", "appearanceTime"], // hiển thị tại điểm point
+      "text-size": 8,
       "text-offset": [0, 1.5],
       "text-anchor": "top",
       "text-allow-overlap": true,
