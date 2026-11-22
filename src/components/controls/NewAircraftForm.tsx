@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 
 import type { AircraftDetails, AircraftSide } from "./factory/aircraft.factory";
+import { useMapContext } from "../../context/MapContext";
 
 const SIDE_LABEL: Record<AircraftSide, string> = {
   friendly: "ta",
@@ -23,7 +24,7 @@ function normalizeTime(value: string): string {
 
 type Props = {
   side: AircraftSide;
-  onSubmit: (details: AircraftDetails) => void;
+  onSubmit: (details: AircraftDetails, gridSelectedId: string) => void;
   onBack: () => void;
 };
 
@@ -35,7 +36,7 @@ export default function NewAircraftForm({ side, onSubmit, onBack }: Props) {
     altitude: "",
     appearanceTime: getCurrentTime(),
   });
-
+  const { gridSelected } = useMapContext();
   const change =
     (field: keyof typeof form) => (e: ChangeEvent<HTMLInputElement>) => {
       let value = e.target.value;
@@ -58,12 +59,15 @@ export default function NewAircraftForm({ side, onSubmit, onBack }: Props) {
       ? normalizeTime(form.appearanceTime)
       : getCurrentTime();
 
-    onSubmit({
-      id,
-      aircraftCode: form.aircraftCode.trim() || "chưa xác định",
-      altitude: form.altitude.trim() || "chưa xác định",
-      appearanceTime,
-    });
+    onSubmit(
+      {
+        id,
+        aircraftCode: form.aircraftCode.trim() || "chưa xác định",
+        altitude: form.altitude.trim() || "chưa xác định",
+        appearanceTime,
+      },
+      gridSelected?.id || "",
+    );
   };
 
   const inputClass =

@@ -3,7 +3,7 @@ export type Point = {
   lng: number;
   lat: number;
   appearanceTime?: string; // Thời gian xuất hiện (phút)
-  coordinateGridId?: string;
+  coordinateGridId?: string; // id của tọa độ click, ví dụ 61 215
 };
 
 // Thông tin của một ô lưới

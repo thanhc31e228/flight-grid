@@ -490,6 +490,5 @@ export function initializeMapLayers(map: MapLibreMap) {
     cleanupRouteHover();
     cleanupMeasurement();
     cleanupCursor();
-    // clearFirstWaypointLabels();
   };
 }

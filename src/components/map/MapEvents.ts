@@ -118,16 +118,6 @@ export function registerMapEvents(
   // ======================================
   // hàm xử lý click khi có 1 top máy bay đang được select
   const handleClick = (event: MapMouseEvent) => {
-    // Ctrl + click dùng cho đo đạc
-    if (event.originalEvent.ctrlKey) return;
-    if (!map.isStyleLoaded()) return;
-
-    // Click vào waypoint có sẵn thì không tạo waypoint mới
-    const pointFeatures = map.queryRenderedFeatures(event.point, {
-      layers: ["points-layer"],
-    });
-    if (pointFeatures.length > 0) return;
-
     // Lấy ID ô lưới cấp 3
     const gridFeatures = map.queryRenderedFeatures(event.point, {
       layers: ["grid-level-3-fill"],
@@ -144,9 +134,17 @@ export function registerMapEvents(
         lat: centerLat,
         lng: centerLng,
       };
-      // thêm ô được click vào context
       commitGridSelected(gridSelected);
     }
+    // Ctrl + click dùng cho đo đạc
+    if (event.originalEvent.ctrlKey) return;
+    if (!map.isStyleLoaded()) return;
+    // Click vào waypoint có sẵn thì không tạo waypoint mới
+    const pointFeatures = map.queryRenderedFeatures(event.point, {
+      layers: ["points-layer"],
+    });
+    if (pointFeatures.length > 0) return;
+
     const gridId = gridFeatures[0]?.properties?.id;
     const selectedAircraftId = getSelectedAircraftId();
 

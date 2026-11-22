@@ -284,7 +284,10 @@ export default function MapTiler() {
   };
 
   // Bấm "Thêm" trong form: tạo máy bay mới, điểm đầu chính là điểm vừa chốt
-  const handleCreateAircraft = (details: AircraftDetails) => {
+  const handleCreateAircraft = (
+    details: AircraftDetails,
+    gridSelectedId: string,
+  ) => {
     if (!pick || !pendingSide) return;
 
     const aircraft = createAircraft(
@@ -294,6 +297,7 @@ export default function MapTiler() {
         lng: pick.lng,
         lat: pick.lat,
         appearanceTime: details.appearanceTime,
+        coordinateGridId: gridSelectedId,
       },
       details,
     );
@@ -302,7 +306,6 @@ export default function MapTiler() {
       window.alert("Đã đủ số lượng top máy bay của phe này (99).");
       return;
     }
-
     addAircraft(aircraft);
     setSelectedAircraftId(aircraft.id); // các click tiếp theo thêm waypoint cho top này
     closePick();

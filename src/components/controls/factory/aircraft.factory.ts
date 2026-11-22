@@ -1,4 +1,3 @@
-import { GridSType } from "../../../context/MapContext";
 import { AirCraft, Point } from "../../MapTiler/types/map.types";
 
 export type AircraftSide = "friendly" | "enemy";
