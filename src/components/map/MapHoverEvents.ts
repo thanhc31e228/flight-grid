@@ -27,7 +27,7 @@ export function registerWaypointHoverEvents(map: MapLibreMap) {
     const coordinates = feature.geometry.coordinates as [number, number];
 
     const name = String(
-      formatGridId(feature.properties?.coordinate) ?? "Waypoint",
+      formatGridId(feature.properties?.coordinateGridId) ?? "Waypoint",
     ); // hiển thị ở điểm point khi hover vào
 
     map.getCanvas().style.cursor = "pointer";

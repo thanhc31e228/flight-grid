@@ -9,6 +9,7 @@ export type GridSType = {
 
 interface MapContextType {
   gridSelected: GridSType | undefined;
+  commitGridSelected: (grid: GridSType) => void;
 }
 const MapContext = createContext<MapContextType | undefined>(undefined);
 export default function MapProvider({ children }: { children: ReactNode }) {
@@ -29,7 +30,7 @@ export function useMapContext() {
   const context = useContext(MapContext);
 
   if (!context) {
-    throw new Error("useAirCraft must be used inside MakerProvider");
+    throw new Error("useMap must be used inside MakerProvider");
   }
 
   return context;

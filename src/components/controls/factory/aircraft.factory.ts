@@ -1,3 +1,4 @@
+import { GridSType } from "../../../context/MapContext";
 import { AirCraft, Point } from "../../MapTiler/types/map.types";
 
 export type AircraftSide = "friendly" | "enemy";
@@ -15,7 +16,6 @@ export type AircraftDetails = {
   aircraftCode?: string;
   altitude?: string;
   appearanceTime?: string;
-  coordinateGrid?: string;
 };
 
 export function createAircraft(
@@ -33,7 +33,10 @@ export function createAircraft(
   if (aircrafts.some((aircraft) => aircraft.id === id)) {
     return null;
   }
-
+  // Lấy ID ô lưới cấp 3
+  // const gridFeatures = map.queryRenderedFeatures(event.point, {
+  //   layers: ["grid-level-3-fill"],
+  // });
   return {
     id,
     color: SIDE_CONFIG[side].color,

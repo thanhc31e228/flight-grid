@@ -3,7 +3,7 @@ export type Point = {
   lng: number;
   lat: number;
   appearanceTime?: string; // Thời gian xuất hiện (phút)
-  coordinateGrid?: string;
+  coordinateGridId?: string;
 };
 
 // Thông tin của một ô lưới

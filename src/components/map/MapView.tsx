@@ -30,6 +30,8 @@ import type { GridCell, AirCraft } from "../MapTiler/types/map.types";
 
 import { useAirCraftContext } from "../../context/MakerContext";
 import type { Place } from "../../features/places/place.types";
+import { useMap } from "../../hooks/useMap";
+import { useMapContext } from "../../context/MapContext";
 
 // ======================================
 // TYPES
@@ -92,7 +94,7 @@ export default function MapView({
     addPoint,
     getLastPoint,
   } = useAirCraftContext();
-
+  const { gridSelected, commitGridSelected } = useMapContext();
   // Context là nguồn dữ liệu chính.
   // Props chỉ là phương án dự phòng.
   const aircraftList = contextAircrafts ?? propAircrafts;
@@ -311,6 +313,7 @@ export default function MapView({
         },
         () => selectedAircraftIdRef.current,
         getLastPoint,
+        commitGridSelected,
       );
 
       // Context menu của grid.

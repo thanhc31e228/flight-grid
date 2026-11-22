@@ -16,6 +16,7 @@ import type {
 } from "../../features/grid/grid.types";
 
 import { Point } from "../MapTiler/types/map.types";
+import { GridSType } from "../../context/MapContext";
 
 const GRID_LAYERS = ["grid-level-3-fill", "grid-level-2-fill", "grid-fill"];
 
@@ -24,6 +25,7 @@ export function registerMapEvents(
   onAddPoint: (aircraftId: string, point: Point) => number,
   getSelectedAircraftId: () => string | null,
   getLastPoint: (aircraftId: string) => Point | undefined,
+  commitGridSelected: (gridSelected: GridSType) => void,
 ) {
   let activeParentId: string | null = null;
   let activeChildId: string | null = null;
@@ -130,6 +132,21 @@ export function registerMapEvents(
     const gridFeatures = map.queryRenderedFeatures(event.point, {
       layers: ["grid-level-3-fill"],
     });
+
+    const grid = gridFeatures[0]?.properties;
+
+    if (grid) {
+      const centerLng = (grid.east + grid.west) / 2;
+      const centerLat = (grid.north + grid.south) / 2;
+
+      const gridSelected = {
+        id: gridFeatures[0]?.properties?.id,
+        lat: centerLat,
+        lng: centerLng,
+      };
+      // thêm ô được click vào context
+      commitGridSelected(gridSelected);
+    }
     const gridId = gridFeatures[0]?.properties?.id;
     const selectedAircraftId = getSelectedAircraftId();
 
@@ -143,7 +160,7 @@ export function registerMapEvents(
       lng: event.lngLat.lng,
       lat: event.lngLat.lat,
       appearanceTime: lastPoint.appearanceTime,
-      coordinateGrid: gridId != null ? String(gridId) : undefined,
+      coordinateGridId: gridId != null ? String(gridId) : undefined,
     };
 
     onAddPoint(selectedAircraftId, point);

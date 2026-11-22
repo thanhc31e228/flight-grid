@@ -1198,7 +1198,8 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
         properties: {
           name: `${aircraft.id} - ${index + 1}`,
           id: aircraft.id,
-          coordinate: point.coordinateGrid ?? `${aircraft.id} - ${index + 1}`,
+          coordinateGridId:
+            point.coordinateGridId ?? `${aircraft.id} - ${index + 1}`,
           aircraftId: aircraft.id,
           color: aircraft.color,
           isFirst: index === 0,

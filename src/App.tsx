@@ -1,11 +1,14 @@
 import MapTiler from "./app/MapTiler";
 import MakerProvider from "./context/MakerContext";
+import MapProvider from "./context/MapContext";
 
 function App() {
   return (
-    <MakerProvider>
-      <MapTiler />
-    </MakerProvider>
+    <MapProvider>
+      <MakerProvider>
+        <MapTiler />
+      </MakerProvider>
+    </MapProvider>
   );
 }
 
