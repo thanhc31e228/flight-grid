@@ -9,7 +9,7 @@ interface AirCraftContextType {
   selectedAircraftId: string | null;
   getLastPoint: (aircaftId: string) => Point | undefined;
   setSelectedAircraftId: (id: string | null) => void;
-  addAircraft: (aircraft: AirCraft) => number;
+  addAircraft: (aircraft: AirCraft) => AirCraft;
   updateAircraft: (aircraftId: string, details: AircraftDetails) => void;
   removeAirCraft: (aircraftId: string) => number;
   addPoint: (aircraftId: string, point: Point) => number;

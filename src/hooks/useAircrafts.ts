@@ -23,8 +23,7 @@ export function useAircrafts() {
     (aircraft: AirCraft) => {
       const updated = [...aircraftsRef.current, aircraft];
       commitAircrafts(updated);
-
-      return updated.length;
+      return aircraft;
     },
     [commitAircrafts],
   );

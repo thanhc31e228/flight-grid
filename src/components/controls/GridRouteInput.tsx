@@ -4,6 +4,9 @@ import type { GridFeature } from "../../features/grid/grid.types";
 import { getGridCenter } from "../../features/grid/grid.geometry";
 import { AirCraft } from "../MapTiler/types/map.types";
 import { useAirCraftContext } from "../../context/MakerContext";
+import { useMap } from "../../hooks/useMap";
+import { useMapContext } from "../../context/MapContext";
+import { formatGridId } from "../../utils/formatGridId";
 
 type Props = {
   gridIndex: Map<string, GridFeature>;
@@ -19,7 +22,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
   const [value, setValue] = useState("");
   const [history, setHistory] = useState<CoordinateHistory[]>([]);
   const [nextId, setNextId] = useState(0);
-
+  const { gridSelected } = useMapContext();
   // Tốp đang chọn
   const [selectedTop, setSelectedTop] = useState<string | null>(null);
 
@@ -102,6 +105,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
       const appearanceTime = lastLine.slice(-2);
 
       point.appearanceTime = appearanceTime;
+      point.coordinateGridId = idGrid;
 
       const airCraft: AirCraft = {
         id: idTop,
