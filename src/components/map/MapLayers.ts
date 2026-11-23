@@ -1,35 +1,40 @@
 import circle from "@turf/circle";
 import centroid from "@turf/centroid";
+import bearing from "@turf/bearing";
 import { lineString } from "@turf/helpers";
 import {
-  MapLayerMouseEvent,
-  MapMouseEvent,
   Marker,
   type ExpressionSpecification,
+  type FilterSpecification,
   type GeoJSONSource,
   type Map as MapLibreMap,
+  type MapLayerMouseEvent,
+  type MapMouseEvent,
 } from "maplibre-gl";
 import type { Feature, LineString, Point } from "geojson";
 
 import { MAP_CONFIG } from "../../config/map.config";
 import { createGrid, emptyGrid } from "../../features/grid/grid.factory";
 import { createAzimuth } from "../../features/grid/azimuth.factory";
+import type { Place } from "../../features/places/place.types";
 import type { AirCraft } from "../MapTiler/types/map.types";
 import { addMeasurementTool } from "../MapTiler/utils/measurement.tool";
 import { addCursorTracker } from "../MapTiler/utils/cursor.tracker";
 import { smoothLine } from "../MapTiler/utils/smooth-line";
 import { CENTER } from "../MapTiler/map.constants";
-import bearing from "@turf/bearing";
-import { Place } from "../../features/places/place.types";
 
 // =========================
 // CONSTANTS & SHARED HELPERS
 // =========================
 
+type LngLat = [number, number];
+type LineStyle = { color: string; width: number; opacity: number };
+
 const EMPTY_FEATURE_COLLECTION = {
   type: "FeatureCollection" as const,
   features: [],
 };
+
 const SOURCE = {
   grid: "grid-source",
   gridLabel: "grid-label-source",
@@ -38,71 +43,79 @@ const SOURCE = {
   points: "points-source",
 } as const;
 
+const LAYER = {
+  routeHitbox: "route-line-hitbox",
+  routeHover: "route-line-hover",
+} as const;
+
+const FLIGHT_ROUTE_COLOR = "#ef4444";
+
 const getGeoJSONSource = (map: MapLibreMap, id: string) =>
   map.getSource(id) as GeoJSONSource | undefined;
+
+const toFeatureCollection = <T extends Feature>(features: T[]) => ({
+  type: "FeatureCollection" as const,
+  features,
+});
 
 const byZoom = (...stops: number[]) =>
   ["interpolate", ["linear"], ["zoom"], ...stops] as ExpressionSpecification;
 
+// prettier-ignore
 const AZIMUTH_TEXT_SIZE = byZoom(
-  4,
-  8,
-  6,
-  10,
-  8,
-  12,
-  10,
-  14,
-  12,
-  16,
-  14,
-  18,
-  16,
-  20,
+  4, 8,
+  6, 10,
+  8, 12,
+  10, 14,
+  12, 16,
+  14, 18,
+  16, 20,
 );
 
+const HTML_ESCAPES: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
 const escapeHtml = (value: unknown) =>
-  String(value).replace(
-    /[&<>"']/g,
-    (char) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[char]!,
-  );
+  String(value).replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
+
+/** Marker 0x0 đặt đúng tại tọa độ; các phần tử con định vị tuyệt đối quanh nó. */
+function createAnchorMarker(map: MapLibreMap, lngLat: LngLat) {
+  const element = document.createElement("div");
+  element.style.cssText = "width:0;height:0;pointer-events:none;";
+
+  return new Marker({ element, anchor: "center" }).setLngLat(lngLat).addTo(map);
+}
 
 // =========================
 // GRID
 // =========================
 
 function createGridLabelPoints(grid: ReturnType<typeof createGrid>) {
-  return {
-    type: "FeatureCollection" as const,
-    features: grid.features.map((feature) => {
+  return toFeatureCollection(
+    grid.features.map((feature) => {
       const point = centroid(feature);
       point.properties = { ...(feature.properties ?? {}) };
       return point;
     }),
-  };
+  );
 }
 
-function addGridLevel(
+function addGridFillAndOutline(
   map: MapLibreMap,
   id: string,
-  line: { color: string; width: number; opacity: number },
+  source: string,
+  line: LineStyle,
 ) {
-  map.addSource(id, {
-    type: "geojson",
-    data: emptyGrid(),
-  });
-
+  // Fill gần như trong suốt, chỉ để bắt sự kiện chuột trên ô lưới
   map.addLayer({
     id: `${id}-fill`,
     type: "fill",
-    source: id,
+    source,
     paint: {
       "fill-color": "#ffffff",
       "fill-opacity": 0.001,
@@ -112,7 +125,7 @@ function addGridLevel(
   map.addLayer({
     id: `${id}-outline`,
     type: "line",
-    source: id,
+    source,
     paint: {
       "line-color": line.color,
       "line-width": line.width,
@@ -121,38 +134,28 @@ function addGridLevel(
   });
 }
 
+function addGridLevel(map: MapLibreMap, id: string, line: LineStyle) {
+  map.addSource(id, {
+    type: "geojson",
+    data: emptyGrid(),
+  });
+
+  addGridFillAndOutline(map, id, id, line);
+}
+
 export function addGridLayers(map: MapLibreMap) {
   const grid = createGrid();
 
-  map.addSource(SOURCE.grid, {
-    type: "geojson",
-    data: grid,
-  });
-
+  map.addSource(SOURCE.grid, { type: "geojson", data: grid });
   map.addSource(SOURCE.gridLabel, {
     type: "geojson",
     data: createGridLabelPoints(grid),
   });
 
-  map.addLayer({
-    id: "grid-fill",
-    type: "fill",
-    source: SOURCE.grid,
-    paint: {
-      "fill-color": "#ffffff",
-      "fill-opacity": 0.001,
-    },
-  });
-
-  map.addLayer({
-    id: "grid-outline",
-    type: "line",
-    source: SOURCE.grid,
-    paint: {
-      "line-color": "#64748b",
-      "line-width": 1,
-      "line-opacity": 0.45,
-    },
+  addGridFillAndOutline(map, "grid", SOURCE.grid, {
+    color: "#64748b",
+    width: 1,
+    opacity: 0.45,
   });
 
   map.addLayer({
@@ -197,13 +200,12 @@ export function updateGridLabels(map: MapLibreMap, labels: string[]) {
 
   const gridData = createGrid(labels);
 
-  const sortedFeatures = [...gridData.features].sort((a, b) => {
-    const rowDiff = Number(a.properties?.row) - Number(b.properties?.row);
-
-    if (rowDiff !== 0) return rowDiff;
-
-    return Number(a.properties?.col) - Number(b.properties?.col);
-  });
+  // Sắp xếp theo hàng rồi theo cột để gán nhãn theo thứ tự
+  const sortedFeatures = [...gridData.features].sort(
+    (a, b) =>
+      Number(a.properties?.row) - Number(b.properties?.row) ||
+      Number(a.properties?.col) - Number(b.properties?.col),
+  );
 
   sortedFeatures.forEach((feature, index) => {
     const properties = { ...(feature.properties ?? {}) };
@@ -228,52 +230,49 @@ export function updateGridLabels(map: MapLibreMap, labels: string[]) {
 // WAYPOINT ICONS
 // =========================
 
-function addWaypointCircleImage(map: MapLibreMap) {
-  if (map.hasImage("waypoint-circle")) return;
+/** Thêm icon SDF (màu thật lấy từ `icon-color`, nên vẽ bằng màu trắng). */
+function addSdfImage(
+  map: MapLibreMap,
+  name: string,
+  size: number,
+  draw: (ctx: CanvasRenderingContext2D, size: number) => void,
+) {
+  if (map.hasImage(name)) return;
 
-  const size = 50;
   const canvas = document.createElement("canvas");
-
   canvas.width = size;
   canvas.height = size;
 
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.arc(size / 2, size / 2, 12, 0, Math.PI * 2);
-  ctx.stroke();
+  draw(ctx, size);
 
-  map.addImage("waypoint-circle", ctx.getImageData(0, 0, size, size), {
-    sdf: true,
+  map.addImage(name, ctx.getImageData(0, 0, size, size), { sdf: true });
+}
+
+function addWaypointCircleImage(map: MapLibreMap) {
+  addSdfImage(map, "waypoint-circle", 50, (ctx, size) => {
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, 12, 0, Math.PI * 2);
+    ctx.stroke();
   });
 }
 
 function addWaypointTickImage(map: MapLibreMap) {
-  if (map.hasImage("waypoint-tick")) return;
-
-  const size = 64;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-
-  ctx.strokeStyle = "#ffffff"; // SDF: màu thật lấy từ icon-color
-  ctx.lineWidth = 6;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(size / 2, size / 2); // gốc vạch tại tâm
-  ctx.lineTo(size - 4, size / 2); // đầu vạch bên phải
-  ctx.stroke();
-
-  map.addImage("waypoint-tick", ctx.getImageData(0, 0, size, size), {
-    sdf: true,
+  addSdfImage(map, "waypoint-tick", 64, (ctx, size) => {
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 6;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(size / 2, size / 2); // gốc vạch tại tâm
+    ctx.lineTo(size - 4, size / 2); // đầu vạch bên phải
+    ctx.stroke();
   });
 }
+
 // =========================
 // HOVER STATE
 // =========================
@@ -286,25 +285,42 @@ const hoverState = {
 let appliedHoverId = "";
 let appliedLabelHoverId = "";
 
+/** Label đầu tiên của mỗi aircraft, key = aircraftId. */
 const firstWaypointMarkers = new Map<string, Marker>();
 
+/** Label được ưu tiên hơn đường bay; "" nghĩa là không có gì đang hover. */
+const getActiveHoverId = () => hoverState.label ?? hoverState.line ?? "";
+
+const routeHoverFilter = (aircraftId: string): FilterSpecification => [
+  "==",
+  ["get", "aircraftId"],
+  aircraftId,
+];
+
+function setRouteHoverFilter(map: MapLibreMap, aircraftId: string) {
+  if (map.getLayer(LAYER.routeHover)) {
+    map.setFilter(LAYER.routeHover, routeHoverFilter(aircraftId));
+  }
+}
+
+function setLabelHighlight(marker: Marker, active: boolean) {
+  marker
+    .getElement()
+    .querySelectorAll<HTMLElement>("[data-hit]")
+    .forEach((el) => {
+      el.style.background = active ? "rgba(255,255,255,0.85)" : "transparent";
+      el.style.boxShadow = active ? "0 0 0 1.5px currentColor" : "none";
+    });
+}
+
 function syncLabelHighlight(force = false) {
-  const activeId = hoverState.label ?? hoverState.line;
+  const activeId = getActiveHoverId();
 
   if (!force && activeId === appliedLabelHoverId) return;
-  appliedLabelHoverId = activeId ?? "";
+  appliedLabelHoverId = activeId;
 
   firstWaypointMarkers.forEach((marker, aircraftId) => {
-    const active = aircraftId === activeId;
-
-    marker
-      .getElement()
-      .querySelectorAll<HTMLElement>("[data-hit]")
-      .forEach((el) => {
-        el.style.background = active ? "rgba(255,255,255,0.85)" : "transparent";
-
-        el.style.boxShadow = active ? "0 0 0 1.5px currentColor" : "none";
-      });
+    setLabelHighlight(marker, aircraftId === activeId);
   });
 }
 
@@ -317,17 +333,10 @@ function setHover(
 
   hoverState[source] = aircraftId;
 
-  const activeId = hoverState.label ?? hoverState.line ?? "";
+  const activeId = getActiveHoverId();
   if (activeId !== appliedHoverId) {
     appliedHoverId = activeId;
-
-    if (map.getLayer("route-line-hover")) {
-      map.setFilter("route-line-hover", [
-        "==",
-        ["get", "aircraftId"],
-        activeId,
-      ]);
-    }
+    setRouteHoverFilter(map, activeId);
   }
 
   syncLabelHighlight();
@@ -340,313 +349,18 @@ function resetHover(map?: MapLibreMap) {
   appliedHoverId = "";
   appliedLabelHoverId = "";
 
-  if (map?.getLayer("route-line-hover")) {
-    map.setFilter("route-line-hover", ["==", ["get", "aircraftId"], ""]);
-  }
+  if (map) setRouteHoverFilter(map, "");
 
-  firstWaypointMarkers.forEach((marker) => {
-    marker
-      .getElement()
-      .querySelectorAll<HTMLElement>("[data-hit]")
-      .forEach((el) => {
-        el.style.background = "transparent";
-        el.style.boxShadow = "none";
-      });
-  });
+  firstWaypointMarkers.forEach((marker) => setLabelHighlight(marker, false));
 }
 
-const locationMarkers = new Map<string, Marker>();
-// Lưu offset kéo theo từng Place
-const locationOffsets = new Map<string, { x: number; y: number }>();
+// =========================
+// FIRST WAYPOINT LABEL
+// =========================
 
-// Quản lý listener kéo, tránh đăng ký trùng
-const locationDragCleanups = new Map<string, () => void>();
-// Kích thước đường kẻ (pixel)
-const LEADER_STUB = 30;
-const LEADER_RUN = 200;
-const LEADER_LIFT = 10;
+const TEXT_OUTLINE =
+  "text-shadow:-1px 0 #fff,1px 0 #fff,0 -1px #fff,0 1px #fff;";
 
-function buildLocationHtml(loc: Place) {
-  const isRight = loc.side === "right";
-  const sign = isRight ? 1 : -1;
-
-  const endX = sign * LEADER_RUN;
-  const endY = -(LEADER_STUB + LEADER_LIFT);
-
-  const offset = locationOffsets.get(loc.id) ?? {
-    x: loc.offsetX ?? 0,
-    y: loc.offsetY ?? 0,
-  };
-
-  const labelX = endX + offset.x;
-  const labelY = endY + offset.y;
-
-  const boxPos = isRight
-    ? `left:${labelX}px; transform:translate(0,-50%);`
-    : `left:${labelX}px; transform:translate(-100%,-50%);`;
-
-  const phone = loc.phone
-    ? `
-      <div class="mt-1 flex items-center justify-center gap-1 text-[12px] text-slate-500">
-        <span>☎</span>
-        <a
-          data-location-phone
-          href="tel:${escapeHtml(loc.phone.replace(/\s/g, ""))}"
-          class="text-sky-600 hover:text-sky-800 hover:underline"
-        >
-          ${escapeHtml(loc.phone)}
-        </a>
-      </div>
-    `
-    : "";
-
-  return `
-    <!-- Leader line + coordinate point -->
-    <svg
-      width="1"
-      height="1"
-      style="position:absolute; left:0; top:0; overflow:visible; pointer-events:none;"
-    >
-      <polyline
-        data-location-line
-        points="0,0 0,${-LEADER_STUB} ${labelX},${labelY}"
-        fill="none"
-        stroke="#64748b"
-        stroke-width="1.5"
-        stroke-linejoin="round"
-        stroke-linecap="round"
-      />
-
-      <!-- Halo -->
-      <circle
-        cx="0"
-        cy="0"
-        r="6"
-        fill="rgba(14,165,233,0.12)"
-      />
-
-      <!-- Center point -->
-      <circle
-        cx="0"
-        cy="0"
-        r="3"
-        fill="#0ea5e9"
-        stroke="#ffffff"
-        stroke-width="1.5"
-      />
-    </svg>
-
-    <!-- Draggable location label -->
-        <div
-              data-location-label
-              data-location-id="${escapeHtml(String(loc.id))}"
-              data-side="${loc.side ?? "right"}"
-              data-base-x="${endX}"
-              data-base-y="${endY}"
-              data-offset-x="${offset.x}"
-              data-offset-y="${offset.y}"
-              class="absolute z-10 pointer-events-auto cursor-grab active:cursor-grabbing select-none"
-              style="top:${labelY}px; ${boxPos} touch-action:none;"
-            >
-      <div
-        class="
-          min-w-[110px]
-          rounded-md
-          border border-slate-300
-          bg-white
-          px-3 py-1.5
-          text-center
-          text-slate-800
-          shadow-sm
-          transition-shadow
-          hover:shadow-md
-      ">
-        <div class="text-[14px] font-semibold leading-tight">
-          ${escapeHtml(loc.name)}
-        </div>
-
-        ${phone}
-      </div>
-    </div>
-  `;
-}
-function enableLocationLabelDrag(
-  map: MapLibreMap,
-  marker: Marker,
-  locId: string,
-) {
-  const root = marker.getElement();
-
-  const label = root.querySelector<HTMLElement>("[data-location-label]");
-  const line = root.querySelector<SVGPolylineElement>("[data-location-line]");
-
-  if (!label || !line) return () => {};
-
-  const baseX = Number(label.dataset.baseX);
-  const baseY = Number(label.dataset.baseY);
-
-  let offsetX = Number(label.dataset.offsetX) || 0;
-  let offsetY = Number(label.dataset.offsetY) || 0;
-
-  let dragging = false;
-  let hasMoved = false;
-  let pointerId: number | null = null;
-
-  let startMouseX = 0;
-  let startMouseY = 0;
-
-  let startOffsetX = 0;
-  let startOffsetY = 0;
-
-  // Trạng thái map trước khi kéo
-  let wasDragPanEnabled = true;
-
-  // Ngưỡng xác định thao tác drag (px)
-  const DRAG_THRESHOLD = 3;
-
-  const side = label.dataset.side;
-
-  const renderPosition = () => {
-    const x = baseX + offsetX;
-    const y = baseY + offsetY;
-
-    label.style.left = `${x}px`;
-    label.style.top = `${y}px`;
-
-    label.style.transform =
-      side === "right" ? "translate(0,-50%)" : "translate(-100%,-50%)";
-
-    line.setAttribute("points", `0,0 0,${-LEADER_STUB} ${x},${y}`);
-  };
-
-  const onPointerDown = (e: PointerEvent) => {
-    if (e.button !== 0) return;
-
-    // Cho phép click số điện thoại
-    if ((e.target as HTMLElement).closest("[data-location-phone]")) {
-      return;
-    }
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    dragging = true;
-    hasMoved = false;
-    pointerId = e.pointerId;
-
-    startMouseX = e.clientX;
-    startMouseY = e.clientY;
-
-    startOffsetX = offsetX;
-    startOffsetY = offsetY;
-
-    wasDragPanEnabled = map.dragPan.isEnabled();
-
-    map.dragPan.disable();
-
-    label.setPointerCapture(e.pointerId);
-  };
-
-  const onPointerMove = (e: PointerEvent) => {
-    if (!dragging || e.pointerId !== pointerId) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    const dx = e.clientX - startMouseX;
-    const dy = e.clientY - startMouseY;
-
-    // Chỉ xác nhận drag khi di chuyển vượt ngưỡng
-    if (!hasMoved && Math.hypot(dx, dy) < DRAG_THRESHOLD) {
-      return;
-    }
-
-    hasMoved = true;
-
-    offsetX = startOffsetX + dx;
-    offsetY = startOffsetY + dy;
-
-    renderPosition();
-  };
-
-  const finishDrag = (e: PointerEvent) => {
-    if (!dragging || e.pointerId !== pointerId) return;
-
-    dragging = false;
-    pointerId = null;
-
-    if (wasDragPanEnabled) {
-      map.dragPan.enable();
-    }
-
-    // Chỉ lưu khi thực sự kéo
-    if (hasMoved) {
-      locationOffsets.set(locId, {
-        x: offsetX,
-        y: offsetY,
-      });
-
-      // Chặn click MapLibre phát sinh sau thao tác drag
-      suppressNextMapClick = true;
-    }
-  };
-
-  // Chặn click map nếu vừa kéo label
-  let suppressNextMapClick = false;
-
-  const onMapClick = (e: MapMouseEvent) => {
-    if (!suppressNextMapClick) return;
-
-    suppressNextMapClick = false;
-
-    e.preventDefault();
-    e.originalEvent.stopPropagation();
-  };
-
-  map.on("click", onMapClick);
-
-  label.addEventListener("pointerdown", onPointerDown);
-  label.addEventListener("pointermove", onPointerMove);
-  label.addEventListener("pointerup", finishDrag);
-  label.addEventListener("pointercancel", finishDrag);
-
-  return () => {
-    label.removeEventListener("pointerdown", onPointerDown);
-    label.removeEventListener("pointermove", onPointerMove);
-    label.removeEventListener("pointerup", finishDrag);
-    label.removeEventListener("pointercancel", finishDrag);
-
-    map.off("click", onMapClick);
-
-    if (dragging && wasDragPanEnabled) {
-      map.dragPan.enable();
-    }
-  };
-}
-//==========================
-//   LOCATION MARKER
-//=========================
-
-export function addLocationLabels(map: MapLibreMap, places: Place[]) {
-  places.forEach((loc) => {
-    const element = document.createElement("div");
-
-    // Phần tử gốc 0x0 nằm đúng tại tọa độ, các phần con định vị tuyệt đối quanh nó
-    element.style.cssText = "width:0;height:0;pointer-events:none;";
-    element.innerHTML = buildLocationHtml(loc);
-
-    const marker = new Marker({ element, anchor: "center" })
-      .setLngLat([loc.lng, loc.lat])
-      .addTo(map);
-
-    locationMarkers.set(loc.id, marker);
-  });
-
-  return () => {
-    locationMarkers.forEach((marker) => marker.remove());
-    locationMarkers.clear();
-  };
-}
 function buildFirstWaypointHtml(
   aircraft: AirCraft,
   firstPoint: AirCraft["points"][number],
@@ -655,16 +369,19 @@ function buildFirstWaypointHtml(
   const color = escapeHtml(aircraft.color);
   const isRight = direction === "right";
 
-  const outline = "text-shadow:-1px 0 #fff,1px 0 #fff,0 -1px #fff,0 1px #fff;";
-
   const boxSide = isRight ? "left:8px;" : "right:8px;";
   const timeSide = isRight ? "right:7px;" : "left:7px;";
   const flexDir = isRight ? "row-reverse" : "row";
   const bracket = isRight ? "(" : ")";
-
   const bracketMargin = isRight
     ? "margin-left:-8px; margin-right:-2px;"
     : "margin-left:-2px; margin-right:-8px;";
+
+  const bracketHtml = `<span style="font-size:25px; font-weight:300; line-height:0.5; ${bracketMargin}">${bracket}</span>`;
+  const idHtml = escapeHtml(aircraft.id);
+  const idWithBracket = isRight
+    ? `${bracketHtml}${idHtml}`
+    : `${idHtml}${bracketHtml}`;
 
   return `
   <div data-hit style="
@@ -676,25 +393,13 @@ function buildFirstWaypointHtml(
     white-space:nowrap; pointer-events:auto; cursor:pointer;
     color:${color}; font-weight:700; font-size:16px;
     background:rgba(255,255,255,0.9);
-    ${outline}
+    ${TEXT_OUTLINE}
   ">
     <span style="
       display:inline-flex; align-items:center;
       flex-direction:row;
       font-size:16px; font-weight:700; position:relative;
-    ">
-      ${
-        isRight
-          ? `<span style="font-size:25px; font-weight:300; line-height:0.5; ${bracketMargin}">${bracket}</span>`
-          : ""
-      }
-      ${escapeHtml(aircraft.id)}
-      ${
-        !isRight
-          ? `<span style="font-size:25px; font-weight:300; line-height:0.5; ${bracketMargin}">${bracket}</span>`
-          : ""
-      }
-    </span>
+    ">${idWithBracket}</span>
 
     <div style="
       display:grid; grid-template-rows:auto 3px auto;
@@ -714,76 +419,60 @@ function buildFirstWaypointHtml(
     white-space:nowrap; pointer-events:auto; cursor:pointer;
     color:${color}; font-weight:700; font-size:14px;
     background:rgba(255,255,255,0.9);
-    ${outline}
+    ${TEXT_OUTLINE}
   ">${escapeHtml(firstPoint.appearanceTime)}</span>
 `;
 }
 
-function getAircraftLabelDirection(
-  map: MapLibreMap,
-  aircraftLng: number,
-): "left" | "right" {
-  const centerLng = CENTER[0];
-
-  return aircraftLng >= centerLng ? "right" : "left";
+/** Aircraft nằm bên phải tâm bản đồ thì label mở sang phải, ngược lại sang trái. */
+function getAircraftLabelDirection(aircraftLng: number): "left" | "right" {
+  return aircraftLng >= CENTER[0] ? "right" : "left";
 }
 
 function updateFirstWaypointLabels(map: MapLibreMap, aircrafts: AirCraft[]) {
   const aircraftsWithPoints = aircrafts.filter(
     (aircraft) => aircraft.points.length > 0,
   );
-
   const activeIds = new Set(aircraftsWithPoints.map((aircraft) => aircraft.id));
 
+  // Xóa label của aircraft không còn tồn tại
   firstWaypointMarkers.forEach((marker, id) => {
     if (activeIds.has(id)) return;
 
     marker.remove();
     firstWaypointMarkers.delete(id);
 
-    if (hoverState.label === id) {
-      setHover(map, "label", null);
-    }
-
-    if (hoverState.line === id) {
-      setHover(map, "line", null);
-    }
+    if (hoverState.label === id) setHover(map, "label", null);
+    if (hoverState.line === id) setHover(map, "line", null);
   });
 
   aircraftsWithPoints.forEach((aircraft) => {
     const firstPoint = aircraft.points[0];
+    const lngLat: LngLat = [firstPoint.lng, firstPoint.lat];
 
     let marker = firstWaypointMarkers.get(aircraft.id);
 
     if (!marker) {
-      const element = document.createElement("div");
+      marker = createAnchorMarker(map, lngLat);
 
-      element.style.cssText = "width:0;height:0;pointer-events:none;";
-
-      element.addEventListener("mouseenter", () => {
-        setHover(map, "label", aircraft.id);
-      });
-
-      element.addEventListener("mouseleave", () => {
-        setHover(map, "label", null);
-      });
-
-      marker = new Marker({
-        element,
-        anchor: "center",
-      })
-        .setLngLat([firstPoint.lng, firstPoint.lat])
-        .addTo(map);
+      const element = marker.getElement();
+      element.addEventListener("mouseenter", () =>
+        setHover(map, "label", aircraft.id),
+      );
+      element.addEventListener("mouseleave", () =>
+        setHover(map, "label", null),
+      );
 
       firstWaypointMarkers.set(aircraft.id, marker);
     }
 
-    const direction = getAircraftLabelDirection(map, firstPoint.lng);
+    marker.setLngLat(lngLat);
 
-    marker.setLngLat([firstPoint.lng, firstPoint.lat]);
-
-    const html = buildFirstWaypointHtml(aircraft, firstPoint, direction);
-
+    const html = buildFirstWaypointHtml(
+      aircraft,
+      firstPoint,
+      getAircraftLabelDirection(firstPoint.lng),
+    );
     const element = marker.getElement();
 
     // Chỉ rebuild DOM khi nội dung label thay đổi.
@@ -830,8 +519,9 @@ function addRouteLines(map: MapLibreMap) {
     },
   });
 
+  // Đường vô hình, dày hơn để dễ rê chuột vào
   map.addLayer({
-    id: "route-line-hitbox",
+    id: LAYER.routeHitbox,
     type: "line",
     source: SOURCE.route,
     layout: roundLine,
@@ -871,12 +561,14 @@ function addAircraftLayer(map: MapLibreMap) {
 
 // Góc giữa nửa vạch và đường bay (độ)
 const TICK_ANGLE = 40;
+// Góc rẽ phải tối thiểu (độ) để đổi vạch sang bên trái
+const TICK_TURN_THRESHOLD = 40;
 
 // Đưa góc về khoảng (-180, 180]
 const normalizeAngle = (angle: number) => ((angle + 540) % 360) - 180;
 
 // Góc xoay của nửa vạch tại điểm index
-function getTickRotation(coordinates: [number, number][], index: number) {
+function getTickRotation(coordinates: LngLat[], index: number) {
   if (coordinates.length < 2) return 0;
 
   const prev = coordinates[Math.max(index - 1, 0)];
@@ -886,24 +578,21 @@ function getTickRotation(coordinates: [number, number][], index: number) {
   // Hướng tiếp tuyến của đường bay tại điểm
   const tangent = bearing(prev, next);
 
-  // Mặc định (điểm đầu, điểm cuối, đường thẳng): vạch ở bên phải
-  let side: "left" | "right" = "right";
-
-  if (index > 0 && index < coordinates.length - 1) {
-    // turn > 40: rẽ phải => góc nhỏ ở bên phải => vạch ở bên trái (góc lớn)
-    // turn < 40: rẽ trái => góc nhỏ ở bên trái => vạch ở bên phải (góc lớn)
-    const turn = normalizeAngle(
-      bearing(current, next) - bearing(prev, current),
-    );
-
-    if (turn > 40) side = "left";
-  }
+  // Mặc định (điểm đầu, điểm cuối, đường thẳng): vạch ở bên phải.
+  // Điểm giữa đường bay: rẽ phải (turn > ngưỡng) => góc nhỏ ở bên phải
+  // => vạch nằm bên trái (phía góc lớn); các trường hợp còn lại vạch bên phải.
+  const isMiddlePoint = index > 0 && index < coordinates.length - 1;
+  const turn = isMiddlePoint
+    ? normalizeAngle(bearing(current, next) - bearing(prev, current))
+    : 0;
+  const side = turn > TICK_TURN_THRESHOLD ? "left" : "right";
 
   // Nửa vạch lùi về sau, lệch TICK_ANGLE so với đường bay
-  return side === "right"
-    ? tangent + 180 - TICK_ANGLE - 90
-    : tangent + 180 + TICK_ANGLE - 90;
+  const tickOffset = side === "right" ? -TICK_ANGLE : TICK_ANGLE;
+
+  return tangent + 180 + tickOffset - 90;
 }
+
 function addWaypointLayers(map: MapLibreMap) {
   addWaypointCircleImage(map);
   addWaypointTickImage(map);
@@ -912,18 +601,17 @@ function addWaypointLayers(map: MapLibreMap) {
     type: "geojson",
     data: EMPTY_FEATURE_COLLECTION,
   });
+
   // Vạch ngang waypoint
   map.addLayer({
     id: "waypoint-ticks",
     type: "line",
     source: SOURCE.points,
+    layout: { "line-cap": "round" },
     paint: {
       "line-color": ["get", "color"],
       "line-width": 2,
       "line-opacity": 1,
-    },
-    layout: {
-      "line-cap": "round",
     },
   });
 
@@ -950,13 +638,14 @@ function addWaypointLayers(map: MapLibreMap) {
     },
   });
 
+  // Giờ xuất hiện tại từng điểm (điểm đầu đã có label riêng dạng Marker)
   map.addLayer({
     id: "points-label",
     type: "symbol",
     source: SOURCE.points,
     filter: ["!=", ["get", "isFirst"], true],
     layout: {
-      "text-field": ["get", "appearanceTime"], // hiển thị tại điểm point
+      "text-field": ["get", "appearanceTime"],
       "text-size": 8,
       "text-offset": [0, 1.5],
       "text-anchor": "top",
@@ -972,7 +661,7 @@ function addWaypointLayers(map: MapLibreMap) {
 
 function addRouteHoverLayer(map: MapLibreMap) {
   map.addLayer({
-    id: "route-line-hover",
+    id: LAYER.routeHover,
     type: "line",
     source: SOURCE.route,
     layout: {
@@ -984,7 +673,7 @@ function addRouteHoverLayer(map: MapLibreMap) {
       "line-width": byZoom(4, 2, 8, 2.5, 12, 3, 16, 4),
       "line-opacity": 1,
     },
-    filter: ["==", ["get", "aircraftId"], ""],
+    filter: routeHoverFilter(""),
   });
 }
 
@@ -998,42 +687,37 @@ export function addRouteLayers(map: MapLibreMap) {
 export function addRouteHoverEvents(map: MapLibreMap) {
   let cursorActive = false;
 
+  const setPointerCursor = (active: boolean) => {
+    if (cursorActive === active) return;
+
+    map.getCanvas().style.cursor = active ? "pointer" : "";
+    cursorActive = active;
+  };
+
   const handleMouseMove = (e: MapLayerMouseEvent) => {
     const aircraftId = e.features?.[0]?.properties?.aircraftId;
 
     if (aircraftId === undefined || aircraftId === null) {
-      if (cursorActive) {
-        map.getCanvas().style.cursor = "";
-        cursorActive = false;
-      }
-
+      setPointerCursor(false);
       setHover(map, "line", null);
       return;
     }
 
-    if (!cursorActive) {
-      map.getCanvas().style.cursor = "pointer";
-      cursorActive = true;
-    }
-
+    setPointerCursor(true);
     setHover(map, "line", String(aircraftId));
   };
 
   const handleMouseLeave = () => {
-    if (cursorActive) {
-      map.getCanvas().style.cursor = "";
-      cursorActive = false;
-    }
-
+    setPointerCursor(false);
     setHover(map, "line", null);
   };
 
-  map.on("mousemove", "route-line-hitbox", handleMouseMove);
-  map.on("mouseleave", "route-line-hitbox", handleMouseLeave);
+  map.on("mousemove", LAYER.routeHitbox, handleMouseMove);
+  map.on("mouseleave", LAYER.routeHitbox, handleMouseLeave);
 
   return () => {
-    map.off("mousemove", "route-line-hitbox", handleMouseMove);
-    map.off("mouseleave", "route-line-hitbox", handleMouseLeave);
+    map.off("mousemove", LAYER.routeHitbox, handleMouseMove);
+    map.off("mouseleave", LAYER.routeHitbox, handleMouseLeave);
 
     map.getCanvas().style.cursor = "";
     resetHover(map);
@@ -1053,13 +737,7 @@ const waypointDataCache = new WeakMap<MapLibreMap, string>();
 // Cache đường đã smooth theo map + aircraft.
 const routeGeometryCache = new WeakMap<
   MapLibreMap,
-  Map<
-    string,
-    {
-      signature: string;
-      coordinates: [number, number][];
-    }
-  >
+  Map<string, { signature: string; coordinates: LngLat[] }>
 >();
 
 function getRouteCache(map: MapLibreMap) {
@@ -1073,10 +751,7 @@ function getRouteCache(map: MapLibreMap) {
   return cache;
 }
 
-export function updateFlightRoute(
-  map: MapLibreMap,
-  coordinates: [number, number][],
-) {
+export function updateFlightRoute(map: MapLibreMap, coordinates: LngLat[]) {
   const routeSource = getGeoJSONSource(map, SOURCE.route);
   const aircraftSource = getGeoJSONSource(map, SOURCE.aircraft);
 
@@ -1103,7 +778,7 @@ export function updateFlightRoute(
     properties: {
       type: "aircraft",
       name: "Aircraft",
-      color: "#ef4444",
+      color: FLIGHT_ROUTE_COLOR,
     },
     geometry: {
       type: "Point",
@@ -1111,14 +786,11 @@ export function updateFlightRoute(
     },
   };
 
-  aircraftSource.setData({
-    type: "FeatureCollection",
-    features: [aircraft],
-  });
+  aircraftSource.setData(toFeatureCollection([aircraft]));
 
   routeSource.setData(
     coordinates.length >= 2
-      ? lineString(coordinates, { color: "#ef4444" })
+      ? lineString(coordinates, { color: FLIGHT_ROUTE_COLOR })
       : EMPTY_FEATURE_COLLECTION,
   );
 }
@@ -1130,8 +802,8 @@ export function updateFlightRoute(
 function getSmoothedRoute(
   map: MapLibreMap,
   aircraftId: string,
-  coordinates: [number, number][],
-): [number, number][] {
+  coordinates: LngLat[],
+): LngLat[] {
   const cache = getRouteCache(map);
   const signature = JSON.stringify(coordinates);
   const cached = cache.get(aircraftId);
@@ -1142,12 +814,49 @@ function getSmoothedRoute(
 
   const smoothed = smoothLine(coordinates, 1.0, 24);
 
-  cache.set(aircraftId, {
-    signature,
-    coordinates: smoothed,
-  });
+  cache.set(aircraftId, { signature, coordinates: smoothed });
 
   return smoothed;
+}
+
+/** Xóa cache đường smooth của aircraft đã bị loại bỏ. */
+function pruneRouteCache(map: MapLibreMap, aircrafts: AirCraft[]) {
+  const activeIds = new Set(aircrafts.map((aircraft) => aircraft.id));
+  const cache = getRouteCache(map);
+
+  cache.forEach((_, aircraftId) => {
+    if (!activeIds.has(aircraftId)) {
+      cache.delete(aircraftId);
+    }
+  });
+}
+
+function buildPointFeatures(
+  aircraft: AirCraft,
+  coordinates: LngLat[],
+): Feature<Point>[] {
+  return aircraft.points.map(
+    (point, index): Feature<Point> => ({
+      type: "Feature",
+      properties: {
+        name: `${aircraft.id} - ${index + 1}`,
+        id: aircraft.id,
+        coordinateGridId:
+          point.coordinateGridId ?? `${aircraft.id} - ${index + 1}`,
+        aircraftId: aircraft.id,
+        color: aircraft.color,
+        isFirst: index === 0,
+        aircraftCode: aircraft.aircraftCode ?? "",
+        altitude: aircraft.altitude ?? "",
+        appearanceTime: point.appearanceTime,
+        tickRotate: getTickRotation(coordinates, index),
+      },
+      geometry: {
+        type: "Point",
+        coordinates: [point.lng, point.lat],
+      },
+    }),
+  );
 }
 
 export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
@@ -1157,26 +866,13 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
 
   if (!pointsSource || !routeSource || !aircraftSource) return;
 
-  // Signature theo từng aircraft, tránh serialize lặp cả mảng lớn
-  // và cho phép chỉ smooth lại route thay đổi.
-  const aircraftSignatures = aircrafts.map((aircraft) =>
-    JSON.stringify(aircraft),
-  );
-
-  const signature = JSON.stringify(aircraftSignatures);
+  const signature = JSON.stringify(aircrafts);
 
   if (waypointDataCache.get(map) === signature) return;
 
   waypointDataCache.set(map, signature);
 
-  // Cache smooth route của aircraft đã bị loại bỏ.
-  const activeIds = new Set(aircrafts.map((aircraft) => aircraft.id));
-  const routeCache = getRouteCache(map);
-  routeCache.forEach((_, aircraftId) => {
-    if (!activeIds.has(aircraftId)) {
-      routeCache.delete(aircraftId);
-    }
-  });
+  pruneRouteCache(map, aircrafts);
 
   // updateWaypoints là nguồn dữ liệu chính cho các source này.
   flightRouteCache.delete(map);
@@ -1187,33 +883,11 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
 
   aircrafts.forEach((aircraft) => {
     // Tạo coordinates trước để tính bearing
-    const coordinates: [number, number][] = aircraft.points.map((point) => [
-      point.lng,
-      point.lat,
-    ]);
+    const coordinates = aircraft.points.map(
+      (point): LngLat => [point.lng, point.lat],
+    );
 
-    aircraft.points.forEach((point, index) => {
-      pointFeatures.push({
-        type: "Feature",
-        properties: {
-          name: `${aircraft.id} - ${index + 1}`,
-          id: aircraft.id,
-          coordinateGridId:
-            point.coordinateGridId ?? `${aircraft.id} - ${index + 1}`,
-          aircraftId: aircraft.id,
-          color: aircraft.color,
-          isFirst: index === 0,
-          aircraftCode: aircraft.aircraftCode ?? "",
-          altitude: aircraft.altitude ?? "",
-          appearanceTime: point.appearanceTime,
-          tickRotate: getTickRotation(coordinates, index),
-        },
-        geometry: {
-          type: "Point",
-          coordinates: [point.lng, point.lat],
-        },
-      });
-    });
+    pointFeatures.push(...buildPointFeatures(aircraft, coordinates));
 
     if (coordinates.length === 0) return;
 
@@ -1245,20 +919,9 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
     }
   });
 
-  pointsSource.setData({
-    type: "FeatureCollection",
-    features: pointFeatures,
-  });
-
-  routeSource.setData({
-    type: "FeatureCollection",
-    features: routeFeatures,
-  });
-
-  aircraftSource.setData({
-    type: "FeatureCollection",
-    features: aircraftFeatures,
-  });
+  pointsSource.setData(toFeatureCollection(pointFeatures));
+  routeSource.setData(toFeatureCollection(routeFeatures));
+  aircraftSource.setData(toFeatureCollection(aircraftFeatures));
 
   updateFirstWaypointLabels(map, aircrafts);
 }
@@ -1309,9 +972,16 @@ export function addAirportLayer(map: MapLibreMap) {
 // AZIMUTH : vòng tròn phương vị
 // =========================
 
+const AZIMUTH_LAYER_IDS = [
+  "azimuth-circle",
+  "azimuth-ticks",
+  "azimuth-labels",
+  "azimuth-mil-labels",
+];
+
 export function addAzimuthLayers(
   map: MapLibreMap,
-  center: [number, number],
+  center: LngLat,
   radiusKm = 20,
 ) {
   const data = createAzimuth(center, radiusKm, 6);
@@ -1360,6 +1030,7 @@ export function addAzimuthLayers(
     "text-ignore-placement": true,
   } as const;
 
+  // Nhãn độ (°)
   map.addLayer({
     id: "azimuth-labels",
     type: "symbol",
@@ -1377,6 +1048,7 @@ export function addAzimuthLayers(
     },
   });
 
+  // Nhãn mil
   map.addLayer({
     id: "azimuth-mil-labels",
     type: "symbol",
@@ -1394,26 +1066,257 @@ export function addAzimuthLayers(
     },
   });
 }
-// set ẩn hiện vòng tròn phương vị
+
+/** Ẩn/hiện vòng tròn phương vị. */
 export function toggleAzimuthLayers(map: MapLibreMap, visible: boolean) {
   const visibility = visible ? "visible" : "none";
 
-  const layerIds = [
-    "azimuth-circle",
-    "azimuth-ticks",
-    "azimuth-labels",
-    "azimuth-mil-labels",
-  ];
-
-  layerIds.forEach((id) => {
+  AZIMUTH_LAYER_IDS.forEach((id) => {
     if (map.getLayer(id)) {
       map.setLayoutProperty(id, "visibility", visibility);
     }
   });
 }
+
 // =========================
-// INITIALIZATION & CLEANUP
+// LOCATION LABELS (Place)
 // =========================
+
+const locationMarkers = new Map<string, Marker>();
+
+// Lưu offset kéo theo từng Place
+const locationOffsets = new Map<string, { x: number; y: number }>();
+
+// Gỡ listener kéo theo từng Place, tránh đăng ký trùng
+const locationDragCleanups = new Map<string, () => void>();
+
+// Kích thước đường kẻ (pixel)
+const LEADER_STUB = 30;
+const LEADER_RUN = 200;
+const LEADER_LIFT = 10;
+
+// Ngưỡng xác định thao tác drag (px)
+const DRAG_THRESHOLD = 3;
+
+const getLabelTransform = (side: string | undefined) =>
+  side === "right" ? "translate(0,-50%)" : "translate(-100%,-50%)";
+
+function buildLocationHtml(loc: Place) {
+  const sign = loc.side === "right" ? 1 : -1;
+
+  const endX = sign * LEADER_RUN;
+  const endY = -(LEADER_STUB + LEADER_LIFT);
+
+  const offset = locationOffsets.get(loc.id) ?? {
+    x: loc.offsetX ?? 0,
+    y: loc.offsetY ?? 0,
+  };
+
+  const labelX = endX + offset.x;
+  const labelY = endY + offset.y;
+
+  const phone = loc.phone
+    ? `
+      <div class="mt-0.5 text-[12px] text-slate-500">
+        <a
+          data-location-phone
+          href="tel:${escapeHtml(loc.phone.replace(/\s/g, ""))}"
+          class="hover:underline"
+        >${escapeHtml(loc.phone)}</a>
+      </div>
+    `
+    : "";
+
+  return `
+    <svg
+      width="1"
+      height="1"
+      style="position:absolute; left:0; top:0; overflow:visible; pointer-events:none;"
+    >
+      <polyline
+        data-location-line
+        points="0,0 0,${-LEADER_STUB} ${labelX},${labelY}"
+        fill="none"
+        stroke="#475569"
+        stroke-width="1"
+        stroke-linejoin="round"
+        stroke-linecap="round"
+      />
+      <circle cx="0" cy="0" r="3" fill="#475569" stroke="#ffffff" stroke-width="1" />
+    </svg>
+
+    <div
+      data-location-label
+      data-location-id="${escapeHtml(loc.id)}"
+      data-side="${loc.side ?? "right"}"
+      data-base-x="${endX}"
+      data-base-y="${endY}"
+      data-offset-x="${offset.x}"
+      data-offset-y="${offset.y}"
+      class="absolute z-10 pointer-events-auto cursor-grab active:cursor-grabbing select-none"
+      style="top:${labelY}px; left:${labelX}px; transform:${getLabelTransform(loc.side)}; touch-action:none;"
+    >
+      <div class="min-w-[96px] rounded border border-slate-400 bg-white px-2.5 py-1 text-center text-slate-700">
+        <div class="text-[13px] font-medium leading-tight">
+          ${escapeHtml(loc.name)}
+        </div>
+        ${phone}
+      </div>
+    </div>
+  `;
+}
+
+type DragState = {
+  pointerId: number;
+  startMouseX: number;
+  startMouseY: number;
+  startOffsetX: number;
+  startOffsetY: number;
+  moved: boolean;
+  // Trạng thái dragPan của map trước khi kéo, để khôi phục lại sau
+  wasDragPanEnabled: boolean;
+};
+
+function enableLocationLabelDrag(
+  map: MapLibreMap,
+  marker: Marker,
+  locId: string,
+) {
+  const root = marker.getElement();
+
+  const label = root.querySelector<HTMLElement>("[data-location-label]");
+  const line = root.querySelector<SVGPolylineElement>("[data-location-line]");
+
+  if (!label || !line) return () => {};
+
+  const baseX = Number(label.dataset.baseX);
+  const baseY = Number(label.dataset.baseY);
+  const side = label.dataset.side;
+
+  let offsetX = Number(label.dataset.offsetX) || 0;
+  let offsetY = Number(label.dataset.offsetY) || 0;
+
+  let drag: DragState | null = null;
+
+  // Dùng để chặn click map phát sinh ngay sau thao tác kéo label
+  let suppressNextMapClick = false;
+
+  const renderPosition = () => {
+    const x = baseX + offsetX;
+    const y = baseY + offsetY;
+
+    label.style.left = `${x}px`;
+    label.style.top = `${y}px`;
+    label.style.transform = getLabelTransform(side);
+
+    line.setAttribute("points", `0,0 0,${-LEADER_STUB} ${x},${y}`);
+  };
+
+  const onPointerDown = (e: PointerEvent) => {
+    if (e.button !== 0) return;
+
+    // Cho phép click số điện thoại
+    if ((e.target as HTMLElement).closest("[data-location-phone]")) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    drag = {
+      pointerId: e.pointerId,
+      startMouseX: e.clientX,
+      startMouseY: e.clientY,
+      startOffsetX: offsetX,
+      startOffsetY: offsetY,
+      moved: false,
+      wasDragPanEnabled: map.dragPan.isEnabled(),
+    };
+
+    map.dragPan.disable();
+
+    label.setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e: PointerEvent) => {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const dx = e.clientX - drag.startMouseX;
+    const dy = e.clientY - drag.startMouseY;
+
+    // Chỉ xác nhận drag khi di chuyển vượt ngưỡng
+    if (!drag.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+
+    drag.moved = true;
+
+    offsetX = drag.startOffsetX + dx;
+    offsetY = drag.startOffsetY + dy;
+
+    renderPosition();
+  };
+
+  const finishDrag = (e: PointerEvent) => {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+
+    const { moved, wasDragPanEnabled } = drag;
+    drag = null;
+
+    if (wasDragPanEnabled) {
+      map.dragPan.enable();
+    }
+
+    // Chỉ lưu khi thực sự kéo
+    if (moved) {
+      locationOffsets.set(locId, { x: offsetX, y: offsetY });
+      suppressNextMapClick = true;
+    }
+  };
+
+  const onMapClick = (e: MapMouseEvent) => {
+    if (!suppressNextMapClick) return;
+
+    suppressNextMapClick = false;
+
+    e.preventDefault();
+    e.originalEvent.stopPropagation();
+  };
+
+  map.on("click", onMapClick);
+
+  label.addEventListener("pointerdown", onPointerDown);
+  label.addEventListener("pointermove", onPointerMove);
+  label.addEventListener("pointerup", finishDrag);
+  label.addEventListener("pointercancel", finishDrag);
+
+  return () => {
+    label.removeEventListener("pointerdown", onPointerDown);
+    label.removeEventListener("pointermove", onPointerMove);
+    label.removeEventListener("pointerup", finishDrag);
+    label.removeEventListener("pointercancel", finishDrag);
+
+    map.off("click", onMapClick);
+
+    if (drag?.wasDragPanEnabled) {
+      map.dragPan.enable();
+    }
+  };
+}
+
+// export function addLocationLabels(map: MapLibreMap, places: Place[]) {
+//   places.forEach((loc) => {
+//     const marker = createAnchorMarker(map, [loc.lng, loc.lat]);
+//     marker.getElement().innerHTML = buildLocationHtml(loc);
+
+//     locationMarkers.set(loc.id, marker);
+//   });
+
+//   return () => {
+//     locationMarkers.forEach((marker) => marker.remove());
+//     locationMarkers.clear();
+//   };
+// }
+
 export function updateLocationLabels(map: MapLibreMap, locations: Place[]) {
   const activeIds = new Set(locations.map((loc) => loc.id));
 
@@ -1431,49 +1334,53 @@ export function updateLocationLabels(map: MapLibreMap, locations: Place[]) {
   });
 
   locations.forEach((loc) => {
+    const lngLat: LngLat = [loc.lng, loc.lat];
+
     let marker = locationMarkers.get(loc.id);
 
     if (!marker) {
-      const element = document.createElement("div");
-
-      element.style.cssText = "width:0;height:0;pointer-events:none;";
-
-      marker = new Marker({
-        element,
-        anchor: "center",
-      })
-        .setLngLat([loc.lng, loc.lat])
-        .addTo(map);
-
+      marker = createAnchorMarker(map, lngLat);
       locationMarkers.set(loc.id, marker);
     }
 
-    marker.setLngLat([loc.lng, loc.lat]);
+    marker.setLngLat(lngLat);
 
     const html = buildLocationHtml(loc);
     const element = marker.getElement();
 
     // Chỉ render lại DOM khi HTML thay đổi
-    if (element.dataset.labelHtml !== html) {
-      // Gỡ listener cũ trước khi thay DOM
-      locationDragCleanups.get(loc.id)?.();
-      locationDragCleanups.delete(loc.id);
+    if (element.dataset.labelHtml === html) return;
 
-      element.innerHTML = html;
-      element.dataset.labelHtml = html;
+    // Gỡ listener cũ trước khi thay DOM
+    locationDragCleanups.get(loc.id)?.();
 
-      // Gắn kéo vào DOM mới
-      const cleanup = enableLocationLabelDrag(map, marker, loc.id);
+    element.innerHTML = html;
+    element.dataset.labelHtml = html;
 
-      locationDragCleanups.set(loc.id, cleanup);
-    }
+    // Gắn kéo vào DOM mới
+    locationDragCleanups.set(
+      loc.id,
+      enableLocationLabelDrag(map, marker, loc.id),
+    );
   });
 }
+
+function cleanupLocationLabels() {
+  locationDragCleanups.forEach((cleanup) => cleanup());
+  locationDragCleanups.clear();
+
+  locationMarkers.forEach((marker) => marker.remove());
+}
+
+// =========================
+// INITIALIZATION & CLEANUP
+// =========================
+
 export function initializeMapLayers(map: MapLibreMap) {
   addGridLayers(map);
   addRouteLayers(map);
   addAirportLayer(map);
-  // const cleanupLocations = addLocationLabels(map); // <-- thêm
+
   const cleanupMeasurement = addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);
   const cleanupCursor = addCursorTracker(map);
 
@@ -1485,14 +1392,10 @@ export function initializeMapLayers(map: MapLibreMap) {
     cleanupRouteHover();
     cleanupMeasurement();
     cleanupCursor();
-    // cleanupLocations();
+
     clearFirstWaypointLabels();
+    cleanupLocationLabels();
 
-    // Cleanup Location labels + drag listeners
-    locationDragCleanups.forEach((cleanup) => cleanup());
-    locationDragCleanups.clear();
-
-    locationMarkers.forEach((marker) => marker.remove());
     // Dọn cache theo map instance
     flightRouteCache.delete(map);
     waypointDataCache.delete(map);

@@ -370,7 +370,7 @@ export default function MapTiler() {
             <span>Azimuth</span>
           </button>
           <span className="whitespace-nowrap text-sm font-semibold text-slate-600">
-            Máy bay:
+            Tốp:
           </span>
 
           <select
@@ -390,7 +390,7 @@ export default function MapTiler() {
           "
           >
             {aircrafts.length === 0 ? (
-              <option value="">Chưa có máy bay</option>
+              <option value="">Chưa có tốp nào</option>
             ) : (
               aircrafts.map((aircraft) => (
                 <option key={aircraft.id} value={aircraft.id}>
