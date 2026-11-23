@@ -1306,7 +1306,7 @@ export function addAirportLayer(map: MapLibreMap) {
 }
 
 // =========================
-// AZIMUTH
+// AZIMUTH : vòng tròn phương vị
 // =========================
 
 export function addAzimuthLayers(
@@ -1394,7 +1394,23 @@ export function addAzimuthLayers(
     },
   });
 }
+// set ẩn hiện vòng tròn phương vị
+export function toggleAzimuthLayers(map: MapLibreMap, visible: boolean) {
+  const visibility = visible ? "visible" : "none";
 
+  const layerIds = [
+    "azimuth-circle",
+    "azimuth-ticks",
+    "azimuth-labels",
+    "azimuth-mil-labels",
+  ];
+
+  layerIds.forEach((id) => {
+    if (map.getLayer(id)) {
+      map.setLayoutProperty(id, "visibility", visibility);
+    }
+  });
+}
 // =========================
 // INITIALIZATION & CLEANUP
 // =========================

@@ -21,6 +21,7 @@ import NewAircraftForm from "../components/controls/NewAircraftForm";
 import { useLocations } from "../hooks/useLocations";
 import { Place } from "../features/places/place.types";
 import SettingsPage from "../components/settings/SettingsPage";
+import { useMapContext } from "../context/MapContext";
 
 export default function MapTiler() {
   const {
@@ -322,6 +323,7 @@ export default function MapTiler() {
   const handleBackFromSettings = () => {
     setIsSettingsOpen(false);
   };
+  const { showAzimuth, setShowAzimuth, toggleAzimuth } = useMapContext();
   return (
     <div className="map-container relative flex h-screen w-full flex-col overflow-hidden bg-slate-50">
       {/* ================= THANH TỌA ĐỘ ================= */}
@@ -350,6 +352,23 @@ export default function MapTiler() {
           transition-all duration-300
         "
         >
+          <button
+            type="button"
+            onClick={toggleAzimuth}
+            className={`
+    flex h-9 items-center gap-2 rounded-lg border px-3
+    text-sm font-semibold transition-all
+    ${
+      showAzimuth
+        ? "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
+        : "border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-200"
+    }
+  `}
+            title={showAzimuth ? "Ẩn Azimuth" : "Hiện Azimuth"}
+          >
+            <span>{showAzimuth ? "◉" : "◎"}</span>
+            <span>Azimuth</span>
+          </button>
           <span className="whitespace-nowrap text-sm font-semibold text-slate-600">
             Máy bay:
           </span>

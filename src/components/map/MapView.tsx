@@ -15,6 +15,7 @@ import { MAP_CONFIG, MAP_GRID_CONFIG } from "../../config/map.config";
 
 import {
   initializeMapLayers,
+  toggleAzimuthLayers,
   updateGridLabels,
   updateLocationLabels,
   updateWaypoints,
@@ -93,7 +94,13 @@ export default function MapView({
     addPoint,
     getLastPoint,
   } = useAirCraftContext();
-  const { gridSelected, commitGridSelected } = useMapContext();
+  const { commitGridSelected, showAzimuth } = useMapContext();
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    toggleAzimuthLayers(map, showAzimuth);
+  }, [showAzimuth]);
   // Context là nguồn dữ liệu chính.
   // Props chỉ là phương án dự phòng.
   const aircraftList = contextAircrafts ?? propAircrafts;

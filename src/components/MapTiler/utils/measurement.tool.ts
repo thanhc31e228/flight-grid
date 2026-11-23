@@ -472,7 +472,6 @@ export function addMeasurementTool(map: MapLibreMap, origin: Position) {
 // =========================================
 // INITIALIZE MAP LAYERS
 // =========================================
-
 export function initializeMapLayers(map: MapLibreMap) {
   addGridLayers(map);
   addRouteLayers(map);
@@ -483,7 +482,7 @@ export function initializeMapLayers(map: MapLibreMap) {
   const cleanupCursor = addCursorTracker(map);
 
   addAzimuthLayers(map, MAP_CONFIG.CENTER_MIL, 40);
-
+  // Đồng bộ trạng thái từ Context
   const cleanupRouteHover = addRouteHoverEvents(map);
 
   return () => {

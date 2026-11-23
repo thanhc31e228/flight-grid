@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useMemo } from "react";
+import { createContext, ReactNode, useContext, useMemo, useState } from "react";
 import { useMap } from "../hooks/useMap";
 
 export type GridSType = {
@@ -10,11 +10,18 @@ export type GridSType = {
 interface MapContextType {
   gridSelected: GridSType | undefined;
   commitGridSelected: (grid: GridSType) => void;
+  showAzimuth: boolean;
+  setShowAzimuth: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleAzimuth: () => void;
 }
 const MapContext = createContext<MapContextType | undefined>(undefined);
 export default function MapProvider({ children }: { children: ReactNode }) {
   const { gridSelected, commitGridSelected } = useMap();
+  const [showAzimuth, setShowAzimuth] = useState(true);
 
+  const toggleAzimuth = () => {
+    setShowAzimuth((prev) => !prev);
+  };
   const value = useMemo(
     () => ({
       gridSelected,
@@ -23,7 +30,13 @@ export default function MapProvider({ children }: { children: ReactNode }) {
     [gridSelected, commitGridSelected],
   );
 
-  return <MapContext.Provider value={value}>{children}</MapContext.Provider>;
+  return (
+    <MapContext.Provider
+      value={{ ...value, showAzimuth, setShowAzimuth, toggleAzimuth }}
+    >
+      {children}
+    </MapContext.Provider>
+  );
 }
 
 export function useMapContext() {
