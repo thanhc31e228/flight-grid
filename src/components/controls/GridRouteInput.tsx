@@ -181,9 +181,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
         "
       />
 
-      <p className="mt-1.5 text-xs text-gray-500">
-        Enter để thêm, Shift + Enter để xuống dòng.
-      </p>
+      <p className="mt-1.5 text-xs text-gray-500">Enter để thêm</p>
 
       {/* Lịch sử tọa độ */}
       <div className="mt-5 flex min-h-0 flex-1 flex-col">
