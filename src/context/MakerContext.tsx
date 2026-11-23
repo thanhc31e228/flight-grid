@@ -1,4 +1,11 @@
-import { createContext, ReactNode, useContext, useMemo } from "react";
+import {
+  createContext,
+  Dispatch,
+  ReactNode,
+  SetStateAction,
+  useContext,
+  useMemo,
+} from "react";
 
 import { useAircrafts } from "../hooks/useAircrafts";
 import type { AirCraft, Point } from "../components/MapTiler/types/map.types";
@@ -8,7 +15,7 @@ interface AirCraftContextType {
   aircrafts: AirCraft[];
   selectedAircraftId: string | null;
   aircraftSelected: AirCraft | null;
-  setAircraftSelected: (aircraft: AirCraft | null) => void;
+  setAircraftSelected: Dispatch<SetStateAction<AirCraft | null>>;
   getLastPoint: (aircaftId: string) => Point | undefined;
   setSelectedAircraftId: (id: string | null) => void;
   addAircraft: (aircraft: AirCraft) => AirCraft;
@@ -19,7 +26,6 @@ interface AirCraftContextType {
   clearPoints: (aircraftId: string) => void;
   setRoute: (aircraftId: string, points: Point[]) => void;
 }
-
 const AirCraftContext = createContext<AirCraftContextType | undefined>(
   undefined,
 );
