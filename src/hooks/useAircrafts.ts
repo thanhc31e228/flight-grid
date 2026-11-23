@@ -10,6 +10,9 @@ export function useAircrafts() {
   const [selectedAircraftId, setSelectedAircraftId] = useState<string | null>(
     null,
   );
+  const [aircraftSelected, setAircraftSelected] = useState<AirCraft | null>(
+    null,
+  );
 
   // Đồng bộ ref và state
   /// LƯU VÀO DATABASE
@@ -135,7 +138,9 @@ export function useAircrafts() {
   return {
     aircrafts,
     selectedAircraftId,
+    aircraftSelected,
     setSelectedAircraftId,
+    setAircraftSelected,
     aircraftsRef,
     addAircraft,
     updateAircraft,

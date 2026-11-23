@@ -7,6 +7,8 @@ import { AircraftDetails } from "../components/controls/factory/aircraft.factory
 interface AirCraftContextType {
   aircrafts: AirCraft[];
   selectedAircraftId: string | null;
+  aircraftSelected: AirCraft | null;
+  setAircraftSelected: (aircraft: AirCraft | null) => void;
   getLastPoint: (aircaftId: string) => Point | undefined;
   setSelectedAircraftId: (id: string | null) => void;
   addAircraft: (aircraft: AirCraft) => AirCraft;
@@ -27,6 +29,8 @@ export default function MakerProvider({ children }: { children: ReactNode }) {
     aircrafts,
     selectedAircraftId,
     setSelectedAircraftId,
+    aircraftSelected,
+    setAircraftSelected,
     addAircraft,
     updateAircraft,
     getLastPoint,
@@ -42,6 +46,8 @@ export default function MakerProvider({ children }: { children: ReactNode }) {
       aircrafts,
       selectedAircraftId,
       setSelectedAircraftId,
+      setAircraftSelected,
+      aircraftSelected,
       addAircraft,
       updateAircraft,
       removeAirCraft: removeAircraft,
@@ -54,6 +60,8 @@ export default function MakerProvider({ children }: { children: ReactNode }) {
     [
       aircrafts,
       selectedAircraftId,
+      aircraftSelected,
+      setAircraftSelected,
       setSelectedAircraftId,
       addAircraft,
       updateAircraft,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { GridFeature } from "../../features/grid/grid.types";
 import { getGridCenter } from "../../features/grid/grid.geometry";
@@ -31,6 +31,8 @@ export default function GridRouteInput({ gridIndex }: Props) {
     setSelectedAircraftId,
     getLastPoint,
     undoPoint,
+    aircraftSelected,
+    setAircraftSelected,
   } = useAirCraftContext();
 
   // Thêm tọa độ vào lịch sử nhập
@@ -71,7 +73,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
 
     return lastEntry?.id === item.id;
   };
-
+  useEffect(() => {}, [aircraftSelected]);
   const handleSubmit = () => {
     const lastLine = value.trim().split(/\r?\n/).pop()?.trim();
 
@@ -114,6 +116,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
       };
 
       addAircraft(airCraft);
+      setAircraftSelected(airCraft);
     }
 
     // Có thời gian
@@ -135,6 +138,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
       addPoint(idTop, point);
     }
 
+    // lưu air craft
     setSelectedAircraftId(idTop);
 
     // Lưu lịch sử
