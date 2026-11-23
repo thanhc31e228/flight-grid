@@ -36,11 +36,9 @@ export default function GridRouteInput({ gridIndex }: Props) {
     selectedAircraftId,
     setSelectedAircraftId,
     addAircraft,
-    removeAirCraft,
     addPoint,
     getLastPoint,
     undoPoint,
-    setAircraftSelected,
   } = useAirCraftContext();
 
   const handleSubmit = () => {
@@ -93,7 +91,6 @@ export default function GridRouteInput({ gridIndex }: Props) {
       };
 
       addAircraft(airCraft);
-      setAircraftSelected(airCraft);
     }
     // Có thời gian
     else if (lastLine.length === 10) {
@@ -145,15 +142,14 @@ export default function GridRouteInput({ gridIndex }: Props) {
     : [];
 
   // Hoàn tác: chỉ cho phép điểm cuối cùng của Tốp
-  const handleUndo = (aircraft: AirCraft) => {
-    // Điểm cuối cùng -> xóa luôn Tốp khỏi bản đồ
-    if (aircraft.points.length <= 1) {
-      removeAirCraft(aircraft.id);
-      return;
-    }
+  // const handleUndo = (aircraft: AirCraft) => {
+  //   // Điểm cuối cùng -> xóa luôn Tốp khỏi bản đồ
+  //   if (aircraft.points.length <= 1) {
+  //     return;
+  //   }
 
-    undoPoint(aircraft.id);
-  };
+  //   undoPoint(aircraft.id);
+  // };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col border-t border-gray-200 pt-4">
@@ -310,7 +306,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
                       <button
                         type="button"
                         disabled={!canUndo}
-                        onClick={() => handleUndo(activeAircraft)}
+                        onClick={() => undoPoint(activeAircraft.id)}
                         aria-label="Hoàn tác tọa độ"
                         title={
                           canUndo

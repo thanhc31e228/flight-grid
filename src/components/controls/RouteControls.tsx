@@ -1,26 +1,24 @@
-type Props = {
-  count: number;
-  aircraftId: string | null;
-  onUndo: (aircraftId: string) => void;
-  onClear: (aircraftId: string) => void;
-};
+import { useAirCraftContext } from "../../context/MakerContext";
 
-export default function RouteControls({
-  count,
-  aircraftId,
-  onUndo,
-  onClear,
-}: Props) {
-  const disabled = !aircraftId || count === 0;
+export default function RouteControls() {
+  const { aircrafts, selectedAircraftId, undoPoint, clearPoints } =
+    useAirCraftContext();
+
+  // Số waypoint của Tốp đang chọn
+  const count =
+    aircrafts.find((item) => item.id === selectedAircraftId)?.points.length ??
+    0;
+
+  const disabled = !selectedAircraftId || count === 0;
 
   const handleUndo = () => {
-    if (disabled || !aircraftId) return;
-    onUndo(aircraftId);
+    if (disabled || !selectedAircraftId) return;
+    undoPoint(selectedAircraftId);
   };
 
   const handleClear = () => {
-    if (disabled || !aircraftId) return;
-    onClear(aircraftId);
+    if (disabled || !selectedAircraftId) return;
+    clearPoints(selectedAircraftId);
   };
 
   return (

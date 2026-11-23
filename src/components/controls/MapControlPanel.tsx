@@ -10,25 +10,15 @@ type Props = {
 };
 
 export default function MapControlPanel({ gridIndex }: Props) {
-  const { aircrafts, selectedAircraftId, undoPoint, clearPoints } =
-    useAirCraftContext();
+  const { aircrafts, selectedAircraftId } = useAirCraftContext();
 
+  // Tốp đang chọn
   const selectedAircraft = useMemo(
     () => aircrafts.find((item) => item.id === selectedAircraftId) ?? null,
     [aircrafts, selectedAircraftId],
   );
 
-  const points = selectedAircraft?.points ?? [];
-
-  // Animation modal
-
-  const handleUndo = () => {
-    if (selectedAircraftId) undoPoint(selectedAircraftId);
-  };
-
-  const handleClear = () => {
-    if (selectedAircraftId) clearPoints(selectedAircraftId);
-  };
+  const pointCount = selectedAircraft?.points.length ?? 0;
 
   return (
     <>
@@ -42,20 +32,15 @@ export default function MapControlPanel({ gridIndex }: Props) {
 
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-gray-900">
-              {selectedAircraft?.name ?? "Chưa chọn máy bay"}
+              {selectedAircraft?.id ?? "Chưa chọn máy bay"}
             </p>
             <p className="text-xs tabular-nums text-gray-500">
-              {points.length} waypoint
+              {pointCount} waypoint
             </p>
           </div>
         </div>
 
-        <RouteControls
-          count={points.length}
-          aircraftId={selectedAircraftId}
-          onUndo={handleUndo}
-          onClear={handleClear}
-        />
+        <RouteControls />
 
         <GridRouteInput gridIndex={gridIndex} />
       </div>

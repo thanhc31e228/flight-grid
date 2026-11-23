@@ -1,7 +1,6 @@
-import { useCallback, useRef, useState } from "react";
-import { AirCraft } from "../components/MapTiler/types/map.types";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { AirCraft, Point } from "../components/MapTiler/types/map.types";
 import { AircraftDetails } from "../components/controls/factory/aircraft.factory";
-import { Point } from "../features/route/route.types";
 
 export function useAircrafts() {
   // danh sach cac duong bay quan ly
@@ -10,9 +9,18 @@ export function useAircrafts() {
   const [selectedAircraftId, setSelectedAircraftId] = useState<string | null>(
     null,
   );
-  const [aircraftSelected, setAircraftSelected] = useState<AirCraft | null>(
-    null,
+
+  // Tốp đang chọn: suy ra từ aircrafts + selectedAircraftId nên không bao giờ bị cũ
+  const aircraftSelected = useMemo(
+    () =>
+      aircrafts.find((aircraft) => aircraft.id === selectedAircraftId) ?? null,
+    [aircrafts, selectedAircraftId],
   );
+
+  // Giữ API cũ: chọn theo object nhưng thực chất chỉ lưu id
+  const setAircraftSelected = useCallback((aircraft: AirCraft | null) => {
+    setSelectedAircraftId(aircraft?.id ?? null);
+  }, []);
 
   // Đồng bộ ref và state
   /// LƯU VÀO DATABASE
@@ -70,6 +78,12 @@ export function useAircrafts() {
       );
 
       commitAircrafts(updated);
+
+      // Nếu đang chọn Tốp bị xóa thì chuyển sang Tốp cuối còn lại (hoặc bỏ chọn)
+      setSelectedAircraftId((prev) =>
+        prev === aircraftId ? (updated.at(-1)?.id ?? null) : prev,
+      );
+
       return updated.length;
     },
     [commitAircrafts],
@@ -92,9 +106,19 @@ export function useAircrafts() {
     [commitAircrafts],
   );
 
-  // Undo point của một máy bay
+  // Undo point của một máy bay (hết điểm thì xóa luôn Tốp)
   const undoPoint = useCallback(
     (aircraftId: string) => {
+      const target = aircraftsRef.current.find((a) => a.id === aircraftId);
+      if (!target) return 0;
+
+      const remaining = target.points.length - 1;
+
+      if (remaining <= 0) {
+        removeAircraft(aircraftId);
+        return 0;
+      }
+
       const updated = aircraftsRef.current.map((aircraft) =>
         aircraft.id === aircraftId
           ? { ...aircraft, points: aircraft.points.slice(0, -1) }
@@ -102,23 +126,17 @@ export function useAircrafts() {
       );
 
       commitAircrafts(updated);
-
-      const target = updated.find((a) => a.id === aircraftId);
-      return target?.points.length ?? 0;
+      return remaining;
     },
-    [commitAircrafts],
+    [commitAircrafts, removeAircraft],
   );
 
-  // Xóa toàn bộ point của một máy bay
+  // Xóa toàn bộ point của một máy bay -> không còn điểm nào nên xóa luôn Tốp
   const clearPoints = useCallback(
     (aircraftId: string) => {
-      const updated = aircraftsRef.current.map((aircraft) =>
-        aircraft.id === aircraftId ? { ...aircraft, points: [] } : aircraft,
-      );
-
-      commitAircrafts(updated);
+      removeAircraft(aircraftId);
     },
-    [commitAircrafts],
+    [removeAircraft],
   );
 
   // Thay thế route của một máy bay
@@ -134,6 +152,7 @@ export function useAircrafts() {
     },
     [commitAircrafts],
   );
+
   return {
     aircrafts,
     selectedAircraftId,

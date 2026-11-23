@@ -15,9 +15,8 @@ import type {
   GridCollection,
 } from "../../features/grid/grid.types";
 
-import { AirCraft, Point } from "../MapTiler/types/map.types";
+import { Point } from "../MapTiler/types/map.types";
 import { GridSType } from "../../context/MapContext";
-import { Dispatch, SetStateAction } from "react";
 
 const GRID_LAYERS = ["grid-level-3-fill", "grid-level-2-fill", "grid-fill"];
 
@@ -27,8 +26,6 @@ export function registerMapEvents(
   getSelectedAircraftId: () => string | null,
   getLastPoint: (aircraftId: string) => Point | undefined,
   commitGridSelected: (gridSelected: GridSType) => void,
-  selectedAircraft: AirCraft | null,
-  setAircraftSelected: Dispatch<SetStateAction<AirCraft | null>>,
 ) {
   let activeParentId: string | null = null;
   let activeChildId: string | null = null;
@@ -163,14 +160,6 @@ export function registerMapEvents(
       appearanceTime: lastPoint.appearanceTime,
       coordinateGridId: gridId != null ? String(gridId) : undefined,
     };
-    setAircraftSelected((prev) => {
-      if (!prev) return prev;
-
-      return {
-        ...prev,
-        points: [...prev.points, point],
-      };
-    });
     onAddPoint(selectedAircraftId, point);
   };
 
