@@ -38,6 +38,7 @@ import {
   addPlaces,
   togglePlaceLayers,
 } from "../../features/places/places.layers";
+import { setMeasurementTool } from "../MapTiler/utils/measurement.tool";
 
 // ======================================
 // TYPES
@@ -99,12 +100,14 @@ export default function MapView({
     addPoint,
     getLastPoint,
   } = useAirCraftContext();
+
   const {
     commitGridSelected,
     showAzimuth,
     showPlace: showPlaceLabel,
     baseCoordinates,
   } = useMapContext();
+
   const { places, showPlace } = usePlaceContext();
   useEffect(() => {
     const map = mapRef.current;
@@ -128,6 +131,7 @@ export default function MapView({
     const map = mapRef.current;
     if (!map) return;
     setFireZoneLayer(map, baseCoordinates);
+    setMeasurementTool(map, baseCoordinates);
   }, [baseCoordinates]);
   // Context là nguồn dữ liệu chính.
   // Props chỉ là phương án dự phòng.
