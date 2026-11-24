@@ -12,9 +12,6 @@ type Props = {
   labelInput: string;
   onLabelInputChange: (value: string) => void;
   onSaveLabels: (labels: string[]) => Promise<void>;
-  locations: Place[];
-  onAddLocation: (data: Omit<Place, "id">) => void;
-  onRemoveLocation: (id: string) => void;
   onFocusLocation: (loc: Place) => void;
   onBack: () => void;
 };
@@ -23,9 +20,6 @@ export default function SettingsPage({
   labelInput,
   onLabelInputChange,
   onSaveLabels,
-  locations,
-  onAddLocation,
-  onRemoveLocation,
   onFocusLocation,
   onBack,
 }: Props) {
@@ -47,14 +41,7 @@ export default function SettingsPage({
         );
 
       case "places":
-        return (
-          <PlaceSettings
-            locations={locations}
-            onAdd={onAddLocation}
-            onRemove={onRemoveLocation}
-            onFocus={onFocusLocation}
-          />
-        );
+        return <PlaceSettings onFocus={onFocusLocation} />;
 
       case "center":
         return <CenterSettings />;

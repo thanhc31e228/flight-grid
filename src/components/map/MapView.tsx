@@ -17,7 +17,6 @@ import {
   initializeMapLayers,
   toggleAzimuthLayers,
   updateGridLabels,
-  // updateLocationLabels,
   updateWaypoints,
 } from "./MapLayers";
 
@@ -33,6 +32,7 @@ import { useAirCraftContext } from "../../context/MakerContext";
 import type { Place } from "../../features/places/place.types";
 import { useMapContext } from "../../context/MapContext";
 import { usePlaceContext } from "../../context/PlaceContext";
+import { addPlaces } from "../../features/places/places.layers";
 
 // ======================================
 // TYPES
@@ -95,7 +95,7 @@ export default function MapView({
     getLastPoint,
   } = useAirCraftContext();
   const { commitGridSelected, showAzimuth } = useMapContext();
-  const { places, addPlace } = usePlaceContext();
+  const { places } = usePlaceContext();
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -149,10 +149,11 @@ export default function MapView({
   // Chạy khi map sẵn sàng và mỗi khi danh sách địa điểm đổi (thêm/sửa/xóa)
   // ======================================
 
-  // useEffect(() => {
-  //   const map = mapRef.current;
-  //   if (!map || !mapReady) return;
-  // }, [mapReady, places]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    addPlaces(map, places);
+  }, [mapReady, places]);
 
   // Bay tới địa điểm được chọn
   useEffect(() => {

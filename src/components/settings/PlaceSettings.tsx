@@ -1,13 +1,7 @@
 import { useState } from "react";
 import { MapPin, X } from "lucide-react";
 import { Place } from "../../features/places/place.types";
-
-type Props = {
-  locations: Place[];
-  onAdd: (data: Omit<Place, "id">) => void;
-  onRemove: (id: string) => void;
-  onFocus: (loc: Place) => void;
-};
+import { usePlaceContext } from "../../context/PlaceContext";
 
 const labelClass = "text-sm font-medium text-gray-900";
 
@@ -32,19 +26,16 @@ function parseCoords(input: string) {
 
   return { lat, lng };
 }
+type Props = {
+  onFocus: (loc: Place) => void;
+};
 
-export default function PlaceSettings({
-  locations,
-  onAdd,
-  onRemove,
-  onFocus,
-}: Props) {
+export default function PlaceSettings({ onFocus }: Props) {
   const [name, setName] = useState("");
   const [coords, setCoords] = useState("");
   const [phone, setPhone] = useState("");
-  const [side, setSide] = useState<"auto" | "left" | "right">("auto");
   const [error, setError] = useState("");
-
+  const { places, addPlace, removePlace } = usePlaceContext();
   const handleAdd = () => {
     const parsed = parseCoords(coords);
 
@@ -58,17 +49,16 @@ export default function PlaceSettings({
       return;
     }
 
-    onAdd({
+    addPlace({
+      id: name.trim(),
       name: name.trim(),
       phone: phone.trim(),
-      // side: side === "auto" ? undefined : side,
       ...parsed,
     });
 
     setName("");
     setCoords("");
     setPhone("");
-    setSide("auto");
     setError("");
   };
 
@@ -122,23 +112,6 @@ export default function PlaceSettings({
             className={fieldClass}
           />
         </div>
-
-        <div>
-          <label htmlFor="place-side" className={labelClass}>
-            Vị trí label
-          </label>
-          <select
-            id="place-side"
-            value={side}
-            onChange={(e) => setSide(e.target.value as typeof side)}
-            className={fieldClass}
-          >
-            <option value="auto">Tự động</option>
-            <option value="left">Bên trái</option>
-            <option value="right">Bên phải</option>
-          </select>
-        </div>
-
         {error && (
           <div
             role="alert"
@@ -168,11 +141,11 @@ export default function PlaceSettings({
             Danh sách địa điểm
           </h3>
           <span className="text-xs tabular-nums text-gray-500">
-            {locations.length}
+            {places.length}
           </span>
         </header>
 
-        {locations.length === 0 ? (
+        {places.length === 0 ? (
           <div className="flex flex-col items-center px-6 py-10 text-center">
             <MapPin size={24} className="text-gray-400" />
             <p className="mt-3 text-sm text-gray-500">
@@ -181,7 +154,7 @@ export default function PlaceSettings({
           </div>
         ) : (
           <ul className="divide-y divide-gray-100 p-2">
-            {locations.map((loc) => (
+            {places.map((loc) => (
               <li key={loc.id} className="flex items-center gap-2">
                 <button
                   type="button"
@@ -203,7 +176,7 @@ export default function PlaceSettings({
 
                 <button
                   type="button"
-                  onClick={() => onRemove(loc.id)}
+                  onClick={() => removePlace(loc.id)}
                   aria-label={`Xóa ${loc.name}`}
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900 ${focusRing}`}
                 >

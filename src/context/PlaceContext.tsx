@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from "react";
 import type { Place } from "../features/places/place.types";
+import { DEFAULT_PLACES } from "../components/MapTiler/map.constants";
 
 type PlaceContextType = {
   places: Place[];
@@ -10,7 +11,7 @@ type PlaceContextType = {
 const PlaceContext = createContext<PlaceContextType | undefined>(undefined);
 
 export function PlaceProvider({ children }: { children: React.ReactNode }) {
-  const [places, setPlaces] = useState<Place[]>([]);
+  const [places, setPlaces] = useState<Place[]>(DEFAULT_PLACES);
 
   const addPlace = (place: Place) => {
     setPlaces((prev) => [...prev, place]);

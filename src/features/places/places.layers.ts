@@ -46,7 +46,6 @@ export function addPlaces(map: MapLibreMap, places: Place[]) {
     data: geojson,
   });
 }
-
 /* =========================================
    LAYERS
 ========================================= */

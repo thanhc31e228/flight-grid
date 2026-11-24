@@ -22,6 +22,7 @@ import { usePlaces } from "../hooks/usePlaces";
 import { Place } from "../features/places/place.types";
 import SettingsPage from "../components/settings/SettingsPage";
 import { useMapContext } from "../context/MapContext";
+import { usePlaceContext } from "../context/PlaceContext";
 
 export default function MapTiler() {
   const {
@@ -34,7 +35,7 @@ export default function MapTiler() {
   // Máy bay đang được chọn
   // Danh sách tọa độ mặc định
   // Danh sách địa điểm
-  const { locations, addLocation, removeLocation } = usePlaces();
+  const { places, addPlace, removePlace } = usePlaceContext();
 
   // Đóng/mở panel địa điểm
 
@@ -49,10 +50,10 @@ export default function MapTiler() {
     setFocusTarget({ lat: place.lat, lng: place.lng, nonce: Date.now() });
   }, []);
   const handleAddPlace = useCallback(
-    (data: Omit<Place, "id">) => {
-      addLocation(data);
+    (data: Place) => {
+      addPlace(data);
     },
-    [addLocation],
+    [addPlace],
   );
   const DEFAULT_GRID_LABELS = [
     "47",
@@ -335,7 +336,7 @@ export default function MapTiler() {
           <MapView
             gridLabels={gridLabels}
             aircrafts={aircrafts}
-            places={locations}
+            places={places}
             focusTarget={focusTarget}
             onOpenGridContextMenu={handleOpenGridContextMenu}
           />
@@ -673,10 +674,7 @@ export default function MapTiler() {
       {isSettingsOpen && (
         <div className="absolute inset-0 z-[2000]">
           <SettingsPage
-            locations={locations}
-            onAddLocation={handleAddPlace}
             onFocusLocation={handleFocusPlace}
-            onRemoveLocation={removeLocation}
             labelInput={labelInput}
             onLabelInputChange={setLabelInput}
             onSaveLabels={handleSaveLabels}
