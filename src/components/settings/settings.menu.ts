@@ -4,7 +4,7 @@ import { SettingsMenuItem } from "../../types/settings";
 export const SETTINGS_MENU_ITEMS: SettingsMenuItem[] = [
   {
     id: "coordinates",
-    label: "Cấu hình tọa độ",
+    label: "Tọa độ",
     description: "Quản lý hệ thống ô vuông",
     icon: Grid2X2,
   },

@@ -27,7 +27,7 @@ export const DEFAULT_PLACES: Place[] = [
   {
     id: "bchqs-lang-giang",
     name: "BCHQS Xã Lạng Giang",
-    phone: "0xxx",
+    phone: "1234",
     lat: 21.363411,
     lng: 106.265561,
   },
@@ -42,21 +42,21 @@ export const DEFAULT_PLACES: Place[] = [
   {
     id: "c32",
     name: "C32",
-    phone: "846 636",
+    phone: "123456",
     lat: 21.38627,
     lng: 106.248248,
   },
   {
     id: "c5",
     name: "C5",
-    phone: "846 636",
+    phone: "123456",
     lat: 21.403998,
     lng: 106.276633,
   },
   {
     id: "c4",
     name: "C4",
-    phone: "846 636",
+    phone: "123456",
     lat: 21.403599,
     lng: 106.271729,
   },

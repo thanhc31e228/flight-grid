@@ -24,7 +24,6 @@ export function LocationPanel({ locations, onAdd, onRemove, onFocus }: Props) {
   const [name, setName] = useState("");
   const [coords, setCoords] = useState("");
   const [phone, setPhone] = useState("");
-  const [side, setSide] = useState<"auto" | "left" | "right">("auto");
   const [error, setError] = useState("");
 
   const handleAdd = () => {
@@ -43,14 +42,12 @@ export function LocationPanel({ locations, onAdd, onRemove, onFocus }: Props) {
     onAdd({
       name: name.trim(),
       phone: phone.trim(),
-      // side: side === "auto" ? undefined : side,
       ...parsed,
     });
 
     setName("");
     setCoords("");
     setPhone("");
-    setSide("auto");
     setError("");
   };
 
@@ -67,7 +64,7 @@ export function LocationPanel({ locations, onAdd, onRemove, onFocus }: Props) {
       <strong>Địa điểm</strong>
 
       <input
-        placeholder="Tên (VD: BCHQS)"
+        placeholder="Tên địa điểm"
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
@@ -81,15 +78,6 @@ export function LocationPanel({ locations, onAdd, onRemove, onFocus }: Props) {
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
       />
-
-      <select
-        value={side}
-        onChange={(e) => setSide(e.target.value as typeof side)}
-      >
-        <option value="auto">Label: tự động</option>
-        <option value="left">Label: bên trái</option>
-        <option value="right">Label: bên phải</option>
-      </select>
 
       {error && <span style={{ color: "#dc2626", fontSize: 13 }}>{error}</span>}
       <button onClick={handleAdd}>Thêm địa điểm</button>
