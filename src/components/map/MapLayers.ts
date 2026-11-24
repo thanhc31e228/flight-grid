@@ -16,7 +16,6 @@ import { MAP_CONFIG } from "../../config/map.config";
 import { createGrid, emptyGrid } from "../../features/grid/grid.factory";
 import { createAzimuth } from "../../features/grid/azimuth.factory";
 import type { AirCraft } from "../MapTiler/types/map.types";
-import { setMeasurementTool } from "../MapTiler/utils/measurement.tool";
 import { addCursorTracker } from "../MapTiler/utils/cursor.tracker";
 import { smoothLine } from "../MapTiler/utils/smooth-line";
 import { CENTER, DEFAULT_PLACES } from "../MapTiler/map.constants";
