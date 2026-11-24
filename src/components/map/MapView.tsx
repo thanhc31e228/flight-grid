@@ -39,6 +39,12 @@ import {
   togglePlaceLayers,
 } from "../../features/places/places.layers";
 import { setMeasurementTool } from "../MapTiler/utils/measurement.tool";
+import {
+  getMapStyleUrl,
+  keepCustomLayers,
+  loadMapStyleId,
+  MapStyleId,
+} from "../../features/map/baseMaps";
 
 // ======================================
 // TYPES
@@ -85,7 +91,6 @@ export default function MapView({
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
-
   // Map đã load xong và đã khởi tạo layer chưa.
   // Dùng state (không dùng ref) để các effect phía dưới chạy lại khi map sẵn sàng.
   const [mapReady, setMapReady] = useState(false);
@@ -106,8 +111,26 @@ export default function MapView({
     showAzimuth,
     showPlace: showPlaceLabel,
     baseCoordinates,
+    mapStyleId,
   } = useMapContext();
 
+  // Style đang áp dụng trên map (lúc tạo map dùng style nào thì khởi tạo bằng style đó)
+  const appliedStyleRef = useRef<MapStyleId>(mapStyleId);
+
+  // Khi tạo map, dùng style đã lưu thay vì style cố định:
+  // new maplibregl.Map({ container, style: getMapStyleUrl(mapStyleId), ... })
+
+  // Đổi style khi người dùng chọn trong menu
+  useEffect(() => {
+    const map = mapRef.current; // tên ref giữ map instance trong MapView
+    if (!map) return;
+    if (appliedStyleRef.current === mapStyleId) return;
+
+    appliedStyleRef.current = mapStyleId;
+    map.setStyle(`${getMapStyleUrl(mapStyleId)}?key=${API_KEY}`, {
+      transformStyle: keepCustomLayers,
+    });
+  }, [mapStyleId]);
   const { places, showPlace } = usePlaceContext();
   useEffect(() => {
     const map = mapRef.current;
@@ -305,16 +328,19 @@ export default function MapView({
     let cleanupAnimation: (() => void) | undefined;
     let cleanupHover: (() => void) | undefined;
 
+    // Lấy style từ localStorage, chưa có thì hàm tự ghi giá trị mặc định
+    const initialStyleId = loadMapStyleId();
+    appliedStyleRef.current = initialStyleId;
+
     const map = new MapLibreMap({
       container,
-      style: `${MAP_CONFIG.STYLE_URL}?key=${API_KEY}`,
+      style: `${getMapStyleUrl(initialStyleId)}?key=${API_KEY}`,
       center: MAP_CONFIG.CENTER_GRID,
       zoom: MAP_CONFIG.INITIAL_ZOOM,
-      dragRotate: false, // tắt kéo chuột phải / Ctrl + kéo để xoay, nghiêng
-      pitchWithRotate: false, // không cho nghiêng khi xoay
-      touchPitch: false, // tắt nghiêng bằng cảm ứng (nếu có)
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchPitch: false,
     });
-
     mapRef.current = map;
     map.addControl(new NavigationControl(), "bottom-right");
 

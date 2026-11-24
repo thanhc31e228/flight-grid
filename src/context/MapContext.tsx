@@ -1,8 +1,16 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 import { useMap } from "../hooks/useMap";
 import { MAP_CONFIG } from "../config/map.config";
 import { BASE_COORDINATES_KEY } from "../utils/map.storage";
+import { loadMapStyleId, type MapStyleId } from "../features/map/baseMaps";
 
 export type GridSType = {
   lat: number;
@@ -16,13 +24,18 @@ interface MapContextType {
   gridSelected: GridSType | undefined;
   commitGridSelected: (grid: GridSType) => void;
 
+  // Base map style
+  mapStyleId: MapStyleId;
+  setMapStyleId: (id: MapStyleId) => void;
+
+  // Layer visibility
   showAzimuth: boolean;
   showPlace: boolean;
-
   setShowAzimuth: React.Dispatch<React.SetStateAction<boolean>>;
   toggleAzimuth: () => void;
   togglePlace: () => void;
 
+  // Base coordinates
   setBaseCoordinates: (coordinates: Coordinates) => void;
   baseCoordinates: Coordinates;
 }
@@ -32,17 +45,28 @@ const MapContext = createContext<MapContextType | undefined>(undefined);
 export default function MapProvider({ children }: { children: ReactNode }) {
   const { gridSelected, commitGridSelected } = useMap();
 
+  // ================= BASE MAP =================
+  // Khởi tạo từ localStorage (chưa có thì loadMapStyleId tự ghi giá trị mặc định)
+  const [mapStyleId, setMapStyleIdState] = useState<MapStyleId>(loadMapStyleId);
+
+  // Đổi style và lưu vào localStorage
+  const setMapStyleId = useCallback((id: MapStyleId) => {
+    localStorage.setItem(MAP_CONFIG.STORAGE_KEY, id);
+    setMapStyleIdState(id);
+  }, []);
+
+  // ================= LAYER VISIBILITY =================
   const [showAzimuth, setShowAzimuth] = useState(true);
   const [showPlace, setShowPlace] = useState(true);
 
-  // Khởi tạo từ localStorage, nếu chưa có thì lấy MAP_CONFIG
+  // ================= BASE COORDINATES =================
   const [baseCoordinates, setBaseCoordinatesState] = useState<Coordinates>(
     () => {
       try {
         const saved = localStorage.getItem(BASE_COORDINATES_KEY);
 
         if (saved) {
-          const coordinates = JSON.parse(saved);
+          const coordinates: unknown = JSON.parse(saved);
 
           if (
             Array.isArray(coordinates) &&
@@ -62,8 +86,8 @@ export default function MapProvider({ children }: { children: ReactNode }) {
     },
   );
 
-  // Cập nhật state và localStorage
-  const setBaseCoordinates = (coordinates: Coordinates) => {
+  // ================= UPDATE COORDINATES =================
+  const setBaseCoordinates = useCallback((coordinates: Coordinates) => {
     setBaseCoordinatesState(coordinates);
 
     try {
@@ -71,40 +95,51 @@ export default function MapProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Không thể lưu baseCoordinates:", error);
     }
-  };
+  }, []);
 
-  const toggleAzimuth = () => {
+  // ================= TOGGLE AZIMUTH =================
+  const toggleAzimuth = useCallback(() => {
     setShowAzimuth((prev) => !prev);
-  };
+  }, []);
 
-  const togglePlace = () => {
+  // ================= TOGGLE PLACE =================
+  const togglePlace = useCallback(() => {
     setShowPlace((prev) => !prev);
-  };
+  }, []);
 
-  const value = useMemo(
+  // ================= CONTEXT VALUE =================
+  const value = useMemo<MapContextType>(
     () => ({
       gridSelected,
       commitGridSelected,
+
+      mapStyleId,
+      setMapStyleId,
+
+      showAzimuth,
+      showPlace,
+      setShowAzimuth,
+      toggleAzimuth,
+      togglePlace,
+
+      baseCoordinates,
+      setBaseCoordinates,
     }),
-    [gridSelected, commitGridSelected],
+    [
+      gridSelected,
+      commitGridSelected,
+      mapStyleId,
+      setMapStyleId,
+      showAzimuth,
+      showPlace,
+      toggleAzimuth,
+      togglePlace,
+      baseCoordinates,
+      setBaseCoordinates,
+    ],
   );
 
-  return (
-    <MapContext.Provider
-      value={{
-        ...value,
-        showAzimuth,
-        showPlace,
-        baseCoordinates,
-        setBaseCoordinates,
-        setShowAzimuth,
-        togglePlace,
-        toggleAzimuth,
-      }}
-    >
-      {children}
-    </MapContext.Provider>
-  );
+  return <MapContext.Provider value={value}>{children}</MapContext.Provider>;
 }
 
 export function useMapContext() {

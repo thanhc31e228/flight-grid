@@ -9,12 +9,18 @@ export const MAP_CONFIG = {
 
   FIRE_ZONE_RADIUS_KM: 3, // vùng hỏa lực
 
-  STYLE_URL: "https://api.maptiler.com/maps/streets-v4/style.json",
+  MAP_STYLES: {
+    streets: "https://api.maptiler.com/maps/streets-v4/style.json",
+    satellite: "https://api.maptiler.com/maps/satellite/style.json",
+    hybrid: `https://api.maptiler.com/maps/hybrid/style.json`,
+  },
 
   ROUTE: {
     COLOR: "#ff2222",
     WIDTH: 2,
   },
+  DEFAULT_MAP_STYLE: "streets",
+  STORAGE_KEY: "map-base-style",
 };
 
 // cấu hình lưới bản đồ

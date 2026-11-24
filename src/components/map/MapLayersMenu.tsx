@@ -2,8 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 import { usePlaceContext } from "../../context/PlaceContext";
 import { useMapContext } from "../../context/MapContext";
+import {
+  loadMapStyleId,
+  MAP_STYLE_LABELS,
+  type MapStyleId,
+} from "../../features/map/baseMaps";
 
-// Các lớp có thể bật/tắt
 export interface LayerVisibility {
   labels: boolean; // Nhãn
   places: boolean; // Địa điểm
@@ -17,12 +21,14 @@ interface LayerToggleMenuProps {
   className?: string;
 }
 
-// Danh sách menu, muốn thêm mục mới chỉ cần thêm 1 dòng
 const ITEMS: { key: keyof LayerVisibility; text: string }[] = [
   { key: "labels", text: "Nhãn" },
   { key: "places", text: "Địa điểm" },
   { key: "bearingRings", text: "Vòng phương vị" },
 ];
+
+// Danh sách style nền lấy từ BASE_MAPS
+const STYLE_ITEMS = Object.entries(MAP_STYLE_LABELS) as [MapStyleId, string][];
 
 export default function LayerToggleMenu({
   value,
@@ -38,8 +44,15 @@ export default function LayerToggleMenu({
     toggleAzimuth,
     showPlace: showPlaceLabel,
     togglePlace: togglePlaceLabel,
+    mapStyleId,
+    setMapStyleId,
   } = useMapContext();
-
+  // Lần đầu hiển thị: nếu style trong context lệch với localStorage thì kéo về cho khớp
+  useEffect(() => {
+    const saved = loadMapStyleId();
+    if (saved !== mapStyleId) setMapStyleId(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Bấm ra ngoài thì đóng menu
   useEffect(() => {
     if (!open) return;
@@ -52,14 +65,12 @@ export default function LayerToggleMenu({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  // Trạng thái hiện tại của từng lớp: nhãn lấy từ props, 2 lớp còn lại lấy từ context
   const checked: Record<keyof LayerVisibility, boolean> = {
     labels: showPlaceLabel,
     places: showPlace,
     bearingRings: showAzimuth,
   };
 
-  // Hành động khi bấm vào từng lớp
   const toggle = (key: keyof LayerVisibility) => {
     if (key === "places") return togglePlace();
     if (key === "bearingRings") return toggleAzimuth();
@@ -71,7 +82,8 @@ export default function LayerToggleMenu({
     <div ref={rootRef} className={`absolute bottom-4 left-4 z-10 ${className}`}>
       {/* Popup menu */}
       {open && (
-        <div className="absolute bottom-full left-0 mb-1 min-w-[180px] rounded border border-gray-300 bg-white py-1 shadow-sm">
+        <div className="absolute bottom-full left-0 mb-1 min-w-[200px] rounded border border-gray-300 bg-white py-1 shadow-sm">
+          {/* ===== Bật/tắt lớp ===== */}
           {ITEMS.map(({ key, text }) => (
             <label
               key={key}
@@ -81,6 +93,27 @@ export default function LayerToggleMenu({
                 type="checkbox"
                 checked={checked[key]}
                 onChange={() => toggle(key)}
+                className="h-4 w-4 accent-gray-800"
+              />
+              {text}
+            </label>
+          ))}
+
+          {/* ===== Đổi nền bản đồ ===== */}
+          <div className="my-1 border-t border-gray-200" />
+          <div className="px-3 pb-1 pt-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            Nền bản đồ
+          </div>
+          {STYLE_ITEMS.map(([id, text]) => (
+            <label
+              key={id}
+              className="flex cursor-pointer select-none items-center gap-2 px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100"
+            >
+              <input
+                type="radio"
+                name="map-base-style"
+                checked={mapStyleId === id}
+                onChange={() => setMapStyleId(id)}
                 className="h-4 w-4 accent-gray-800"
               />
               {text}
