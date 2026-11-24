@@ -17,7 +17,7 @@ import {
   initializeMapLayers,
   toggleAzimuthLayers,
   updateGridLabels,
-  updateLocationLabels,
+  // updateLocationLabels,
   updateWaypoints,
 } from "./MapLayers";
 
@@ -148,12 +148,12 @@ export default function MapView({
   // Chạy khi map sẵn sàng và mỗi khi danh sách địa điểm đổi (thêm/sửa/xóa)
   // ======================================
 
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady) return;
+  // useEffect(() => {
+  //   const map = mapRef.current;
+  //   if (!map || !mapReady) return;
 
-    updateLocationLabels(map, places);
-  }, [mapReady, places]);
+  //   updateLocationLabels(map, places);
+  // }, [mapReady, places]);
 
   // Bay tới địa điểm được chọn
   useEffect(() => {

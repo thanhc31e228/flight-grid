@@ -18,7 +18,7 @@ import {
   type AircraftSide,
 } from "../components/controls/factory/aircraft.factory";
 import NewAircraftForm from "../components/controls/NewAircraftForm";
-import { useLocations } from "../hooks/useLocations";
+import { usePlaces } from "../hooks/usePlaces";
 import { Place } from "../features/places/place.types";
 import SettingsPage from "../components/settings/SettingsPage";
 import { useMapContext } from "../context/MapContext";
@@ -34,7 +34,7 @@ export default function MapTiler() {
   // Máy bay đang được chọn
   // Danh sách tọa độ mặc định
   // Danh sách địa điểm
-  const { locations, addLocation, removeLocation } = useLocations();
+  const { locations, addLocation, removeLocation } = usePlaces();
 
   // Đóng/mở panel địa điểm
 

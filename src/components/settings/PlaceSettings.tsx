@@ -61,7 +61,7 @@ export default function PlaceSettings({
     onAdd({
       name: name.trim(),
       phone: phone.trim(),
-      side: side === "auto" ? undefined : side,
+      // side: side === "auto" ? undefined : side,
       ...parsed,
     });
 

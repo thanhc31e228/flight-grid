@@ -13,3 +13,11 @@ export const ROWS = 10;
 
 // MapTiler API Key
 export const API_KEY = process.env.REACT_APP_MAPTILER_API_KEY;
+export const SOURCE = {
+  grid: "grid-source",
+  gridLabel: "grid-label-source",
+  route: "route-source",
+  aircraft: "aircraft-source",
+  points: "points-source",
+  places: "places-source",
+} as const;

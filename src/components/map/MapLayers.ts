@@ -9,19 +9,21 @@ import {
   type GeoJSONSource,
   type Map as MapLibreMap,
   type MapLayerMouseEvent,
-  type MapMouseEvent,
 } from "maplibre-gl";
 import type { Feature, LineString, Point } from "geojson";
 
 import { MAP_CONFIG } from "../../config/map.config";
 import { createGrid, emptyGrid } from "../../features/grid/grid.factory";
 import { createAzimuth } from "../../features/grid/azimuth.factory";
-import type { Place } from "../../features/places/place.types";
 import type { AirCraft } from "../MapTiler/types/map.types";
 import { addMeasurementTool } from "../MapTiler/utils/measurement.tool";
 import { addCursorTracker } from "../MapTiler/utils/cursor.tracker";
 import { smoothLine } from "../MapTiler/utils/smooth-line";
 import { CENTER } from "../MapTiler/map.constants";
+import {
+  addPlaces,
+  addPlacesLayers,
+} from "../../features/places/places.layers";
 
 // =========================
 // CONSTANTS & SHARED HELPERS
@@ -41,6 +43,7 @@ const SOURCE = {
   route: "route-source",
   aircraft: "aircraft-source",
   points: "points-source",
+  places: "places-source",
 } as const;
 
 const LAYER = {
@@ -193,7 +196,134 @@ export function addGridLayers(map: MapLibreMap) {
     opacity: 0.55,
   });
 }
+//quản lý GeoJSON source và dữ liệu.
+// export function addPlaces(map: MapLibreMap, places: Place[]) {
+//   const geojson: FeatureCollection<Point> = {
+//     type: "FeatureCollection",
+//     features: places.map((place) => ({
+//       type: "Feature",
+//       geometry: {
+//         type: "Point",
+//         coordinates: [place.lng, place.lat],
+//       },
+//       properties: {
+//         id: place.id,
+//         name: place.name,
+//         phone: place.phone,
+//       },
+//     })),
+//   };
 
+//   const existingSource = map.getSource(SOURCE.places);
+
+//   if (existingSource) {
+//     (existingSource as GeoJSONSource).setData(geojson);
+//     return;
+//   }
+
+//   map.addSource(SOURCE.places, {
+//     type: "geojson",
+//     data: geojson,
+//   });
+//   map.addLayer({
+//     id: "places-layer",
+//     type: "circle",
+//     source: SOURCE.places,
+//     paint: {
+//       "circle-radius": 6,
+//       "circle-color": "#ff9800",
+//       "circle-stroke-width": 2,
+//       "circle-stroke-color": "#ffffff",
+//     },
+//   });
+// }
+// //tạo marker, text tên, text SĐT và hiệu ứng nhấp nháy.
+// export function addPlacesLayers(map: MapLibreMap) {
+//   // Marker
+//   if (!map.getLayer("places-point")) {
+//     map.addLayer({
+//       id: "places-point",
+//       type: "circle",
+//       source: SOURCE.places,
+//       paint: {
+//         "circle-radius": 6,
+//         "circle-color": "#ff3030",
+//         "circle-stroke-width": 2,
+//         "circle-stroke-color": "#ffffff",
+//         "circle-opacity": 1,
+//         "circle-stroke-opacity": 1,
+//       },
+//     });
+//   }
+
+//   // Tên địa điểm
+//   if (!map.getLayer("places-name")) {
+//     map.addLayer({
+//       id: "places-name",
+//       type: "symbol",
+//       source: SOURCE.places,
+//       layout: {
+//         "text-field": ["get", "name"],
+//         "text-font": ["Open Sans Bold"],
+//         "text-size": 14,
+//         "text-anchor": "top",
+//         "text-offset": [0, 1.2],
+//         "text-allow-overlap": true,
+//         "text-ignore-placement": true,
+//       },
+//       paint: {
+//         "text-color": "#ffffff",
+//         "text-halo-color": "#000000",
+//         "text-halo-width": 2,
+//       },
+//     });
+//   }
+
+//   // Số điện thoại
+//   if (!map.getLayer("places-phone")) {
+//     map.addLayer({
+//       id: "places-phone",
+//       type: "symbol",
+//       source: SOURCE.places,
+//       layout: {
+//         "text-field": ["get", "phone"],
+//         "text-font": ["Open Sans Regular"],
+//         "text-size": 12,
+//         "text-anchor": "top",
+//         "text-offset": [0, 2.4],
+//         "text-allow-overlap": true,
+//         "text-ignore-placement": true,
+//       },
+//       paint: {
+//         "text-color": "#00e5ff",
+//         "text-halo-color": "#000000",
+//         "text-halo-width": 2,
+//       },
+//     });
+//   }
+
+//   // Hiệu ứng nhấp nháy marker
+//   let visible = true;
+
+//   const blinkInterval = window.setInterval(() => {
+//     visible = !visible;
+
+//     if (!map.getLayer("places-point")) return;
+
+//     map.setPaintProperty("places-point", "circle-opacity", visible ? 1 : 0.2);
+
+//     map.setPaintProperty(
+//       "places-point",
+//       "circle-stroke-opacity",
+//       visible ? 1 : 0.3,
+//     );
+//   }, 500);
+
+//   // Cleanup
+//   return () => {
+//     window.clearInterval(blinkInterval);
+//   };
+// }
 export function updateGridLabels(map: MapLibreMap, labels: string[]) {
   const source = getGeoJSONSource(map, SOURCE.grid);
   if (!source) return;
@@ -1079,300 +1209,6 @@ export function toggleAzimuthLayers(map: MapLibreMap, visible: boolean) {
 }
 
 // =========================
-// LOCATION LABELS (Place)
-// =========================
-
-const locationMarkers = new Map<string, Marker>();
-
-// Lưu offset kéo theo từng Place
-const locationOffsets = new Map<string, { x: number; y: number }>();
-
-// Gỡ listener kéo theo từng Place, tránh đăng ký trùng
-const locationDragCleanups = new Map<string, () => void>();
-
-// Kích thước đường kẻ (pixel)
-const LEADER_STUB = 30;
-const LEADER_RUN = 200;
-const LEADER_LIFT = 10;
-
-// Ngưỡng xác định thao tác drag (px)
-const DRAG_THRESHOLD = 3;
-
-const getLabelTransform = (side: string | undefined) =>
-  side === "right" ? "translate(0,-50%)" : "translate(-100%,-50%)";
-
-function buildLocationHtml(loc: Place) {
-  const sign = loc.side === "right" ? 1 : -1;
-
-  const endX = sign * LEADER_RUN;
-  const endY = -(LEADER_STUB + LEADER_LIFT);
-
-  const offset = locationOffsets.get(loc.id) ?? {
-    x: loc.offsetX ?? 0,
-    y: loc.offsetY ?? 0,
-  };
-
-  const labelX = endX + offset.x;
-  const labelY = endY + offset.y;
-
-  const phone = loc.phone
-    ? `
-      <div class="mt-0.5 text-[12px] text-slate-500">
-        <a
-          data-location-phone
-          href="tel:${escapeHtml(loc.phone.replace(/\s/g, ""))}"
-          class="hover:underline"
-        >${escapeHtml(loc.phone)}</a>
-      </div>
-    `
-    : "";
-
-  return `
-    <svg
-      width="1"
-      height="1"
-      style="position:absolute; left:0; top:0; overflow:visible; pointer-events:none;"
-    >
-      <polyline
-        data-location-line
-        points="0,0 0,${-LEADER_STUB} ${labelX},${labelY}"
-        fill="none"
-        stroke="#475569"
-        stroke-width="1"
-        stroke-linejoin="round"
-        stroke-linecap="round"
-      />
-      <circle cx="0" cy="0" r="3" fill="#475569" stroke="#ffffff" stroke-width="1" />
-    </svg>
-
-    <div
-      data-location-label
-      data-location-id="${escapeHtml(loc.id)}"
-      data-side="${loc.side ?? "right"}"
-      data-base-x="${endX}"
-      data-base-y="${endY}"
-      data-offset-x="${offset.x}"
-      data-offset-y="${offset.y}"
-      class="absolute z-10 pointer-events-auto cursor-grab active:cursor-grabbing select-none"
-      style="top:${labelY}px; left:${labelX}px; transform:${getLabelTransform(loc.side)}; touch-action:none;"
-    >
-      <div class="min-w-[96px] rounded border border-slate-400 bg-white px-2.5 py-1 text-center text-slate-700">
-        <div class="text-[13px] font-medium leading-tight">
-          ${escapeHtml(loc.name)}
-        </div>
-        ${phone}
-      </div>
-    </div>
-  `;
-}
-
-type DragState = {
-  pointerId: number;
-  startMouseX: number;
-  startMouseY: number;
-  startOffsetX: number;
-  startOffsetY: number;
-  moved: boolean;
-  // Trạng thái dragPan của map trước khi kéo, để khôi phục lại sau
-  wasDragPanEnabled: boolean;
-};
-
-function enableLocationLabelDrag(
-  map: MapLibreMap,
-  marker: Marker,
-  locId: string,
-) {
-  const root = marker.getElement();
-
-  const label = root.querySelector<HTMLElement>("[data-location-label]");
-  const line = root.querySelector<SVGPolylineElement>("[data-location-line]");
-
-  if (!label || !line) return () => {};
-
-  const baseX = Number(label.dataset.baseX);
-  const baseY = Number(label.dataset.baseY);
-  const side = label.dataset.side;
-
-  let offsetX = Number(label.dataset.offsetX) || 0;
-  let offsetY = Number(label.dataset.offsetY) || 0;
-
-  let drag: DragState | null = null;
-
-  // Dùng để chặn click map phát sinh ngay sau thao tác kéo label
-  let suppressNextMapClick = false;
-
-  const renderPosition = () => {
-    const x = baseX + offsetX;
-    const y = baseY + offsetY;
-
-    label.style.left = `${x}px`;
-    label.style.top = `${y}px`;
-    label.style.transform = getLabelTransform(side);
-
-    line.setAttribute("points", `0,0 0,${-LEADER_STUB} ${x},${y}`);
-  };
-
-  const onPointerDown = (e: PointerEvent) => {
-    if (e.button !== 0) return;
-
-    // Cho phép click số điện thoại
-    if ((e.target as HTMLElement).closest("[data-location-phone]")) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    drag = {
-      pointerId: e.pointerId,
-      startMouseX: e.clientX,
-      startMouseY: e.clientY,
-      startOffsetX: offsetX,
-      startOffsetY: offsetY,
-      moved: false,
-      wasDragPanEnabled: map.dragPan.isEnabled(),
-    };
-
-    map.dragPan.disable();
-
-    label.setPointerCapture(e.pointerId);
-  };
-
-  const onPointerMove = (e: PointerEvent) => {
-    if (!drag || e.pointerId !== drag.pointerId) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    const dx = e.clientX - drag.startMouseX;
-    const dy = e.clientY - drag.startMouseY;
-
-    // Chỉ xác nhận drag khi di chuyển vượt ngưỡng
-    if (!drag.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-
-    drag.moved = true;
-
-    offsetX = drag.startOffsetX + dx;
-    offsetY = drag.startOffsetY + dy;
-
-    renderPosition();
-  };
-
-  const finishDrag = (e: PointerEvent) => {
-    if (!drag || e.pointerId !== drag.pointerId) return;
-
-    const { moved, wasDragPanEnabled } = drag;
-    drag = null;
-
-    if (wasDragPanEnabled) {
-      map.dragPan.enable();
-    }
-
-    // Chỉ lưu khi thực sự kéo
-    if (moved) {
-      locationOffsets.set(locId, { x: offsetX, y: offsetY });
-      suppressNextMapClick = true;
-    }
-  };
-
-  const onMapClick = (e: MapMouseEvent) => {
-    if (!suppressNextMapClick) return;
-
-    suppressNextMapClick = false;
-
-    e.preventDefault();
-    e.originalEvent.stopPropagation();
-  };
-
-  map.on("click", onMapClick);
-
-  label.addEventListener("pointerdown", onPointerDown);
-  label.addEventListener("pointermove", onPointerMove);
-  label.addEventListener("pointerup", finishDrag);
-  label.addEventListener("pointercancel", finishDrag);
-
-  return () => {
-    label.removeEventListener("pointerdown", onPointerDown);
-    label.removeEventListener("pointermove", onPointerMove);
-    label.removeEventListener("pointerup", finishDrag);
-    label.removeEventListener("pointercancel", finishDrag);
-
-    map.off("click", onMapClick);
-
-    if (drag?.wasDragPanEnabled) {
-      map.dragPan.enable();
-    }
-  };
-}
-
-// export function addLocationLabels(map: MapLibreMap, places: Place[]) {
-//   places.forEach((loc) => {
-//     const marker = createAnchorMarker(map, [loc.lng, loc.lat]);
-//     marker.getElement().innerHTML = buildLocationHtml(loc);
-
-//     locationMarkers.set(loc.id, marker);
-//   });
-
-//   return () => {
-//     locationMarkers.forEach((marker) => marker.remove());
-//     locationMarkers.clear();
-//   };
-// }
-
-export function updateLocationLabels(map: MapLibreMap, locations: Place[]) {
-  const activeIds = new Set(locations.map((loc) => loc.id));
-
-  // Xóa Marker của Place không còn tồn tại
-  locationMarkers.forEach((marker, id) => {
-    if (activeIds.has(id)) return;
-
-    locationDragCleanups.get(id)?.();
-    locationDragCleanups.delete(id);
-
-    marker.remove();
-    locationMarkers.delete(id);
-
-    locationOffsets.delete(id);
-  });
-
-  locations.forEach((loc) => {
-    const lngLat: LngLat = [loc.lng, loc.lat];
-
-    let marker = locationMarkers.get(loc.id);
-
-    if (!marker) {
-      marker = createAnchorMarker(map, lngLat);
-      locationMarkers.set(loc.id, marker);
-    }
-
-    marker.setLngLat(lngLat);
-
-    const html = buildLocationHtml(loc);
-    const element = marker.getElement();
-
-    // Chỉ render lại DOM khi HTML thay đổi
-    if (element.dataset.labelHtml === html) return;
-
-    // Gỡ listener cũ trước khi thay DOM
-    locationDragCleanups.get(loc.id)?.();
-
-    element.innerHTML = html;
-    element.dataset.labelHtml = html;
-
-    // Gắn kéo vào DOM mới
-    locationDragCleanups.set(
-      loc.id,
-      enableLocationLabelDrag(map, marker, loc.id),
-    );
-  });
-}
-
-function cleanupLocationLabels() {
-  locationDragCleanups.forEach((cleanup) => cleanup());
-  locationDragCleanups.clear();
-
-  locationMarkers.forEach((marker) => marker.remove());
-}
-
-// =========================
 // INITIALIZATION & CLEANUP
 // =========================
 
@@ -1381,7 +1217,10 @@ export function initializeMapLayers(map: MapLibreMap) {
   addRouteLayers(map);
   addAirportLayer(map);
 
+  const cleanupPlaces = addPlacesLayers(map);
+
   const cleanupMeasurement = addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);
+
   const cleanupCursor = addCursorTracker(map);
 
   addAzimuthLayers(map, MAP_CONFIG.CENTER_MIL, 40);
@@ -1390,17 +1229,13 @@ export function initializeMapLayers(map: MapLibreMap) {
 
   return () => {
     cleanupRouteHover();
+    cleanupPlaces();
     cleanupMeasurement();
     cleanupCursor();
-
     clearFirstWaypointLabels();
-    cleanupLocationLabels();
-
-    // Dọn cache theo map instance
     flightRouteCache.delete(map);
     waypointDataCache.delete(map);
     routeGeometryCache.delete(map);
-
     resetHover(map);
   };
 }
