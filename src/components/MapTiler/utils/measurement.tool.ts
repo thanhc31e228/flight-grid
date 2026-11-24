@@ -14,15 +14,6 @@ import {
 } from "./measurement";
 
 import { getPick, setPick, subscribePick } from "./pick.store";
-import { addCursorTracker } from "./cursor.tracker";
-import { MAP_CONFIG } from "../../../config/map.config";
-import {
-  addAirportLayer,
-  addAzimuthLayers,
-  addGridLayers,
-  addRouteHoverEvents,
-  addRouteLayers,
-} from "../../map/MapLayers";
 
 type Position = [number, number];
 
@@ -466,28 +457,5 @@ export function addMeasurementTool(map: MapLibreMap, origin: Position) {
     if (map.hasImage(ARROW_IMAGE_ID)) {
       map.removeImage(ARROW_IMAGE_ID);
     }
-  };
-}
-
-// =========================================
-// INITIALIZE MAP LAYERS
-// =========================================
-export function initializeMapLayers(map: MapLibreMap) {
-  addGridLayers(map);
-  addRouteLayers(map);
-  addAirportLayer(map);
-
-  const cleanupMeasurement = addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);
-
-  const cleanupCursor = addCursorTracker(map);
-
-  addAzimuthLayers(map, MAP_CONFIG.CENTER_MIL, 40);
-  // Đồng bộ trạng thái từ Context
-  const cleanupRouteHover = addRouteHoverEvents(map);
-
-  return () => {
-    cleanupRouteHover();
-    cleanupMeasurement();
-    cleanupCursor();
   };
 }

@@ -1057,18 +1057,17 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
 }
 
 // =========================
-// AIRPORT AREA
+// Vùng hỏa lực đơn vị
 // =========================
 
-export function addAirportLayer(map: MapLibreMap) {
-  const airportCircle = circle(
-    MAP_CONFIG.CENTER,
-    MAP_CONFIG.AIRPORT_RADIUS_KM,
-    {
-      steps: 128,
-      units: "kilometers",
-    },
-  );
+export function addFireZoneLayer(
+  map: MapLibreMap,
+  coordinates: [lng: number, lat: number],
+) {
+  const airportCircle = circle(coordinates, MAP_CONFIG.AIRPORT_RADIUS_KM, {
+    steps: 128,
+    units: "kilometers",
+  });
 
   map.addSource("kep-airport", {
     type: "geojson",
@@ -1271,9 +1270,9 @@ export function togglePlaceLabel(map: MapLibreMap, visible: boolean) {
 export function initializeMapLayers(map: MapLibreMap) {
   addGridLayers(map);
   addRouteLayers(map);
-  addAirportLayer(map);
+  addFireZoneLayer(map, MAP_CONFIG.BASE_COORDINATES);
   addPlaces(map, DEFAULT_PLACES);
-  const cleanupPlaces = addPlacesLayers(map);
+  addPlacesLayers(map);
 
   const cleanupMeasurement = addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);
 
@@ -1285,7 +1284,6 @@ export function initializeMapLayers(map: MapLibreMap) {
 
   return () => {
     cleanupRouteHover();
-    cleanupPlaces();
     cleanupMeasurement();
     cleanupCursor();
     clearFirstWaypointLabels();

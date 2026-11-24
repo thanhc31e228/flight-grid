@@ -287,7 +287,7 @@ export default function MapView({
     const map = new MapLibreMap({
       container,
       style: `${MAP_CONFIG.STYLE_URL}?key=${API_KEY}`,
-      center: MAP_CONFIG.CENTER,
+      center: MAP_CONFIG.CENTER_GRID,
       zoom: MAP_CONFIG.INITIAL_ZOOM,
       dragRotate: false, // tắt kéo chuột phải / Ctrl + kéo để xoay, nghiêng
       pitchWithRotate: false, // không cho nghiêng khi xoay

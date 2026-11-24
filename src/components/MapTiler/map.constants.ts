@@ -2,6 +2,7 @@ import { Place } from "../../features/places/place.types";
 
 // Tọa độ sân bay kép
 export const CENTER: [number, number] = [106.263569, 21.394697];
+// export const CENTER: [number, number] = [106.272851, 21.395142];
 
 // Kích thước toàn bộ khu vực lưới
 export const GRID_WIDTH = 0.06;
@@ -50,8 +51,8 @@ export const DEFAULT_PLACES: Place[] = [
     id: "c5",
     name: "C5",
     phone: "123456",
-    lat: 21.403998,
-    lng: 106.276633,
+    lat: 21.393254,
+    lng: 106.252048,
   },
   {
     id: "c4",

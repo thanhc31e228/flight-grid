@@ -66,28 +66,13 @@ export function addPlacesLayers(map: MapLibreMap) {
     if (map.getLayer(id)) map.removeLayer(id);
   });
 
-  // 1. Vòng pulse
-  map.addLayer({
-    id: LAYER.pulse,
-    type: "circle",
-    source: SOURCE.places,
-    paint: {
-      "circle-radius": 10,
-      "circle-color": "#ff3030",
-      "circle-opacity": 0.25,
-      "circle-stroke-width": 1.5,
-      "circle-stroke-color": "#ff4545",
-      "circle-stroke-opacity": 0.7,
-    },
-  });
-
   // 2. Marker trung tâm
   map.addLayer({
     id: LAYER.point,
     type: "circle",
     source: SOURCE.places,
     paint: {
-      "circle-radius": 5,
+      "circle-radius": 3,
       "circle-color": "#ff2020",
       "circle-opacity": 1,
       "circle-stroke-width": 2,
@@ -103,7 +88,7 @@ export function addPlacesLayers(map: MapLibreMap) {
     layout: {
       "text-field": ["get", "name"],
       "text-font": ["Open Sans Bold"],
-      "text-size": 14,
+      "text-size": 9,
       "text-anchor": "bottom",
       "text-offset": [0, -1.5],
       "text-allow-overlap": true,
@@ -116,50 +101,4 @@ export function addPlacesLayers(map: MapLibreMap) {
       "text-halo-blur": 0.5,
     },
   });
-
-  // 4. Số điện thoại phía dưới
-  map.addLayer({
-    id: LAYER.phone,
-    type: "symbol",
-    source: SOURCE.places,
-    layout: {
-      "text-field": ["get", "phone"],
-      "text-font": ["Open Sans Regular"],
-      "text-size": 11,
-      "text-anchor": "bottom",
-      "text-offset": [0, -0.3],
-      "text-allow-overlap": true,
-      "text-ignore-placement": true,
-    },
-    paint: {
-      "text-color": "#42e8ff",
-      "text-halo-color": "#111820",
-      "text-halo-width": 2,
-    },
-  });
-
-  // 5. Hiệu ứng pulse
-  let step = 0;
-
-  const pulseInterval = window.setInterval(() => {
-    if (!map.getLayer(LAYER.pulse)) return;
-
-    step = (step + 1) % 20;
-
-    const progress = step / 20;
-
-    map.setPaintProperty(LAYER.pulse, "circle-radius", 8 + progress * 14);
-
-    map.setPaintProperty(LAYER.pulse, "circle-opacity", 0.45 * (1 - progress));
-
-    map.setPaintProperty(
-      LAYER.pulse,
-      "circle-stroke-opacity",
-      0.8 * (1 - progress),
-    );
-  }, 50);
-
-  return () => {
-    window.clearInterval(pulseInterval);
-  };
 }
