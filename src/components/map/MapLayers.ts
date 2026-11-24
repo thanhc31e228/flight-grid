@@ -19,7 +19,7 @@ import type { AirCraft } from "../MapTiler/types/map.types";
 import { addMeasurementTool } from "../MapTiler/utils/measurement.tool";
 import { addCursorTracker } from "../MapTiler/utils/cursor.tracker";
 import { smoothLine } from "../MapTiler/utils/smooth-line";
-import { CENTER } from "../MapTiler/map.constants";
+import { CENTER, DEFAULT_PLACES } from "../MapTiler/map.constants";
 import {
   addPlaces,
   addPlacesLayers,
@@ -1216,7 +1216,7 @@ export function initializeMapLayers(map: MapLibreMap) {
   addGridLayers(map);
   addRouteLayers(map);
   addAirportLayer(map);
-
+  addPlaces(map, DEFAULT_PLACES);
   const cleanupPlaces = addPlacesLayers(map);
 
   const cleanupMeasurement = addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);

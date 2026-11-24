@@ -1,3 +1,5 @@
+import { Place } from "../../features/places/place.types";
+
 // Tọa độ sân bay kép
 export const CENTER: [number, number] = [106.263569, 21.394697];
 
@@ -21,3 +23,41 @@ export const SOURCE = {
   points: "points-source",
   places: "places-source",
 } as const;
+export const DEFAULT_PLACES: Place[] = [
+  {
+    id: "bchqs-lang-giang",
+    name: "BCHQS Xã Lạng Giang",
+    phone: "0xxx",
+    lat: 21.363411,
+    lng: 106.265561,
+  },
+  {
+    id: "c31",
+    name: "C31",
+    phone: "846 632",
+    lat: 21.39515,
+    lng: 106.272843,
+  },
+
+  {
+    id: "c32",
+    name: "C32",
+    phone: "846 636",
+    lat: 21.38627,
+    lng: 106.248248,
+  },
+  {
+    id: "c5",
+    name: "C5",
+    phone: "846 636",
+    lat: 21.403998,
+    lng: 106.276633,
+  },
+  {
+    id: "c4",
+    name: "C4",
+    phone: "846 636",
+    lat: 21.403599,
+    lng: 106.271729,
+  },
+];

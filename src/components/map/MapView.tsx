@@ -32,6 +32,7 @@ import type { GridCell, AirCraft } from "../MapTiler/types/map.types";
 import { useAirCraftContext } from "../../context/MakerContext";
 import type { Place } from "../../features/places/place.types";
 import { useMapContext } from "../../context/MapContext";
+import { usePlaceContext } from "../../context/PlaceContext";
 
 // ======================================
 // TYPES
@@ -72,7 +73,6 @@ setWorkerUrl(
 
 export default function MapView({
   aircrafts: propAircrafts,
-  places,
   onOpenGridContextMenu,
   gridLabels,
   focusTarget,
@@ -95,6 +95,7 @@ export default function MapView({
     getLastPoint,
   } = useAirCraftContext();
   const { commitGridSelected, showAzimuth } = useMapContext();
+  const { places, addPlace } = usePlaceContext();
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -151,8 +152,6 @@ export default function MapView({
   // useEffect(() => {
   //   const map = mapRef.current;
   //   if (!map || !mapReady) return;
-
-  //   updateLocationLabels(map, places);
   // }, [mapReady, places]);
 
   // Bay tới địa điểm được chọn

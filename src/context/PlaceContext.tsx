@@ -27,7 +27,7 @@ export function PlaceProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function usePlace() {
+export function usePlaceContext() {
   const context = useContext(PlaceContext);
 
   if (!context) {
