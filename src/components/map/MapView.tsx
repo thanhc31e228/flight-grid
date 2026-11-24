@@ -129,10 +129,20 @@ export default function MapView({
   }, [showPlaceLabel]);
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+
+    // Map chưa load thì chưa khởi tạo Measurement
+    if (!map || !mapReady) return;
+
+    // Cập nhật vùng FireZone theo tọa độ mới
     setFireZoneLayer(map, baseCoordinates);
-    setMeasurementTool(map, baseCoordinates);
-  }, [baseCoordinates]);
+
+    // Khởi tạo Measurement theo tâm mới
+    const cleanupMeasurement = setMeasurementTool(map, baseCoordinates);
+
+    return () => {
+      cleanupMeasurement();
+    };
+  }, [mapReady, baseCoordinates]);
   // Context là nguồn dữ liệu chính.
   // Props chỉ là phương án dự phòng.
   const aircraftList = contextAircrafts ?? propAircrafts;

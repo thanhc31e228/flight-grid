@@ -1286,8 +1286,6 @@ export function initializeMapLayers(map: MapLibreMap) {
   addPlaces(map, DEFAULT_PLACES);
   addPlacesLayers(map);
 
-  const cleanupMeasurement = setMeasurementTool(map, baseCoordinates);
-
   const cleanupCursor = addCursorTracker(map);
 
   addAzimuthLayers(map, baseCoordinates, 40);
@@ -1296,7 +1294,6 @@ export function initializeMapLayers(map: MapLibreMap) {
 
   return () => {
     cleanupRouteHover();
-    cleanupMeasurement();
     cleanupCursor();
     clearFirstWaypointLabels();
 

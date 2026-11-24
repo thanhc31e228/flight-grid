@@ -156,7 +156,7 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
   };
 
   // =========================================
-  // POPUP - TẠO DOM MỘT LẦN
+  // POPUP
   // =========================================
 
   const popup = new Popup({
@@ -167,8 +167,11 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
 
   const popupContent = document.createElement("div");
 
-  popupContent.style.cssText =
-    "font-size:13px;line-height:1.7;min-width:120px;";
+  popupContent.style.cssText = `
+    font-size: 13px;
+    line-height: 1.7;
+    min-width: 120px;
+  `;
 
   const createRow = (label: string) => {
     const row = document.createElement("div");
@@ -196,7 +199,6 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
   let isMeasuring = false;
   let frozen = false;
 
-  // RAF state
   let rafId: number | null = null;
   let latestEvent: MapMouseEvent | null = null;
 
@@ -204,15 +206,22 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
   // CLEAR
   // =========================================
 
-  const clearAll = () => {
-    isMeasuring = false;
-
+  const clearSources = () => {
     setData(lineSourceId, EMPTY_LINE);
     setData(arrowSourceId, EMPTY_COLLECTION);
     setData(pickSourceId, EMPTY_COLLECTION);
+  };
 
+  const clearAll = () => {
+    isMeasuring = false;
+
+    clearSources();
     popup.remove();
   };
+
+  // =========================================
+  // RAF
+  // =========================================
 
   const cancelPendingFrame = () => {
     if (rafId !== null) {
@@ -223,8 +232,13 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
     latestEvent = null;
   };
 
+  // =========================================
+  // HIDE
+  // =========================================
+
   const hideMeasurement = () => {
     if (!isMeasuring || frozen) return;
+
     clearAll();
   };
 
@@ -238,18 +252,75 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
     const bearingDeg = getBearing(origin, target);
     const distanceMeters = getDistanceMeters(origin, target);
     const distanceKm = getDistanceKm(origin, target);
+    const mil = formatMil(bearingToMil(bearingDeg));
+
     return {
       target,
       bearingDeg,
       distanceMeters,
       distanceKm,
-      mil: formatMil(bearingToMil(bearingDeg)),
+      mil,
     };
   };
 
   // =========================================
+  // UPDATE POPUP
+  // =========================================
+
+  const updatePopupContent = (
+    bearingDeg: number,
+    distanceKm: number,
+    mil: string,
+  ) => {
+    milRow.value.textContent = mil;
+    angleRow.value.textContent = `${bearingDeg.toFixed(1)}°`;
+    distanceRow.value.textContent = `${distanceKm.toFixed(2)} km`;
+  };
+
+  // =========================================
+  // UPDATE LINE
+  // =========================================
+
+  const updateLine = (target: Position) => {
+    setData(lineSourceId, {
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "LineString",
+        coordinates: [origin, target],
+      },
+    });
+  };
+
+  // =========================================
+  // UPDATE ARROW
+  // =========================================
+
+  const updateArrow = (target: Position) => {
+    // Tính góc theo tọa độ màn hình
+    // Đảm bảo đúng hướng khi map bị rotate
+    const p1 = map.project(origin);
+    const p2 = map.project(target);
+
+    const angle = (Math.atan2(p2.x - p1.x, -(p2.y - p1.y)) * 180) / Math.PI;
+
+    setData(arrowSourceId, {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: { angle },
+          geometry: {
+            type: "Point",
+            coordinates: target,
+          },
+        },
+      ],
+    });
+  };
+
+  // =========================================
   // RENDER MEASUREMENT
-  // Chạy tối đa một lần mỗi animation frame
   // =========================================
 
   const renderMeasurement = () => {
@@ -270,42 +341,9 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
 
     const { target, bearingDeg, distanceKm, mil } = measure(event);
 
-    // Tính góc arrow theo tọa độ màn hình
-    // đảm bảo đúng hướng khi map bị rotate
-    const p1 = map.project(origin);
-    const p2 = map.project(target);
-
-    const angle = (Math.atan2(p2.x - p1.x, -(p2.y - p1.y)) * 180) / Math.PI;
-
-    // Update line
-    setData(lineSourceId, {
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "LineString",
-        coordinates: [origin, target],
-      },
-    });
-
-    // Update arrow
-    setData(arrowSourceId, {
-      type: "FeatureCollection",
-      features: [
-        {
-          type: "Feature",
-          properties: { angle },
-          geometry: {
-            type: "Point",
-            coordinates: target,
-          },
-        },
-      ],
-    });
-
-    // Update popup DOM, không tạo HTML mới
-    milRow.value.textContent = mil;
-    angleRow.value.textContent = `${bearingDeg.toFixed(1)}°`;
-    distanceRow.value.textContent = `${distanceKm.toFixed(2)} km`;
+    updateLine(target);
+    updateArrow(target);
+    updatePopupContent(bearingDeg, distanceKm, mil);
 
     popup.setLngLat(event.lngLat);
 
@@ -316,7 +354,6 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
 
   // =========================================
   // MOUSE MOVE
-  // Gom event và chỉ render ở frame kế tiếp
   // =========================================
 
   const handleMouseMove = (event: MapMouseEvent) => {
@@ -328,10 +365,10 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
       return;
     }
 
-    // Luôn giữ event mới nhất
+    // Chỉ lưu event mới nhất
     latestEvent = event;
 
-    // Frame đã được lên lịch thì không tạo thêm
+    // RAF đang chờ thì không tạo thêm
     if (rafId !== null) return;
 
     rafId = requestAnimationFrame(renderMeasurement);
@@ -346,7 +383,7 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
       return;
     }
 
-    // Tránh RAF đang chờ tiếp tục vẽ sau khi chốt
+    // Hủy RAF đang chờ
     cancelPendingFrame();
 
     frozen = true;
@@ -355,6 +392,7 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
     const { target, bearingDeg, distanceMeters, distanceKm, mil } =
       measure(event);
 
+    // Hiển thị điểm chốt
     setData(pickSourceId, {
       type: "FeatureCollection",
       features: [
@@ -369,6 +407,7 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
       ],
     });
 
+    // Lưu thông tin điểm đo
     setPick({
       lng: target[0],
       lat: target[1],
@@ -383,14 +422,13 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
 
   // =========================================
   // PICK STORE
-  // Menu đóng thì dọn measurement
   // =========================================
 
   const unsubscribePick = subscribePick(() => {
-    if (frozen && !getPick()) {
-      frozen = false;
-      clearAll();
-    }
+    if (!frozen || getPick()) return;
+
+    frozen = false;
+    clearAll();
   });
 
   // =========================================
@@ -398,10 +436,10 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
   // =========================================
 
   const handleKeyUp = (event: KeyboardEvent) => {
-    if (event.key === "Control") {
-      cancelPendingFrame();
-      hideMeasurement();
-    }
+    if (event.key !== "Control") return;
+
+    cancelPendingFrame();
+    hideMeasurement();
   };
 
   // =========================================
@@ -442,13 +480,17 @@ export function setMeasurementTool(map: MapLibreMap, origin: Position) {
     popup.remove();
     setPick(null);
 
-    for (const id of [pickLayerId, arrowLayerId, lineLayerId]) {
+    const layerIds = [pickLayerId, arrowLayerId, lineLayerId];
+
+    for (const id of layerIds) {
       if (map.getLayer(id)) {
         map.removeLayer(id);
       }
     }
 
-    for (const id of [pickSourceId, arrowSourceId, lineSourceId]) {
+    const sourceIds = [pickSourceId, arrowSourceId, lineSourceId];
+
+    for (const id of sourceIds) {
       if (map.getSource(id)) {
         map.removeSource(id);
       }

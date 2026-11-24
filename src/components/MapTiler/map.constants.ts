@@ -26,13 +26,6 @@ export const SOURCE = {
 } as const;
 export const DEFAULT_PLACES: Place[] = [
   {
-    id: "bchqs-lang-giang",
-    name: "BCHQS Xã Lạng Giang",
-    phone: "1234",
-    lat: 21.363411,
-    lng: 106.265561,
-  },
-  {
     id: "c31",
     name: "C31",
     phone: "846 632",
