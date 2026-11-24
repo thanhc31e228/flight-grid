@@ -20,8 +20,10 @@ import {
 import NewAircraftForm from "../components/controls/NewAircraftForm";
 import { Place } from "../features/places/place.types";
 import SettingsPage from "../components/settings/SettingsPage";
-import { useMapContext } from "../context/MapContext";
 import { usePlaceContext } from "../context/PlaceContext";
+import LayerToggleMenu, {
+  LayerVisibility,
+} from "../components/map/MapLayersMenu";
 export default function MapTiler() {
   const {
     aircrafts,
@@ -316,8 +318,11 @@ export default function MapTiler() {
   const handleBackFromSettings = () => {
     setIsSettingsOpen(false);
   };
-  const { showAzimuth, toggleAzimuth } = useMapContext();
-  const { showPlace, togglePlace } = usePlaceContext();
+  const [layers, setLayers] = useState<LayerVisibility>({
+    labels: true,
+    places: true,
+    bearingRings: false,
+  });
   return (
     <div className="map-container relative flex h-screen w-full flex-col overflow-hidden bg-slate-50">
       {/* ================= THANH TỌA ĐỘ ================= */}
@@ -334,7 +339,6 @@ export default function MapTiler() {
             onOpenGridContextMenu={handleOpenGridContextMenu}
           />
         </div>
-
         {/* ================= CHỌN MÁY BAY ================= */}
         <div
           className="
@@ -346,23 +350,6 @@ export default function MapTiler() {
           transition-all duration-300
         "
         >
-          <button
-            type="button"
-            onClick={toggleAzimuth}
-            className={`
-    flex h-9 items-center gap-2 rounded-lg border px-3
-    text-sm font-semibold transition-all
-    ${
-      showAzimuth
-        ? "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
-        : "border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-200"
-    }
-  `}
-            title={showAzimuth ? "Ẩn Azimuth" : "Hiện Azimuth"}
-          >
-            <span>{showAzimuth ? "◉" : "◎"}</span>
-            <span>Azimuth</span>
-          </button>
           <span className="whitespace-nowrap text-sm font-semibold text-slate-600">
             Tốp:
           </span>
@@ -468,6 +455,16 @@ export default function MapTiler() {
           <span>Bảng điều khiển</span>
         </button>
       </div>
+      <LayerToggleMenu
+        value={layers}
+        onChange={setLayers}
+        className={`
+            absolute bottom-6 z-[1000]
+            transition-all duration-300 ease-in-out
+            ${isPanelOpen ? "left-[316px]" : "left-4"}
+          `}
+      />
+
       {/* ================= CONTEXT MENU ================= */}
       {contextMenu && !isSettingsOpen && (
         <div
