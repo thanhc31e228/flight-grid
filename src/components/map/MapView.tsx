@@ -104,7 +104,6 @@ export default function MapView({
     showAzimuth,
     showPlace: showPlaceLabel,
     baseCoordinates,
-    setBaseCoordinates,
   } = useMapContext();
   const { places, showPlace } = usePlaceContext();
   useEffect(() => {

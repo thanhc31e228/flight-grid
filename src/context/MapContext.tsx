@@ -2,6 +2,7 @@ import { createContext, ReactNode, useContext, useMemo, useState } from "react";
 
 import { useMap } from "../hooks/useMap";
 import { MAP_CONFIG } from "../config/map.config";
+import { BASE_COORDINATES_KEY } from "../utils/map.storage";
 
 export type GridSType = {
   lat: number;
@@ -10,8 +11,6 @@ export type GridSType = {
 };
 
 type Coordinates = [lng: number, lat: number];
-
-const BASE_COORDINATES_KEY = "baseCoordinates";
 
 interface MapContextType {
   gridSelected: GridSType | undefined;

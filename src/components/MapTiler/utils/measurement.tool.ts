@@ -63,7 +63,7 @@ function addArrowImage(map: MapLibreMap) {
   map.addImage(ARROW_IMAGE_ID, ctx.getImageData(0, 0, size, size));
 }
 
-export function addMeasurementTool(map: MapLibreMap, origin: Position) {
+export function setMeasurementTool(map: MapLibreMap, origin: Position) {
   const lineSourceId = "measurement-line-source";
   const lineLayerId = "measurement-line";
 

@@ -16,7 +16,7 @@ import { MAP_CONFIG } from "../../config/map.config";
 import { createGrid, emptyGrid } from "../../features/grid/grid.factory";
 import { createAzimuth } from "../../features/grid/azimuth.factory";
 import type { AirCraft } from "../MapTiler/types/map.types";
-import { addMeasurementTool } from "../MapTiler/utils/measurement.tool";
+import { setMeasurementTool } from "../MapTiler/utils/measurement.tool";
 import { addCursorTracker } from "../MapTiler/utils/cursor.tracker";
 import { smoothLine } from "../MapTiler/utils/smooth-line";
 import { CENTER, DEFAULT_PLACES } from "../MapTiler/map.constants";
@@ -24,6 +24,7 @@ import {
   addPlaces,
   addPlacesLayers,
 } from "../../features/places/places.layers";
+import { getBaseCoordinates } from "../../utils/map.storage";
 
 // =========================
 // CONSTANTS & SHARED HELPERS
@@ -1277,20 +1278,19 @@ export function togglePlaceLabel(map: MapLibreMap, visible: boolean) {
 // =========================
 
 export function initializeMapLayers(map: MapLibreMap) {
+  const baseCoordinates = getBaseCoordinates();
+
   addGridLayers(map);
   addRouteLayers(map);
-  setFireZoneLayer(map, MAP_CONFIG.BASE_COORDINATES);
+  setFireZoneLayer(map, baseCoordinates);
   addPlaces(map, DEFAULT_PLACES);
   addPlacesLayers(map);
 
-  const cleanupMeasurement = addMeasurementTool(
-    map,
-    MAP_CONFIG.BASE_COORDINATES,
-  );
+  const cleanupMeasurement = setMeasurementTool(map, baseCoordinates);
 
   const cleanupCursor = addCursorTracker(map);
 
-  addAzimuthLayers(map, MAP_CONFIG.BASE_COORDINATES, 40);
+  addAzimuthLayers(map, baseCoordinates, 40);
 
   const cleanupRouteHover = addRouteHoverEvents(map);
 
@@ -1299,9 +1299,11 @@ export function initializeMapLayers(map: MapLibreMap) {
     cleanupMeasurement();
     cleanupCursor();
     clearFirstWaypointLabels();
+
     flightRouteCache.delete(map);
     waypointDataCache.delete(map);
     routeGeometryCache.delete(map);
+
     resetHover(map);
   };
 }
