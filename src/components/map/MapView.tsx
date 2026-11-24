@@ -15,6 +15,7 @@ import { MAP_CONFIG, MAP_GRID_CONFIG } from "../../config/map.config";
 
 import {
   initializeMapLayers,
+  setFireZoneLayer,
   toggleAzimuthLayers,
   togglePlaceLabel,
   updateGridLabels,
@@ -102,6 +103,8 @@ export default function MapView({
     commitGridSelected,
     showAzimuth,
     showPlace: showPlaceLabel,
+    baseCoordinates,
+    setBaseCoordinates,
   } = useMapContext();
   const { places, showPlace } = usePlaceContext();
   useEffect(() => {
@@ -122,6 +125,11 @@ export default function MapView({
 
     togglePlaceLabel(map, showPlaceLabel);
   }, [showPlaceLabel]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    setFireZoneLayer(map, baseCoordinates);
+  }, [baseCoordinates]);
   // Context là nguồn dữ liệu chính.
   // Props chỉ là phương án dự phòng.
   const aircraftList = contextAircrafts ?? propAircrafts;

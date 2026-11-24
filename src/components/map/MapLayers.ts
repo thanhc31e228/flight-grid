@@ -1060,24 +1060,33 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
 // Vùng hỏa lực đơn vị
 // =========================
 
-export function addFireZoneLayer(
+export function setFireZoneLayer(
   map: MapLibreMap,
   coordinates: [lng: number, lat: number],
 ) {
-  const airportCircle = circle(coordinates, MAP_CONFIG.AIRPORT_RADIUS_KM, {
+  const fireZoneCircle = circle(coordinates, MAP_CONFIG.FIRE_ZONE_RADIUS_KM, {
     steps: 128,
     units: "kilometers",
   });
 
-  map.addSource("kep-airport", {
+  const source = map.getSource("base-fire-zone") as
+    | import("maplibre-gl").GeoJSONSource
+    | undefined;
+
+  if (source) {
+    source.setData(fireZoneCircle);
+    return;
+  }
+
+  map.addSource("base-fire-zone", {
     type: "geojson",
-    data: airportCircle,
+    data: fireZoneCircle,
   });
 
   map.addLayer({
-    id: "kep-airport-fill",
+    id: "base-fire-zone-fill",
     type: "fill",
-    source: "kep-airport",
+    source: "base-fire-zone",
     paint: {
       "fill-color": "#ef4444",
       "fill-opacity": 0.22,
@@ -1085,9 +1094,9 @@ export function addFireZoneLayer(
   });
 
   map.addLayer({
-    id: "kep-airport-outline",
+    id: "base-fire-zone-outline",
     type: "line",
-    source: "kep-airport",
+    source: "base-fire-zone",
     paint: {
       "line-color": "#dc2626",
       "line-width": 2,
@@ -1270,15 +1279,18 @@ export function togglePlaceLabel(map: MapLibreMap, visible: boolean) {
 export function initializeMapLayers(map: MapLibreMap) {
   addGridLayers(map);
   addRouteLayers(map);
-  addFireZoneLayer(map, MAP_CONFIG.BASE_COORDINATES);
+  setFireZoneLayer(map, MAP_CONFIG.BASE_COORDINATES);
   addPlaces(map, DEFAULT_PLACES);
   addPlacesLayers(map);
 
-  const cleanupMeasurement = addMeasurementTool(map, MAP_CONFIG.CENTER_MIL);
+  const cleanupMeasurement = addMeasurementTool(
+    map,
+    MAP_CONFIG.BASE_COORDINATES,
+  );
 
   const cleanupCursor = addCursorTracker(map);
 
-  addAzimuthLayers(map, MAP_CONFIG.CENTER_MIL, 40);
+  addAzimuthLayers(map, MAP_CONFIG.BASE_COORDINATES, 40);
 
   const cleanupRouteHover = addRouteHoverEvents(map);
 

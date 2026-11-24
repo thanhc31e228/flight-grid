@@ -3,10 +3,11 @@ import { COLS, ROWS } from "../components/MapTiler/map.constants";
 export const MAP_CONFIG = {
   CENTER_GRID: [106.263569, 21.394697] as [number, number],
   BASE_COORDINATES: [106.272851, 21.395142] as [number, number], // c31
-  CENTER_MIL: [106.272848, 21.395146] as [number, number],
+  // CENTER_MIL: [106.272851, 21.395142] as [number, number], // trung tâm tọa độ vòng phương vị, cự ly
+
   INITIAL_ZOOM: 9,
 
-  AIRPORT_RADIUS_KM: 3,
+  FIRE_ZONE_RADIUS_KM: 3, // vùng hỏa lực
 
   STYLE_URL: "https://api.maptiler.com/maps/streets-v4/style.json",
 
