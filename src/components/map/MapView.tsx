@@ -16,6 +16,7 @@ import { MAP_CONFIG, MAP_GRID_CONFIG } from "../../config/map.config";
 import {
   initializeMapLayers,
   toggleAzimuthLayers,
+  togglePlaceLabel,
   updateGridLabels,
   updateWaypoints,
 } from "./MapLayers";
@@ -97,8 +98,12 @@ export default function MapView({
     addPoint,
     getLastPoint,
   } = useAirCraftContext();
-  const { commitGridSelected, showAzimuth } = useMapContext();
-  const { places, showPlace, togglePlace } = usePlaceContext();
+  const {
+    commitGridSelected,
+    showAzimuth,
+    showPlace: showPlaceLabel,
+  } = useMapContext();
+  const { places, showPlace } = usePlaceContext();
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -111,6 +116,12 @@ export default function MapView({
 
     togglePlaceLayers(map, showPlace);
   }, [showPlace]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    togglePlaceLabel(map, showPlaceLabel);
+  }, [showPlaceLabel]);
   // Context là nguồn dữ liệu chính.
   // Props chỉ là phương án dự phòng.
   const aircraftList = contextAircrafts ?? propAircrafts;
@@ -240,23 +251,23 @@ export default function MapView({
   // INITIALIZE MAP
   // ======================================
   // cấu hình zoom gần xa,ẩn hiện địa danh
-  function configurePlaceLabelZoom(map: MapLibreMap) {
-    const zoomRules: Record<string, number> = {
-      "Village labels": 20,
-      "Town labels": 8,
-      "City labels": 6,
-      "Capital city labels": 4,
-    };
+  // function configurePlaceLabelZoom(map: MapLibreMap) {
+  //   const zoomRules: Record<string, number> = {
+  //     "Village labels": 20,
+  //     "Town labels": 8,
+  //     "City labels": 6,
+  //     "Capital city labels": 4,
+  //   };
 
-    for (const [layerId, minZoom] of Object.entries(zoomRules)) {
-      if (!map.getLayer(layerId)) {
-        console.warn(`[Map] Layer not found: ${layerId}`);
-        continue;
-      }
+  //   for (const [layerId, minZoom] of Object.entries(zoomRules)) {
+  //     if (!map.getLayer(layerId)) {
+  //       console.warn(`[Map] Layer not found: ${layerId}`);
+  //       continue;
+  //     }
 
-      map.setLayerZoomRange(layerId, minZoom, 24);
-    }
-  }
+  //     map.setLayerZoomRange(layerId, minZoom, 24);
+  //   }
+  // }
 
   useEffect(() => {
     const container = containerRef.current;
@@ -306,7 +317,6 @@ export default function MapView({
           ]);
         });
       // Điều chỉnh độ chi tiết tên địa danh theo zoom
-      configurePlaceLabelZoom(map);
 
       // Khởi tạo toàn bộ source và layer.
       // Giữ lại hàm dọn dẹp (xóa marker label, hover, cache...) để gọi khi unmount.

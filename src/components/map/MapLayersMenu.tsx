@@ -33,7 +33,12 @@ export default function LayerToggleMenu({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const { showPlace, togglePlace } = usePlaceContext();
-  const { showAzimuth, toggleAzimuth } = useMapContext();
+  const {
+    showAzimuth,
+    toggleAzimuth,
+    showPlace: showPlaceLabel,
+    togglePlace: togglePlaceLabel,
+  } = useMapContext();
 
   // Bấm ra ngoài thì đóng menu
   useEffect(() => {
@@ -49,7 +54,7 @@ export default function LayerToggleMenu({
 
   // Trạng thái hiện tại của từng lớp: nhãn lấy từ props, 2 lớp còn lại lấy từ context
   const checked: Record<keyof LayerVisibility, boolean> = {
-    labels: value.labels,
+    labels: showPlaceLabel,
     places: showPlace,
     bearingRings: showAzimuth,
   };
@@ -58,6 +63,7 @@ export default function LayerToggleMenu({
   const toggle = (key: keyof LayerVisibility) => {
     if (key === "places") return togglePlace();
     if (key === "bearingRings") return toggleAzimuth();
+    if (key === "labels") return togglePlaceLabel();
     onChange({ ...value, [key]: !value[key] });
   };
 

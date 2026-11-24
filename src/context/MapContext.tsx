@@ -11,16 +11,21 @@ interface MapContextType {
   gridSelected: GridSType | undefined;
   commitGridSelected: (grid: GridSType) => void;
   showAzimuth: boolean;
+  showPlace: boolean;
   setShowAzimuth: React.Dispatch<React.SetStateAction<boolean>>;
   toggleAzimuth: () => void;
+  togglePlace: () => void;
 }
 const MapContext = createContext<MapContextType | undefined>(undefined);
 export default function MapProvider({ children }: { children: ReactNode }) {
   const { gridSelected, commitGridSelected } = useMap();
   const [showAzimuth, setShowAzimuth] = useState(true);
-
+  const [showPlace, setShowPlace] = useState(true);
   const toggleAzimuth = () => {
     setShowAzimuth((prev) => !prev);
+  };
+  const togglePlace = () => {
+    setShowPlace((prev) => !prev);
   };
   const value = useMemo(
     () => ({
@@ -32,7 +37,14 @@ export default function MapProvider({ children }: { children: ReactNode }) {
 
   return (
     <MapContext.Provider
-      value={{ ...value, showAzimuth, setShowAzimuth, toggleAzimuth }}
+      value={{
+        ...value,
+        showAzimuth,
+        setShowAzimuth,
+        showPlace,
+        togglePlace,
+        toggleAzimuth,
+      }}
     >
       {children}
     </MapContext.Provider>
