@@ -6,23 +6,30 @@ type PlaceContextType = {
   places: Place[];
   addPlace: (place: Place) => void;
   removePlace: (id: string) => void;
+  togglePlace: () => void;
+  showPlace: boolean;
 };
 
 const PlaceContext = createContext<PlaceContextType | undefined>(undefined);
 
 export function PlaceProvider({ children }: { children: React.ReactNode }) {
   const [places, setPlaces] = useState<Place[]>(DEFAULT_PLACES);
+  const [showPlace, setShowPlace] = useState(true);
 
   const addPlace = (place: Place) => {
     setPlaces((prev) => [...prev, place]);
   };
-
+  const togglePlace = () => {
+    setShowPlace((prev) => !prev);
+  };
   const removePlace = (id: string) => {
     setPlaces((prev) => prev.filter((place) => place.id !== id));
   };
 
   return (
-    <PlaceContext.Provider value={{ places, addPlace, removePlace }}>
+    <PlaceContext.Provider
+      value={{ showPlace, places, addPlace, removePlace, togglePlace }}
+    >
       {children}
     </PlaceContext.Provider>
   );

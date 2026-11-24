@@ -49,6 +49,16 @@ export function addPlaces(map: MapLibreMap, places: Place[]) {
 /* =========================================
    LAYERS
 ========================================= */
+/** Ẩn/hiện địa điểm được đánh dấu. */
+export function togglePlaceLayers(map: MapLibreMap, visible: boolean) {
+  const visibility = visible ? "visible" : "none";
+
+  Object.values(LAYER).forEach((id) => {
+    if (map.getLayer(id)) {
+      map.setLayoutProperty(id, "visibility", visibility);
+    }
+  });
+}
 
 export function addPlacesLayers(map: MapLibreMap) {
   // Xóa layer cũ để áp dụng lại style từ đầu

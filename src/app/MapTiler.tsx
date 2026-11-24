@@ -18,12 +18,10 @@ import {
   type AircraftSide,
 } from "../components/controls/factory/aircraft.factory";
 import NewAircraftForm from "../components/controls/NewAircraftForm";
-import { usePlaces } from "../hooks/usePlaces";
 import { Place } from "../features/places/place.types";
 import SettingsPage from "../components/settings/SettingsPage";
 import { useMapContext } from "../context/MapContext";
 import { usePlaceContext } from "../context/PlaceContext";
-
 export default function MapTiler() {
   const {
     aircrafts,
@@ -35,7 +33,7 @@ export default function MapTiler() {
   // Máy bay đang được chọn
   // Danh sách tọa độ mặc định
   // Danh sách địa điểm
-  const { places, addPlace, removePlace } = usePlaceContext();
+  const { places } = usePlaceContext();
 
   // Đóng/mở panel địa điểm
 
@@ -49,12 +47,6 @@ export default function MapTiler() {
   const handleFocusPlace = useCallback((place: Place) => {
     setFocusTarget({ lat: place.lat, lng: place.lng, nonce: Date.now() });
   }, []);
-  const handleAddPlace = useCallback(
-    (data: Place) => {
-      addPlace(data);
-    },
-    [addPlace],
-  );
   const DEFAULT_GRID_LABELS = [
     "47",
     "46",
@@ -324,7 +316,8 @@ export default function MapTiler() {
   const handleBackFromSettings = () => {
     setIsSettingsOpen(false);
   };
-  const { showAzimuth, setShowAzimuth, toggleAzimuth } = useMapContext();
+  const { showAzimuth, toggleAzimuth } = useMapContext();
+  const { showPlace, togglePlace } = usePlaceContext();
   return (
     <div className="map-container relative flex h-screen w-full flex-col overflow-hidden bg-slate-50">
       {/* ================= THANH TỌA ĐỘ ================= */}

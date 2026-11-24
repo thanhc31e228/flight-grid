@@ -32,7 +32,10 @@ import { useAirCraftContext } from "../../context/MakerContext";
 import type { Place } from "../../features/places/place.types";
 import { useMapContext } from "../../context/MapContext";
 import { usePlaceContext } from "../../context/PlaceContext";
-import { addPlaces } from "../../features/places/places.layers";
+import {
+  addPlaces,
+  togglePlaceLayers,
+} from "../../features/places/places.layers";
 
 // ======================================
 // TYPES
@@ -95,13 +98,19 @@ export default function MapView({
     getLastPoint,
   } = useAirCraftContext();
   const { commitGridSelected, showAzimuth } = useMapContext();
-  const { places } = usePlaceContext();
+  const { places, showPlace, togglePlace } = usePlaceContext();
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
     toggleAzimuthLayers(map, showAzimuth);
   }, [showAzimuth]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    togglePlaceLayers(map, showPlace);
+  }, [showPlace]);
   // Context là nguồn dữ liệu chính.
   // Props chỉ là phương án dự phòng.
   const aircraftList = contextAircrafts ?? propAircrafts;
