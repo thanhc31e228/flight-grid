@@ -104,6 +104,7 @@ export default function MapView({
     aircrafts: contextAircrafts,
     addPoint,
     getLastPoint,
+    setAircraftSelected,
   } = useAirCraftContext();
 
   const {
@@ -237,7 +238,7 @@ export default function MapView({
   useEffect(() => {
     if (!mapRef.current) return;
 
-    updateWaypoints(mapRef.current, aircraftList);
+    updateWaypoints(mapRef.current, aircraftList, setAircraftSelected);
   }, [aircraftList]);
   useEffect(() => {
     const map = mapRef.current;

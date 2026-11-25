@@ -432,7 +432,11 @@ function getAircraftLabelDirection(aircraftLng: number): "left" | "right" {
   return aircraftLng >= CENTER[0] ? "right" : "left";
 }
 
-function updateFirstWaypointLabels(map: MapLibreMap, aircrafts: AirCraft[]) {
+function updateFirstWaypointLabels(
+  map: MapLibreMap,
+  aircrafts: AirCraft[],
+  setAircraftSelected: (aircraftSelected: AirCraft) => void,
+) {
   aircrafts.forEach((aircraft) => {
     latestAircraftData.set(aircraft.id, aircraft);
   });
@@ -487,6 +491,7 @@ function updateFirstWaypointLabels(map: MapLibreMap, aircrafts: AirCraft[]) {
 
         if (!latestAircraft) return;
         // sự kiện khi click vào cái label của point đầu tiên
+        setAircraftSelected(aircraft);
         handleFirstWaypointClick(latestAircraft);
       });
       firstWaypointMarkers.set(aircraft.id, marker);
@@ -898,7 +903,11 @@ function buildPointFeatures(
   );
 }
 
-export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
+export function updateWaypoints(
+  map: MapLibreMap,
+  aircrafts: AirCraft[],
+  setAircraftSelected: (aircraftSelected: AirCraft) => void,
+) {
   const pointsSource = getGeoJSONSource(map, SOURCE.points);
   const routeSource = getGeoJSONSource(map, SOURCE.route);
   const aircraftSource = getGeoJSONSource(map, SOURCE.aircraft);
@@ -962,7 +971,7 @@ export function updateWaypoints(map: MapLibreMap, aircrafts: AirCraft[]) {
   routeSource.setData(toFeatureCollection(routeFeatures));
   aircraftSource.setData(toFeatureCollection(aircraftFeatures));
 
-  updateFirstWaypointLabels(map, aircrafts);
+  updateFirstWaypointLabels(map, aircrafts, setAircraftSelected);
 }
 
 // =========================
