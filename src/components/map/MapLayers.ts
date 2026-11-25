@@ -24,9 +24,6 @@ import {
   addPlacesLayers,
 } from "../../features/places/places.layers";
 import { getBaseCoordinates } from "../../utils/map.storage";
-import { useMapContext } from "../../context/MapContext";
-import { useMap } from "../../hooks/useMap";
-
 // =========================
 // CONSTANTS & SHARED HELPERS
 // =========================
@@ -283,6 +280,8 @@ function addWaypointTickImage(map: MapLibreMap) {
 const hoverState = {
   line: null as string | null,
   label: null as string | null,
+  // Aircraft được ghim bằng cách click vào label đầu tiên
+  pinned: null as string | null,
 };
 
 let appliedHoverId = "";
@@ -292,7 +291,9 @@ let appliedLabelHoverId = "";
 const firstWaypointMarkers = new Map<string, Marker>();
 const latestAircraftData = new Map<string, AirCraft>();
 /** Label được ưu tiên hơn đường bay; "" nghĩa là không có gì đang hover. */
-const getActiveHoverId = () => hoverState.label ?? hoverState.line ?? "";
+/** Hover được ưu tiên hơn aircraft đã ghim; "" nghĩa là không có gì đang active. */
+const getActiveHoverId = () =>
+  hoverState.label ?? hoverState.line ?? hoverState.pinned ?? "";
 
 const routeHoverFilter = (aircraftId: string): FilterSpecification => [
   "==",
@@ -326,6 +327,17 @@ function syncLabelHighlight(force = false) {
     setLabelHighlight(marker, aircraftId === activeId);
   });
 }
+/** Áp dụng hiệu ứng theo activeId hiện tại (chỉ cập nhật khi có thay đổi). */
+function applyHover(map: MapLibreMap) {
+  const activeId = getActiveHoverId();
+
+  if (activeId !== appliedHoverId) {
+    appliedHoverId = activeId;
+    setRouteHoverFilter(map, activeId);
+  }
+
+  syncLabelHighlight();
+}
 
 function setHover(
   map: MapLibreMap,
@@ -335,19 +347,28 @@ function setHover(
   if (hoverState[source] === aircraftId) return;
 
   hoverState[source] = aircraftId;
-
-  const activeId = getActiveHoverId();
-  if (activeId !== appliedHoverId) {
-    appliedHoverId = activeId;
-    setRouteHoverFilter(map, activeId);
-  }
-
-  syncLabelHighlight();
+  applyHover(map);
 }
 
+/** Click lần 1: ghim hiệu ứng; click lần 2 vào cùng aircraft: bỏ ghim và tắt luôn hiệu ứng. */
+function togglePinned(map: MapLibreMap, aircraftId: string) {
+  const isUnpin = hoverState.pinned === aircraftId;
+
+  hoverState.pinned = isUnpin ? null : aircraftId;
+
+  if (isUnpin) {
+    // Chuột vẫn đang nằm trên label nên chưa có mouseleave:
+    // xóa hover thủ công để hiệu ứng tắt ngay lập tức.
+    hoverState.label = null;
+    if (hoverState.line === aircraftId) hoverState.line = null;
+  }
+
+  applyHover(map);
+}
 function resetHover(map?: MapLibreMap) {
   hoverState.line = null;
   hoverState.label = null;
+  hoverState.pinned = null;
 
   appliedHoverId = "";
   appliedLabelHoverId = "";
@@ -460,6 +481,10 @@ function updateFirstWaypointLabels(
     firstWaypointMarkers.delete(id);
     latestAircraftData.delete(id);
 
+    if (hoverState.pinned === id) {
+      hoverState.pinned = null;
+      applyHover(map);
+    }
     if (hoverState.label === id) setHover(map, "label", null);
     if (hoverState.line === id) setHover(map, "line", null);
   });
@@ -490,6 +515,10 @@ function updateFirstWaypointLabels(
         const latestAircraft = latestAircraftData.get(aircraft.id);
 
         if (!latestAircraft) return;
+
+        // Click label đầu tiên: ghim / bỏ ghim hiệu ứng
+        togglePinned(map, aircraft.id);
+
         // sự kiện khi click vào cái label của point đầu tiên
         setAircraftSelected(aircraft);
         handleFirstWaypointClick(latestAircraft);
