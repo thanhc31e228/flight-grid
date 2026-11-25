@@ -490,6 +490,7 @@ function updateFirstWaypointLabels(
       marker = createAnchorMarker(map, lngLat);
 
       const element = marker.getElement();
+      // thiết lập label hiển thị khi hover vào point
       element.addEventListener("mouseenter", () =>
         setHover(map, "label", aircraft.id),
       );
@@ -889,11 +890,13 @@ function buildPointFeatures(
         aircraftId: aircraft.id,
         color: aircraft.color,
         isFirst: index === 0,
+        isLast: index === aircraft.points.length - 1,
         isShowTime,
         aircraftCode: aircraft.aircraftCode ?? "",
         altitude: aircraft.altitude ?? "",
         appearanceTime,
         tickRotate: getTickRotation(coordinates, index),
+        speed: aircraft.speed,
       },
       geometry: {
         type: "Point",

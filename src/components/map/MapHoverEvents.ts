@@ -26,9 +26,14 @@ export function registerWaypointHoverEvents(map: MapLibreMap) {
 
     const coordinates = feature.geometry.coordinates as [number, number];
 
-    const name = String(
-      formatGridId(feature.properties?.coordinateGridId) ?? "Waypoint",
-    ); // hiển thị ở điểm point khi hover vào
+    // const name = String(
+    //   formatGridId(feature.properties?.coordinateGridId) ?? "Waypoint",
+    // ); // hiển thị ở điểm point khi hover vào
+    const name = feature.properties?.isLast
+      ? `${feature.properties?.speed?.toFixed(2)} m/s |
+          ${formatGridId(feature.properties?.coordinateGridId) ?? "Waypoint"}
+        `
+      : (formatGridId(feature.properties?.coordinateGridId) ?? "Waypoint"); // hiển thị ở điểm point khi hover vào
 
     map.getCanvas().style.cursor = "pointer";
 
