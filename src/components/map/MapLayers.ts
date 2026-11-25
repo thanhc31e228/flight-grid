@@ -875,30 +875,6 @@ function buildPointFeatures(
   const firstPointTime = aircraft.points[0]?.appearanceTime ?? "";
 
   return aircraft.points.map((point, index): Feature<Point> => {
-    // Cự ly từ point trước đến point hiện tại
-    const km =
-      index > 0
-        ? distance(
-            turfPoint(coordinates[index - 1]),
-            turfPoint(coordinates[index]),
-            {
-              units: "kilometers",
-            },
-          )
-        : 0;
-
-    const speed =
-      index > 0
-        ? (distance(
-            turfPoint(coordinates[index - 1]),
-            turfPoint(coordinates[index]),
-            { units: "kilometers" },
-          ) *
-            1000) /
-          30
-        : 0;
-
-    console.log(`Point ${index + 1} - Speed: ${speed.toFixed(2)} m/s`);
     // Chỉ point STT lẻ từ 3 trở đi mới hiển thị thời gian
     const isShowTime = index >= 2 && index % 2 === 0;
 
@@ -964,6 +940,22 @@ export function updateWaypoints(
     );
 
     pointFeatures.push(...buildPointFeatures(aircraft, coordinates));
+    const lastTwoPoints = pointFeatures.slice(-2);
+
+    if (lastTwoPoints.length === 2) {
+      const coord1 = lastTwoPoints[0].geometry.coordinates;
+      const coord2 = lastTwoPoints[1].geometry.coordinates;
+
+      const distanceMeters = distance(turfPoint(coord1), turfPoint(coord2), {
+        units: "meters",
+      });
+
+      const speed = distanceMeters / 30;
+
+      console.log(
+        `Distance: ${distanceMeters.toFixed(2)} m | Speed: ${speed.toFixed(2)} m/s`,
+      );
+    }
 
     if (coordinates.length === 0) return;
 
