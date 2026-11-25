@@ -291,28 +291,6 @@ export default function MapView({
     // });
   };
 
-  // ======================================
-  // INITIALIZE MAP
-  // ======================================
-  // cấu hình zoom gần xa,ẩn hiện địa danh
-  // function configurePlaceLabelZoom(map: MapLibreMap) {
-  //   const zoomRules: Record<string, number> = {
-  //     "Village labels": 20,
-  //     "Town labels": 8,
-  //     "City labels": 6,
-  //     "Capital city labels": 4,
-  //   };
-
-  //   for (const [layerId, minZoom] of Object.entries(zoomRules)) {
-  //     if (!map.getLayer(layerId)) {
-  //       console.warn(`[Map] Layer not found: ${layerId}`);
-  //       continue;
-  //     }
-
-  //     map.setLayerZoomRange(layerId, minZoom, 24);
-  //   }
-  // }
-
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !API_KEY) {

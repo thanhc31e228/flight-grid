@@ -99,7 +99,7 @@ export default function NewAircraftForm({ side, onSubmit, onBack }: Props) {
       </label>
 
       <label className="text-xs text-gray-500">
-        Độ cao (vd: 005)
+        Độ cao (hm)
         <input
           value={form.altitude}
           onChange={change("altitude")}
