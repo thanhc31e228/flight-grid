@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { AirCraft, Point } from "../components/MapTiler/types/map.types";
 import { AircraftDetails } from "../components/controls/factory/aircraft.factory";
+import distance from "@turf/distance";
+import { point as turfPoint } from "@turf/helpers";
 
 export function useAircrafts() {
   // danh sach cac duong bay quan ly
@@ -92,11 +94,35 @@ export function useAircrafts() {
   // Thêm point cho một máy bay
   const addPoint = useCallback(
     (aircraftId: string, point: Point) => {
-      const updated = aircraftsRef.current.map((aircraft) =>
-        aircraft.id === aircraftId
-          ? { ...aircraft, points: [...aircraft.points, { ...point }] }
-          : aircraft,
-      );
+      const updated = aircraftsRef.current.map((aircraft) => {
+        if (aircraft.id !== aircraftId) return aircraft;
+
+        const previousPoint = aircraft.points.at(-1);
+
+        const newPoints = [...aircraft.points, { ...point }];
+
+        let speed = aircraft.speed ?? 0;
+
+        if (previousPoint) {
+          const distanceMeters = distance(
+            turfPoint([previousPoint.lng, previousPoint.lat]),
+            turfPoint([point.lng, point.lat]),
+            { units: "meters" },
+          );
+
+          speed = distanceMeters / 30;
+
+          console.log(
+            `aircraft: ${aircraft.id}  | Speed: ${speed.toFixed(2)} m/s`,
+          );
+        }
+
+        return {
+          ...aircraft,
+          points: newPoints,
+          speed,
+        };
+      });
 
       commitAircrafts(updated);
 

@@ -1,7 +1,6 @@
 import circle from "@turf/circle";
 import centroid from "@turf/centroid";
 import bearing from "@turf/bearing";
-import { point as turfPoint } from "@turf/helpers";
 import {
   Marker,
   type ExpressionSpecification,
@@ -24,7 +23,6 @@ import {
   addPlacesLayers,
 } from "../../features/places/places.layers";
 import { getBaseCoordinates } from "../../utils/map.storage";
-import distance from "@turf/distance";
 // =========================
 // CONSTANTS & SHARED HELPERS
 // =========================
@@ -50,8 +48,6 @@ const LAYER = {
   routeHitbox: "route-line-hitbox",
   routeHover: "route-line-hover",
 } as const;
-
-const FLIGHT_ROUTE_COLOR = "#ef4444";
 
 const getGeoJSONSource = (map: MapLibreMap, id: string) =>
   map.getSource(id) as GeoJSONSource | undefined;
@@ -940,23 +936,6 @@ export function updateWaypoints(
     );
 
     pointFeatures.push(...buildPointFeatures(aircraft, coordinates));
-    const lastTwoPoints = pointFeatures.slice(-2);
-
-    if (lastTwoPoints.length === 2) {
-      const coord1 = lastTwoPoints[0].geometry.coordinates;
-      const coord2 = lastTwoPoints[1].geometry.coordinates;
-
-      const distanceMeters = distance(turfPoint(coord1), turfPoint(coord2), {
-        units: "meters",
-      });
-
-      const speed = distanceMeters / 30;
-
-      console.log(
-        `Distance: ${distanceMeters.toFixed(2)} m | Speed: ${speed.toFixed(2)} m/s`,
-      );
-    }
-
     if (coordinates.length === 0) return;
 
     aircraftFeatures.push({
@@ -986,7 +965,7 @@ export function updateWaypoints(
       });
     }
   });
-
+  // console.log("aircrafts", aircrafts);
   pointsSource.setData(toFeatureCollection(pointFeatures));
   routeSource.setData(toFeatureCollection(routeFeatures));
   aircraftSource.setData(toFeatureCollection(aircraftFeatures));
@@ -1201,15 +1180,6 @@ export function togglePlaceLabel(map: MapLibreMap, visible: boolean) {
     }
   });
 }
-// export function togglePlaceLabel(map: MapLibreMap, visible: boolean) {
-//   const layers = map.getStyle().layers;
-//   const visibility = visible ? "visible" : "none";
-//   layers?.forEach((layer) => {
-//     if (layer.type === "symbol") {
-//       map.setLayoutProperty(layer.id, "visibility", visibility);
-//     }
-//   });
-// }
 // =========================
 // INITIALIZATION & CLEANUP
 // =========================
