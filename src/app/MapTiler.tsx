@@ -375,7 +375,7 @@ export default function MapTiler() {
             ) : (
               aircrafts.map((aircraft) => (
                 <option key={aircraft.id} value={aircraft.id}>
-                  {aircraft.name}
+                  {aircraft.id}
                 </option>
               ))
             )}
