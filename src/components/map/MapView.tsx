@@ -237,9 +237,8 @@ export default function MapView({
   // ======================================
   useEffect(() => {
     if (!mapRef.current) return;
-
     updateWaypoints(mapRef.current, aircraftList, setAircraftSelected);
-  }, [aircraftList]);
+  }, [aircraftList, setAircraftSelected]);
   useEffect(() => {
     const map = mapRef.current;
 
