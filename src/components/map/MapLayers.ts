@@ -1,7 +1,7 @@
 import circle from "@turf/circle";
 import centroid from "@turf/centroid";
 import bearing from "@turf/bearing";
-import { lineString } from "@turf/helpers";
+import { point as turfPoint } from "@turf/helpers";
 import {
   Marker,
   type ExpressionSpecification,
@@ -24,6 +24,7 @@ import {
   addPlacesLayers,
 } from "../../features/places/places.layers";
 import { getBaseCoordinates } from "../../utils/map.storage";
+import distance from "@turf/distance";
 // =========================
 // CONSTANTS & SHARED HELPERS
 // =========================
@@ -558,6 +559,7 @@ function handleFirstWaypointClick(aircraft: AirCraft) {
     appearanceTime: aircraft.appearanceTime,
     points: aircraft.points,
     totalPoints: aircraft.points.length,
+    speed: aircraft.speed,
   });
 }
 // =========================
@@ -820,50 +822,6 @@ function getRouteCache(map: MapLibreMap) {
   return cache;
 }
 
-export function updateFlightRoute(map: MapLibreMap, coordinates: LngLat[]) {
-  const routeSource = getGeoJSONSource(map, SOURCE.route);
-  const aircraftSource = getGeoJSONSource(map, SOURCE.aircraft);
-
-  if (!routeSource || !aircraftSource) return;
-
-  const signature = JSON.stringify(coordinates);
-
-  if (flightRouteCache.get(map) === signature) return;
-
-  flightRouteCache.set(map, signature);
-
-  // Hai API cùng dùng route/aircraft source:
-  // invalidate cache updateWaypoints để tránh source bị stale.
-  waypointDataCache.delete(map);
-
-  if (coordinates.length === 0) {
-    routeSource.setData(EMPTY_FEATURE_COLLECTION);
-    aircraftSource.setData(EMPTY_FEATURE_COLLECTION);
-    return;
-  }
-
-  const aircraft: Feature<Point> = {
-    type: "Feature",
-    properties: {
-      type: "aircraft",
-      name: "Aircraft",
-      color: FLIGHT_ROUTE_COLOR,
-    },
-    geometry: {
-      type: "Point",
-      coordinates: coordinates[coordinates.length - 1],
-    },
-  };
-
-  aircraftSource.setData(toFeatureCollection([aircraft]));
-
-  routeSource.setData(
-    coordinates.length >= 2
-      ? lineString(coordinates, { color: FLIGHT_ROUTE_COLOR })
-      : EMPTY_FEATURE_COLLECTION,
-  );
-}
-
 // =========================
 // WAYPOINT UPDATE
 // =========================
@@ -917,6 +875,30 @@ function buildPointFeatures(
   const firstPointTime = aircraft.points[0]?.appearanceTime ?? "";
 
   return aircraft.points.map((point, index): Feature<Point> => {
+    // Cự ly từ point trước đến point hiện tại
+    const km =
+      index > 0
+        ? distance(
+            turfPoint(coordinates[index - 1]),
+            turfPoint(coordinates[index]),
+            {
+              units: "kilometers",
+            },
+          )
+        : 0;
+
+    const speed =
+      index > 0
+        ? (distance(
+            turfPoint(coordinates[index - 1]),
+            turfPoint(coordinates[index]),
+            { units: "kilometers" },
+          ) *
+            1000) /
+          30
+        : 0;
+
+    console.log(`Point ${index + 1} - Speed: ${speed.toFixed(2)} m/s`);
     // Chỉ point STT lẻ từ 3 trở đi mới hiển thị thời gian
     const isShowTime = index >= 2 && index % 2 === 0;
 
