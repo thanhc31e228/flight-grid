@@ -468,11 +468,6 @@ function updateFirstWaypointLabels(
 
   const activeIds = new Set(aircraftsWithPoints.map((aircraft) => aircraft.id));
 
-  // const aircraftsWithPoints = aircrafts.filter(
-  //   (aircraft) => aircraft.points.length > 0,
-  // );
-  // const activeIds = new Set(aircraftsWithPoints.map((aircraft) => aircraft.id));
-
   // Xóa label của aircraft không còn tồn tại
   firstWaypointMarkers.forEach((marker, id) => {
     if (activeIds.has(id)) return;
@@ -712,11 +707,12 @@ function addWaypointLayers(map: MapLibreMap) {
   });
 
   // Giờ xuất hiện tại từng điểm (điểm đầu đã có label riêng dạng Marker)
+  // Thời gian xuất hiện - chỉ hiện ở point STT lẻ (3, 5, 7...)
   map.addLayer({
     id: "points-label",
     type: "symbol",
     source: SOURCE.points,
-    filter: ["!=", ["get", "isFirst"], true],
+    filter: ["==", ["get", "isShowTime"], true],
     layout: {
       "text-field": ["get", "appearanceTime"],
       "text-size": 8,
@@ -903,13 +899,33 @@ function pruneRouteCache(map: MapLibreMap, aircrafts: AirCraft[]) {
     }
   });
 }
+function addMinutesToTime(time: string, minutes: number): string {
+  const hours = Number(time.slice(0, 2));
+  const mins = Number(time.slice(2, 4));
 
+  const total = (hours * 60 + mins + minutes) % 1440;
+
+  return (
+    String(Math.floor(total / 60)).padStart(2, "0") +
+    String(total % 60).padStart(2, "0")
+  );
+}
 function buildPointFeatures(
   aircraft: AirCraft,
   coordinates: LngLat[],
 ): Feature<Point>[] {
-  return aircraft.points.map(
-    (point, index): Feature<Point> => ({
+  const firstPointTime = aircraft.points[0]?.appearanceTime ?? "";
+
+  return aircraft.points.map((point, index): Feature<Point> => {
+    // Chỉ point STT lẻ từ 3 trở đi mới hiển thị thời gian
+    const isShowTime = index >= 2 && index % 2 === 0;
+
+    // Point 3 +1 phút, point 5 +2 phút, point 7 +3 phút...
+    const appearanceTime = isShowTime
+      ? addMinutesToTime(firstPointTime, index / 2)
+      : "";
+
+    return {
       type: "Feature",
       properties: {
         name: `${aircraft.id} - ${index + 1}`,
@@ -919,17 +935,18 @@ function buildPointFeatures(
         aircraftId: aircraft.id,
         color: aircraft.color,
         isFirst: index === 0,
+        isShowTime,
         aircraftCode: aircraft.aircraftCode ?? "",
         altitude: aircraft.altitude ?? "",
-        appearanceTime: point.appearanceTime,
+        appearanceTime,
         tickRotate: getTickRotation(coordinates, index),
       },
       geometry: {
         type: "Point",
         coordinates: [point.lng, point.lat],
       },
-    }),
-  );
+    };
+  });
 }
 
 export function updateWaypoints(

@@ -19,4 +19,5 @@ export type AirCraft = {
   aircraftCode?: string; // số lượng - kiểu loại (SK-KL): 0122
   altitude?: string; // Độ cao (mét) // vd 005
   appearanceTime?: string; // Thời gian xuất hiện (giờ, ví dụ 1106 là 11h06)
+  speed?: number; // tốc độ, m/s
 };
