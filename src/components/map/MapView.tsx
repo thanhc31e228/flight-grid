@@ -15,10 +15,9 @@ import { MAP_CONFIG, MAP_GRID_CONFIG } from "../../config/map.config";
 
 import {
   initializeMapLayers,
-  pinAircraft,
+  // pinAircraft,
   setFireZoneLayer,
   toggleAzimuthLayers,
-  togglePinned,
   togglePlaceLabel,
   updateGridLabels,
   updateWaypoints,
@@ -107,7 +106,6 @@ export default function MapView({
     addPoint,
     getLastPoint,
     setAircraftSelected,
-    aircraftSelected,
   } = useAirCraftContext();
 
   const {
@@ -135,25 +133,56 @@ export default function MapView({
       transformStyle: keepCustomLayers,
     });
   }, [mapStyleId]);
+
   const { places, showPlace } = usePlaceContext();
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
     toggleAzimuthLayers(map, showAzimuth);
   }, [showAzimuth]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
     togglePlaceLayers(map, showPlace);
   }, [showPlace]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-
     togglePlaceLabel(map, showPlaceLabel);
   }, [showPlaceLabel]);
+
+  // Scale label theo mức zoom của map
+  useEffect(() => {
+    const map = mapRef.current;
+
+    // Map chưa load thì chưa gắn sự kiện
+    if (!map || !mapReady) return;
+
+    const BASE_ZOOM = 12; // mức zoom mà label có kích thước gốc (scale = 1)
+    const MIN_SCALE = 0.6;
+    const MAX_SCALE = 1.6;
+
+    const updateLabelScale = () => {
+      // Mỗi cấp zoom thay đổi ~15% kích thước, giới hạn trong [MIN, MAX]
+      const raw = 1 + (map.getZoom() - BASE_ZOOM) * 0.15;
+      const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, raw));
+      map.getContainer().style.setProperty("--label-scale", scale.toFixed(3));
+    };
+
+    updateLabelScale(); // áp dụng ngay lần đầu
+    map.on("zoom", updateLabelScale);
+
+    return () => {
+      map.off("zoom", updateLabelScale);
+    };
+  }, [mapReady]);
+
+  // Cập nhật FireZone và Measurement theo tọa độ mới
   useEffect(() => {
     const map = mapRef.current;
 
@@ -170,11 +199,12 @@ export default function MapView({
       cleanupMeasurement();
     };
   }, [mapReady, baseCoordinates]);
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady || !selectedAircraftId) return;
-    pinAircraft(map, selectedAircraftId);
-  }, [selectedAircraftId, mapReady]);
+  // useEffect(() => {
+  //   const map = mapRef.current;
+  //   if (!map || !mapReady || !selectedAircraftId) return;
+  //   pinAircraft(map, selectedAircraftId);
+  //   console.log("selectedAircraftId ", selectedAircraftId);
+  // }, [selectedAircraftId, mapReady]);
   // Context là nguồn dữ liệu chính.
   // Props chỉ là phương án dự phòng.
   const aircraftList = contextAircrafts ?? propAircrafts;

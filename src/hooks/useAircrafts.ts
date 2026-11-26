@@ -162,7 +162,7 @@ export function useAircrafts() {
       commitAircrafts(updated);
       return remaining;
     },
-    [commitAircrafts, removeAircraft],
+    [commitAircrafts, removeAircraft, setAircraftSelected],
   );
 
   // Xóa toàn bộ point của một máy bay -> không còn điểm nào nên xóa luôn Tốp

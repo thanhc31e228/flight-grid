@@ -161,7 +161,7 @@ export default function MapTiler() {
   // Tự động chọn máy bay đầu tiên khi có danh sách
   useEffect(() => {
     if (aircrafts.length === 0) {
-      setSelectedAircraftId("");
+      setSelectedAircraftId(null);
       return;
     }
 

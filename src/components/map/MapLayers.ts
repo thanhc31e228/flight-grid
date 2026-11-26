@@ -347,27 +347,27 @@ function setHover(
   applyHover(map);
 }
 
-/** Click lần 1: ghim hiệu ứng; click lần 2 vào cùng aircraft: bỏ ghim và tắt luôn hiệu ứng. */
-export function togglePinned(map: MapLibreMap, aircraftId: string) {
-  const isUnpin = hoverState.pinned === aircraftId;
+// /** Click lần 1: ghim hiệu ứng; click lần 2 vào cùng aircraft: bỏ ghim và tắt luôn hiệu ứng. */
+// export function togglePinned(map: MapLibreMap, aircraftId: string) {
+//   const isUnpin = hoverState.pinned === aircraftId;
 
-  hoverState.pinned = isUnpin ? null : aircraftId;
+//   hoverState.pinned = isUnpin ? null : aircraftId;
 
-  if (isUnpin) {
-    // Chuột vẫn đang nằm trên label nên chưa có mouseleave:
-    // xóa hover thủ công để hiệu ứng tắt ngay lập tức.
-    hoverState.label = null;
-    if (hoverState.line === aircraftId) hoverState.line = null;
-  }
+//   if (isUnpin) {
+//     // Chuột vẫn đang nằm trên label nên chưa có mouseleave:
+//     // xóa hover thủ công để hiệu ứng tắt ngay lập tức.
+//     hoverState.label = null;
+//     if (hoverState.line === aircraftId) hoverState.line = null;
+//   }
 
-  applyHover(map);
-}
-/** Click để ghim aircraft, không toggle unpin */
-export function pinAircraft(map: MapLibreMap, aircraftId: string) {
-  hoverState.pinned = aircraftId;
+//   applyHover(map);
+// }
+// /** Click để ghim aircraft, không toggle unpin */
+// export function pinAircraft(map: MapLibreMap, aircraftId: string) {
+//   hoverState.pinned = aircraftId;
 
-  applyHover(map);
-}
+//   applyHover(map);
+// }
 function resetHover(map?: MapLibreMap) {
   hoverState.line = null;
   hoverState.label = null;
@@ -410,16 +410,17 @@ function buildFirstWaypointHtml(
     ? `${bracketHtml}${idHtml}`
     : `${idHtml}${bracketHtml}`;
 
+  // Trạng thái mặc định (chưa hover): chỉ có chữ màu tốp, không nền, không viền
   return `
   <div data-hit style="
     position:absolute; ${boxSide} top:0;
-    transform:translateY(-50%);
+    transform:translateY(-50%) scale(var(--label-scale, 1));
+    transform-origin:${isRight ? "left" : "right"} center;
     display:flex; flex-direction:${flexDir};
     align-items:center; gap:5px;
-    padding:4px 0px; border-radius:6px;
+    padding:4px 0px;
     white-space:nowrap; pointer-events:auto; cursor:pointer;
     color:${color}; font-weight:700; font-size:16px;
-    background:rgba(255,255,255,0.9);
     ${TEXT_OUTLINE}
   ">
     <span style="
@@ -442,10 +443,11 @@ function buildFirstWaypointHtml(
 
   <span data-hit style="
     position:absolute; ${timeSide} bottom:7px;
-    padding:2px 5px; border-radius:4px;
+    transform:scale(var(--label-scale, 1));
+    transform-origin:${isRight ? "right" : "left"} bottom;
+    padding:2px 5px;
     white-space:nowrap; pointer-events:auto; cursor:pointer;
     color:${color}; font-weight:700; font-size:14px;
-    background:rgba(255,255,255,0.9);
     ${TEXT_OUTLINE}
   ">${escapeHtml(firstPoint.appearanceTime)}</span>
 `;
@@ -459,7 +461,7 @@ function getAircraftLabelDirection(aircraftLng: number): "left" | "right" {
 function updateFirstWaypointLabels(
   map: MapLibreMap,
   aircrafts: AirCraft[],
-  setAircraftSelected: (aircraftSelected: AirCraft) => void,
+  setAircraftSelected: (aircraftSelected: AirCraft | null) => void,
 ) {
   aircrafts.forEach((aircraft) => {
     latestAircraftData.set(aircraft.id, aircraft);
@@ -516,8 +518,7 @@ function updateFirstWaypointLabels(
         if (!latestAircraft) return;
 
         // Click label đầu tiên: ghim / bỏ ghim hiệu ứng
-        togglePinned(map, aircraft.id);
-
+        // togglePinned(map, aircraft.id);
         // sự kiện khi click vào cái label của point đầu tiên
         setAircraftSelected(aircraft);
         // handleFirstWaypointClick(latestAircraft);
@@ -915,7 +916,7 @@ function buildPointFeatures(
 export function updateWaypoints(
   map: MapLibreMap,
   aircrafts: AirCraft[],
-  setAircraftSelected: (aircraftSelected: AirCraft) => void,
+  setAircraftSelected: (aircraftSelected: AirCraft | null) => void,
 ) {
   const pointsSource = getGeoJSONSource(map, SOURCE.points);
   const routeSource = getGeoJSONSource(map, SOURCE.route);
