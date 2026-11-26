@@ -56,10 +56,33 @@ export default function AircraftInfoPanel({ aircraft }: Props) {
         onClick={() => setIsOpen((prev) => !prev)}
         className="flex w-full items-center gap-2 px-3 py-2 text-left"
       >
-        <span
-          className="h-2.5 w-2.5 shrink-0 rounded-full"
-          style={{ backgroundColor: aircraft.color }}
-        />
+        {/* Icon máy bay SVG */}
+        <svg
+          viewBox="0 0 24 24"
+          className="h-5 w-5 shrink-0"
+          style={{ color: aircraft.color }}
+          fill="currentColor"
+        >
+          <path
+            d="M12 1.5
+       L13.4 8
+       L22.1 11
+       L22.5 13
+       L13.7 11.7
+       L14.2 18.3
+       L17 20.2
+       L16.6 22
+       L12 20.8
+       L7.4 22
+       L7 20.2
+       L9.8 18.3
+       L10.3 11.7
+       L1.5 13
+       L1.9 11
+       L10.6 8
+       Z"
+          />
+        </svg>
 
         <span className="flex-1 truncate text-sm font-semibold">
           Tốp {aircraft.name || aircraft.id}

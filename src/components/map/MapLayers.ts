@@ -765,15 +765,7 @@ function addWaypointLayers(map: MapLibreMap) {
     },
   });
 }
-export function getPlaneBearing(
-  prev: [number, number],
-  current: [number, number],
-): number {
-  const angle = bearing(point(prev), point(current));
 
-  // Chuẩn hóa góc về 0 - 360
-  return (angle + 360) % 360;
-}
 function addRouteHoverLayer(map: MapLibreMap) {
   map.addLayer({
     id: LAYER.routeHover,
