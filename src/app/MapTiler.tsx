@@ -24,6 +24,7 @@ import { usePlaceContext } from "../context/PlaceContext";
 import LayerToggleMenu, {
   LayerVisibility,
 } from "../components/map/MapLayersMenu";
+import AircraftInfoPanel from "../components/controls/AircraftInfoPanel";
 export default function MapTiler() {
   const {
     aircrafts,
@@ -31,6 +32,7 @@ export default function MapTiler() {
     setSelectedAircraftId,
     undoPoint,
     addAircraft,
+    aircraftSelected,
   } = useAirCraftContext();
   // Máy bay đang được chọn
   // Danh sách tọa độ mặc định
@@ -396,7 +398,8 @@ export default function MapTiler() {
             />
           )}
         </div>
-
+        {/* ================= PANEL THÔNG TIN MÁY BAY ================= */}
+        <AircraftInfoPanel aircraft={aircraftSelected} />
         {/* ================= PANEL BÊN TRÁI ================= */}
         <div
           className={`

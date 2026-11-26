@@ -514,7 +514,7 @@ function updateFirstWaypointLabels(
 
         // sự kiện khi click vào cái label của point đầu tiên
         setAircraftSelected(aircraft);
-        handleFirstWaypointClick(latestAircraft);
+        // handleFirstWaypointClick(latestAircraft);
       });
       firstWaypointMarkers.set(aircraft.id, marker);
     }
@@ -543,22 +543,22 @@ function clearFirstWaypointLabels() {
 
   appliedLabelHoverId = "";
 }
-function handleFirstWaypointClick(aircraft: AirCraft) {
-  console.log("First Waypoint Clicked");
-  console.log("Aircraft:", aircraft);
+// function handleFirstWaypointClick(aircraft: AirCraft) {
+//   console.log("First Waypoint Clicked");
+//   console.log("Aircraft:", aircraft);
 
-  console.table({
-    id: aircraft.id,
-    name: aircraft.name,
-    color: aircraft.color,
-    aircraftCode: aircraft.aircraftCode,
-    altitude: aircraft.altitude,
-    appearanceTime: aircraft.appearanceTime,
-    points: aircraft.points,
-    totalPoints: aircraft.points.length,
-    speed: aircraft.speed,
-  });
-}
+//   console.table({
+//     id: aircraft.id,
+//     name: aircraft.name,
+//     color: aircraft.color,
+//     aircraftCode: aircraft.aircraftCode,
+//     altitude: aircraft.altitude,
+//     appearanceTime: aircraft.appearanceTime,
+//     points: aircraft.points,
+//     totalPoints: aircraft.points.length,
+//     speed: aircraft.speed,
+//   });
+// }
 // =========================
 // ROUTE / AIRCRAFT LAYERS
 // =========================
