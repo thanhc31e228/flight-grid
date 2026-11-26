@@ -138,6 +138,8 @@ export function useAircrafts() {
 
       if (remaining <= 0) {
         removeAircraft(aircraftId);
+        setAircraftSelected(null);
+        setSelectedAircraftId(null);
         return 0;
       }
 

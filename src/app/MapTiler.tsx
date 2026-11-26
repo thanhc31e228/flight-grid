@@ -33,6 +33,7 @@ export default function MapTiler() {
     undoPoint,
     addAircraft,
     aircraftSelected,
+    setAircraftSelected,
   } = useAirCraftContext();
   // Máy bay đang được chọn
   // Danh sách tọa độ mặc định
@@ -209,7 +210,6 @@ export default function MapTiler() {
     // if (remainingPoints === 0) {
     //   hidePointPopup();
     // }
-
     return remainingPoints;
   }, [selectedAircraftId, undoPoint]);
 
