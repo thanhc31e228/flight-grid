@@ -31,6 +31,12 @@ export default function MeasurementBar({ onOpenSettings }: Props) {
             {coords ? `${formatGridId(coords.gridId)}` : "--"}
           </span>
         </div>
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">Phương vị:</span>
+          <span className="w-28 font-mono tabular-nums text-orange-700">
+            {coords ? `${coords.mil}` : "--"}
+          </span>
+        </div>
       </div>
 
       <button

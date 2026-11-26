@@ -5,7 +5,7 @@ export interface CursorCoords {
   lat: number;
   gridId: string;
   distance: number;
-  azimuth: number;
+  mil: string;
 }
 
 let current: CursorCoords | null = null;
