@@ -40,7 +40,17 @@ export function useAircrafts() {
     },
     [commitAircrafts],
   );
+  // Cập nhật vận tốc của máy bay
+  const updateSpeed = useCallback(
+    (aircraftId: string, speed: number) => {
+      const updated = aircraftsRef.current.map((aircraft) =>
+        aircraft.id === aircraftId ? { ...aircraft, speed } : aircraft,
+      );
 
+      commitAircrafts(updated);
+    },
+    [commitAircrafts],
+  );
   // Sửa thông tin máy bay (SL-KL, độ cao, thời gian)
   const updateAircraft = useCallback(
     (aircraftId: string, details: AircraftDetails) => {
@@ -186,6 +196,7 @@ export function useAircrafts() {
     aircraftsRef,
     addAircraft,
     updateAircraft,
+    updateSpeed,
     removeAircraft,
     addPoint,
     undoPoint,

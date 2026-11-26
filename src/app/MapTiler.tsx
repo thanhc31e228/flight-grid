@@ -25,15 +25,16 @@ import LayerToggleMenu, {
   LayerVisibility,
 } from "../components/map/MapLayersMenu";
 import AircraftInfoPanel from "../components/controls/AircraftInfoPanel";
+import { calculateSpeed } from "../utils/calFunc";
 export default function MapTiler() {
   const {
     aircrafts,
     selectedAircraftId,
     setSelectedAircraftId,
     undoPoint,
+    updateSpeed,
     addAircraft,
     aircraftSelected,
-    setAircraftSelected,
   } = useAirCraftContext();
   // Máy bay đang được chọn
   // Danh sách tọa độ mặc định
@@ -202,16 +203,28 @@ export default function MapTiler() {
   };
 
   // Undo waypoint của máy bay đang chọn
+  // Undo waypoint của máy bay đang chọn
   const handleUndo = useCallback(() => {
-    if (!selectedAircraftId) return 0;
+    if (!selectedAircraftId || !aircraftSelected) return 0;
 
+    const points = aircraftSelected.points;
+
+    // Sau khi xóa điểm cuối:
+    // -1 cũ sẽ trở thành điểm cuối mới
+    // -2 cũ sẽ trở thành điểm gần cuối mới
+    const previousPoint = points.at(-3);
+    const currentPoint = points.at(-2);
+    //tính lại tốc độ mới
+    const newSpeed =
+      previousPoint && currentPoint
+        ? calculateSpeed(previousPoint, currentPoint)
+        : 0;
+    // Xóa waypoint hiện tại
     const remainingPoints = undoPoint(selectedAircraftId);
-
-    // if (remainingPoints === 0) {
-    //   hidePointPopup();
-    // }
+    aircraftSelected.speed = newSpeed;
+    updateSpeed(aircraftSelected.id, newSpeed);
     return remainingPoints;
-  }, [selectedAircraftId, undoPoint]);
+  }, [selectedAircraftId, aircraftSelected, undoPoint, updateSpeed]);
 
   // Lưu labels
   const handleSaveLabels = async (labels: string[]) => {

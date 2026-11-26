@@ -13,6 +13,7 @@ interface AirCraftContextType {
   setSelectedAircraftId: (id: string | null) => void;
   addAircraft: (aircraft: AirCraft) => AirCraft;
   updateAircraft: (aircraftId: string, details: AircraftDetails) => void;
+  updateSpeed: (aircraftId: string, newSpeed: number) => void;
   removeAirCraft: (aircraftId: string) => number;
   addPoint: (aircraftId: string, point: Point) => number;
   undoPoint: (aircraftId: string) => number;
@@ -31,6 +32,7 @@ export default function MakerProvider({ children }: { children: ReactNode }) {
     aircraftSelected,
     setAircraftSelected,
     addAircraft,
+    updateSpeed,
     updateAircraft,
     getLastPoint,
     removeAircraft,
@@ -49,6 +51,7 @@ export default function MakerProvider({ children }: { children: ReactNode }) {
       aircraftSelected,
       addAircraft,
       updateAircraft,
+      updateSpeed,
       removeAirCraft: removeAircraft,
       addPoint,
       getLastPoint,
@@ -64,6 +67,7 @@ export default function MakerProvider({ children }: { children: ReactNode }) {
       setSelectedAircraftId,
       addAircraft,
       updateAircraft,
+      updateSpeed,
       removeAircraft,
       getLastPoint,
       addPoint,
