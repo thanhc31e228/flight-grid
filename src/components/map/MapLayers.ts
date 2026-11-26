@@ -18,11 +18,9 @@ import type { AirCraft } from "../MapTiler/types/map.types";
 import { addCursorTracker } from "../MapTiler/utils/cursor.tracker";
 import { smoothLine } from "../MapTiler/utils/smooth-line";
 import { CENTER, DEFAULT_PLACES } from "../MapTiler/map.constants";
-import {
-  addPlaces,
-  addPlacesLayers,
-} from "../../features/places/places.layers";
+import { addPlaces } from "../../features/places/places.layers";
 import { getBaseCoordinates } from "../../utils/map.storage";
+import { point } from "@turf/helpers";
 // =========================
 // CONSTANTS & SHARED HELPERS
 // =========================
@@ -255,6 +253,42 @@ function addWaypointCircleImage(map: MapLibreMap) {
     ctx.beginPath();
     ctx.arc(size / 2, size / 2, 12, 0, Math.PI * 2);
     ctx.stroke();
+  });
+}
+function addWaypointPlaneImage(map: MapLibreMap) {
+  addSdfImage(map, "waypoint-plane", 64, (ctx, size) => {
+    const c = size / 2;
+
+    // Nửa trên của máy bay (mũi tại x = 28), sẽ xoay để mũi hướng lên trên
+    const half: [number, number][] = [
+      [28, 0],
+      [22, -3],
+      [6, -4],
+      [-6, -27],
+      [-12, -27],
+      [-9, -4],
+      [-20, -3],
+      [-25, -11],
+      [-29, -11],
+      [-28, 0],
+    ];
+    // Lật đối xứng để có nửa dưới
+    const lower = half
+      .slice(1, -1)
+      .reverse()
+      .map(([x, y]): [number, number] => [x, -y]);
+
+    ctx.fillStyle = "#ffffff"; // SDF: màu thật lấy từ icon-color
+    ctx.beginPath();
+    [...half, ...lower].forEach(([x, y], i) => {
+      // (x, y) -> (y, -x): xoay 90° để mũi hướng lên trên
+      const px = c + y;
+      const py = c - x;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.closePath();
+    ctx.fill();
   });
 }
 
@@ -654,7 +688,7 @@ function getTickRotation(coordinates: LngLat[], index: number) {
 function addWaypointLayers(map: MapLibreMap) {
   addWaypointCircleImage(map);
   addWaypointTickImage(map);
-
+  addWaypointPlaneImage(map);
   map.addSource(SOURCE.points, {
     type: "geojson",
     data: EMPTY_FEATURE_COLLECTION,
@@ -682,10 +716,24 @@ function addWaypointLayers(map: MapLibreMap) {
         "case",
         ["==", ["get", "isFirst"], true],
         "waypoint-circle",
+        ["==", ["get", "isLast"], true],
+        "waypoint-plane",
         "waypoint-tick",
       ],
-      "icon-size": ["case", ["==", ["get", "isFirst"], true], 0.5, 0.4],
-      "icon-rotate": ["get", "tickRotate"],
+      "icon-size": [
+        "case",
+        ["==", ["get", "isFirst"], true],
+        0.5,
+        ["==", ["get", "isLast"], true],
+        0.4,
+        0.4,
+      ],
+      "icon-rotate": [
+        "case",
+        ["==", ["get", "isLast"], true],
+        ["get", "planeRotate"],
+        ["get", "tickRotate"],
+      ],
       "icon-rotation-alignment": "map",
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
@@ -717,7 +765,15 @@ function addWaypointLayers(map: MapLibreMap) {
     },
   });
 }
+export function getPlaneBearing(
+  prev: [number, number],
+  current: [number, number],
+): number {
+  const angle = bearing(point(prev), point(current));
 
+  // Chuẩn hóa góc về 0 - 360
+  return (angle + 360) % 360;
+}
 function addRouteHoverLayer(map: MapLibreMap) {
   map.addLayer({
     id: LAYER.routeHover,
@@ -856,6 +912,19 @@ function addMinutesToTime(time: string, minutes: number): string {
     String(total % 60).padStart(2, "0")
   );
 }
+
+function getPlaneRotation(coordinates: LngLat[], index: number): number {
+  if (coordinates.length < 2 || index <= 0 || index >= coordinates.length) {
+    return 0;
+  }
+
+  const prev = coordinates[index - 1];
+  const current = coordinates[index];
+
+  if (!prev || !current) return 0;
+
+  return normalizeAngle(bearing(prev, current));
+}
 function buildPointFeatures(
   aircraft: AirCraft,
   coordinates: LngLat[],
@@ -887,6 +956,7 @@ function buildPointFeatures(
         altitude: aircraft.altitude ?? "",
         appearanceTime,
         tickRotate: getTickRotation(coordinates, index),
+        planeRotate: getPlaneRotation(coordinates, index),
         speed: aircraft.speed,
       },
       geometry: {

@@ -40,7 +40,7 @@ export default function MapTiler() {
   // Máy bay đang được chọn
   // Danh sách tọa độ mặc định
   // Danh sách địa điểm
-  const { places, placeSelected, setPlaceSelected } = usePlaceContext();
+  const { places, placeSelected } = usePlaceContext();
 
   // Đóng/mở panel địa điểm
 
