@@ -172,9 +172,9 @@ export default function MapView({
   }, [mapReady, baseCoordinates]);
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !aircraftSelected) return;
-    pinAircraft(map, aircraftSelected?.id);
-  }, [aircraftSelected, mapReady]);
+    if (!map || !mapReady || !selectedAircraftId) return;
+    pinAircraft(map, selectedAircraftId);
+  }, [selectedAircraftId, mapReady]);
   // Context là nguồn dữ liệu chính.
   // Props chỉ là phương án dự phòng.
   const aircraftList = contextAircrafts ?? propAircrafts;
