@@ -122,6 +122,12 @@ export function registerMapEvents(
   // ======================================
   // hàm xử lý click khi có 1 top máy bay đang được select
   const handleClick = (event: MapMouseEvent) => {
+    // Nếu click trúng Place thì không thêm waypoint cho Aircraft
+    const placeFeatures = map.queryRenderedFeatures(event.point, {
+      layers: ["places-point", "places-name"],
+    });
+
+    if (placeFeatures.length > 0) return;
     // Lấy ID ô lưới cấp 3
     const gridFeatures = map.queryRenderedFeatures(event.point, {
       layers: ["grid-level-3-fill"],
