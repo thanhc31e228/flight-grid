@@ -15,8 +15,10 @@ import { MAP_CONFIG, MAP_GRID_CONFIG } from "../../config/map.config";
 
 import {
   initializeMapLayers,
+  pinAircraft,
   setFireZoneLayer,
   toggleAzimuthLayers,
+  togglePinned,
   togglePlaceLabel,
   updateGridLabels,
   updateWaypoints,
@@ -105,6 +107,7 @@ export default function MapView({
     addPoint,
     getLastPoint,
     setAircraftSelected,
+    aircraftSelected,
   } = useAirCraftContext();
 
   const {
@@ -167,6 +170,11 @@ export default function MapView({
       cleanupMeasurement();
     };
   }, [mapReady, baseCoordinates]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !aircraftSelected) return;
+    pinAircraft(map, aircraftSelected?.id);
+  }, [aircraftSelected, mapReady]);
   // Context là nguồn dữ liệu chính.
   // Props chỉ là phương án dự phòng.
   const aircraftList = contextAircrafts ?? propAircrafts;

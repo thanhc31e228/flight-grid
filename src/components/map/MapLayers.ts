@@ -348,7 +348,7 @@ function setHover(
 }
 
 /** Click lần 1: ghim hiệu ứng; click lần 2 vào cùng aircraft: bỏ ghim và tắt luôn hiệu ứng. */
-function togglePinned(map: MapLibreMap, aircraftId: string) {
+export function togglePinned(map: MapLibreMap, aircraftId: string) {
   const isUnpin = hoverState.pinned === aircraftId;
 
   hoverState.pinned = isUnpin ? null : aircraftId;
@@ -359,6 +359,12 @@ function togglePinned(map: MapLibreMap, aircraftId: string) {
     hoverState.label = null;
     if (hoverState.line === aircraftId) hoverState.line = null;
   }
+
+  applyHover(map);
+}
+/** Click để ghim aircraft, không toggle unpin */
+export function pinAircraft(map: MapLibreMap, aircraftId: string) {
+  hoverState.pinned = aircraftId;
 
   applyHover(map);
 }
