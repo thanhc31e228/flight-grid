@@ -1196,7 +1196,7 @@ export function initializeMapLayers(map: MapLibreMap) {
   addPlaces(map, DEFAULT_PLACES);
   addPlacesLayers(map);
 
-  const cleanupCursor = addCursorTracker(map, baseCoordinates);
+  const cleanupCursor = addCursorTracker(map);
 
   addAzimuthLayers(map, baseCoordinates, 40);
 

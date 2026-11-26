@@ -28,4 +28,5 @@ export function getBaseCoordinates(): [number, number] {
 /** Lưu tọa độ trung tâm bản đồ */
 export function setBaseCoordinates(coordinates: [number, number]): void {
   localStorage.setItem(BASE_COORDINATES_KEY, JSON.stringify(coordinates));
+  MAP_CONFIG.BASE_COORDINATES = [coordinates[0], coordinates[1]];
 }

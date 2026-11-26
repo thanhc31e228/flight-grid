@@ -1,6 +1,7 @@
 import { Settings } from "lucide-react";
 import { useCursorCoords } from "../MapTiler/utils/cursor.store";
 import { formatGridId } from "../../utils/formatGridId";
+import { formatDistanceMetersToKm } from "../MapTiler/utils/measurement";
 
 type Props = {
   onOpenSettings: () => void;
@@ -11,7 +12,7 @@ export default function MeasurementBar({ onOpenSettings }: Props) {
 
   return (
     <div className="relative z-[1001] flex h-11 w-full shrink-0 items-center justify-center border-b border-gray-200 bg-white px-4 text-sm text-gray-700 shadow-sm">
-      <div className="flex items-center gap-8 overflow-x-auto whitespace-nowrap">
+      <div className="flex items-center justify-center gap-8 whitespace-nowrap">
         <div className="flex items-center gap-2">
           <span className="font-semibold">Kinh độ:</span>
           <span className="w-28 font-mono tabular-nums text-sky-700">
@@ -35,6 +36,14 @@ export default function MeasurementBar({ onOpenSettings }: Props) {
           <span className="font-semibold">Phương vị:</span>
           <span className="w-28 font-mono tabular-nums text-orange-700">
             {coords ? `${coords.mil}` : "--"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">Cự ly:</span>
+          <span className="w-28 font-mono tabular-nums text-orange-700">
+            {coords
+              ? `${coords.distance}m | ${formatDistanceMetersToKm(coords.distance)}km `
+              : "--"}
           </span>
         </div>
       </div>
