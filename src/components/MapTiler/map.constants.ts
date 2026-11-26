@@ -44,8 +44,8 @@ export const DEFAULT_PLACES: Place[] = [
     id: "c5",
     name: "C5",
     phone: "123456",
-    lat: 21.393254,
-    lng: 106.252048,
+    lat: 21.395117,
+    lng: 106.237007,
   },
   {
     id: "c4",

@@ -412,7 +412,7 @@ export default function MapView({
         mapRef.current = null;
       }
     };
-  }, [getLastPoint]);
+  }, [getLastPoint, commitGridSelected]);
 
   // ======================================
   // RENDER
