@@ -11,15 +11,12 @@ function formatCoordinate(value?: number) {
   return value.toFixed(6);
 }
 
-// Row thông tin
+// Một dòng thông tin
 function Row({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="shrink-0 text-xs font-medium text-slate-500">
-        {label}
-      </span>
-
-      <span className="break-all text-right text-sm font-semibold text-slate-800">
+    <div className="flex justify-between gap-3 text-sm">
+      <span className="shrink-0 text-slate-500">{label}</span>
+      <span className="break-all text-right font-medium text-slate-900">
         {value || "—"}
       </span>
     </div>
@@ -28,65 +25,46 @@ function Row({ label, value }: { label: string; value?: string | null }) {
 
 export default function PlaceInfoPanel({ place }: Props) {
   const { setPlaceSelected } = usePlaceContext();
+
   if (!place) return null;
 
   return (
-    <div className="pointer-events-none flex items-start">
-      {/* Nút X: đóng panel và bỏ chọn place */}
-      <button
-        type="button"
-        onClick={() => setPlaceSelected(null)}
-        title="Đóng"
-        className="
-          pointer-events-auto mr-1 mt-1
-          flex h-8 w-7 shrink-0 items-center justify-center
-          rounded-md border border-slate-300
-          bg-white text-slate-700
-          shadow-sm
-          transition-colors
-          hover:border-red-200 hover:bg-red-50 hover:text-red-600
-          active:scale-95
-        "
-      >
-        <svg
-          viewBox="0 0 20 20"
-          className="h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+    <div className="pointer-events-auto w-56 select-none rounded-md border border-slate-300 bg-white/80 text-slate-900 shadow-sm backdrop-blur-sm">
+      {/* Tiêu đề + nút đóng */}
+      <div className="flex items-center gap-2 px-3 py-2">
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500" />
+
+        <span className="flex-1 truncate text-sm font-semibold">
+          {place.name || place.id}
+        </span>
+
+        {/* Nút X: đóng panel và bỏ chọn place */}
+        <button
+          type="button"
+          title="Đóng"
+          onClick={() => setPlaceSelected(null)}
+          className="shrink-0 rounded p-0.5 text-slate-500 hover:bg-slate-200 hover:text-slate-800"
         >
-          <path d="M5 5l10 10M15 5L5 15" />
-        </svg>
-      </button>
+          <svg
+            viewBox="0 0 20 20"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M5 5l10 10M15 5L5 15" />
+          </svg>
+        </button>
+      </div>
 
-      {/* Panel thông tin */}
-      <div
-        className="
-          mr-4 w-[250px] shrink-0 select-none
-          rounded-lg border border-slate-300
-          bg-slate-50/95 p-3
-          shadow-md
-        "
-      >
-        {/* Tiêu đề */}
-        <div className="mb-2 flex items-center gap-2 border-b border-slate-300 pb-2">
-          <span className="h-3 w-3 shrink-0 rounded-full border border-slate-400 bg-blue-500" />
-
-          <span className="truncate text-sm font-bold text-slate-900">
-            {place.name || place.id}
-          </span>
-        </div>
-
-        {/* Thông tin */}
-        <div className="space-y-1.5">
-          <Row label="ID" value={place.id} />
-          <Row label="Tên địa điểm" value={place.name} />
-          <Row label="Điện thoại" value={place.phone} />
-          <Row label="Vĩ độ" value={formatCoordinate(place.lat)} />
-          <Row label="Kinh độ" value={formatCoordinate(place.lng)} />
-        </div>
+      {/* Thông tin */}
+      <div className="space-y-1 border-t border-slate-200 px-3 py-2">
+        <Row label="ID" value={place.id} />
+        <Row label="Điện thoại" value={place.phone} />
+        <Row label="Vĩ độ" value={formatCoordinate(place.lat)} />
+        <Row label="Kinh độ" value={formatCoordinate(place.lng)} />
       </div>
     </div>
   );

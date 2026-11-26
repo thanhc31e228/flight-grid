@@ -30,15 +30,12 @@ type Props = {
   aircraft: AirCraft | null;
 };
 
-// Row thông tin
+// Một dòng thông tin
 function Row({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="shrink-0 text-xs font-medium text-slate-500">
-        {label}
-      </span>
-
-      <span className="text-right text-sm font-semibold text-slate-800">
+    <div className="flex justify-between gap-3 text-sm">
+      <span className="text-slate-500">{label}</span>
+      <span className="text-right font-medium text-slate-900">
         {value || "—"}
       </span>
     </div>
@@ -51,34 +48,27 @@ export default function AircraftInfoPanel({ aircraft }: Props) {
   if (!aircraft) return null;
 
   return (
-    <div
-      className={`
-    pointer-events-none
-    flex items-start
-    transition-transform duration-300 ease-in-out
-    ${isOpen ? "translate-x-0" : "translate-x-[266px]"}
-  `}
-    >
-      {/* Nút ẩn / hiện */}
+    <div className="pointer-events-auto w-56 select-none rounded-md border border-slate-300 bg-white/80 text-slate-900 shadow-sm backdrop-blur-sm">
+      {/* Tiêu đề - bấm để ẩn / hiện */}
       <button
         type="button"
+        aria-expanded={isOpen}
         onClick={() => setIsOpen((prev) => !prev)}
-        title={isOpen ? "Ẩn thông tin" : "Hiện thông tin"}
-        className="
-          pointer-events-auto mr-1 mt-1
-          flex h-8 w-7 shrink-0 items-center justify-center
-          rounded-md border border-slate-300
-          bg-white text-slate-700
-          shadow-sm
-          transition-colors
-          hover:bg-slate-100
-          active:scale-95
-        "
+        className="flex w-full items-center gap-2 px-3 py-2 text-left"
       >
+        <span
+          className="h-2.5 w-2.5 shrink-0 rounded-full"
+          style={{ backgroundColor: aircraft.color }}
+        />
+
+        <span className="flex-1 truncate text-sm font-semibold">
+          Tốp {aircraft.name || aircraft.id}
+        </span>
+
         <svg
           viewBox="0 0 20 20"
-          className={`h-4 w-4 transition-transform duration-300 ${
-            isOpen ? "rotate-0" : "rotate-180"
+          className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${
+            isOpen ? "rotate-180" : ""
           }`}
           fill="none"
           stroke="currentColor"
@@ -86,51 +76,24 @@ export default function AircraftInfoPanel({ aircraft }: Props) {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <path d="M7 4l6 6-6 6" />
+          <path d="M5 8l5 5 5-5" />
         </svg>
       </button>
 
-      {/* Panel thông tin */}
-      <div
-        className={`
-          mr-4 w-[250px] shrink-0 select-none
-          rounded-lg border border-slate-300
-          bg-slate-50/95 p-3
-          shadow-md
-          transition-opacity duration-300
-          ${isOpen ? "opacity-100" : "opacity-0"}
-        `}
-      >
-        {/* Tiêu đề */}
-        <div className="mb-2 flex items-center gap-2 border-b border-slate-300 pb-2">
-          <span
-            className="h-3 w-3 shrink-0 rounded-full border border-slate-400"
-            style={{ backgroundColor: aircraft.color }}
-          />
-
-          <span className="truncate text-sm font-bold text-slate-900">
-            Tốp {aircraft.name || aircraft.id}
-          </span>
-        </div>
-
-        {/* Thông tin */}
-        <div className="space-y-1.5">
+      {/* Thông tin */}
+      {isOpen && (
+        <div className="space-y-1 border-t border-slate-200 px-3 py-2">
           <Row label="Số hiệu" value={aircraft.id} />
-
           <Row label="SL - KL" value={aircraft.aircraftCode} />
-
           <Row label="Độ cao" value={formatAltitude(aircraft.altitude)} />
-
           <Row
             label="Xuất hiện"
             value={formatAppearanceTime(aircraft.appearanceTime)}
           />
-
           <Row label="Tốc độ" value={formatSpeed(aircraft.speed)} />
-
           <Row label="Số điểm" value={String(aircraft.points.length)} />
         </div>
-      </div>
+      )}
     </div>
   );
 }
