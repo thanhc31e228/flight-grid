@@ -11,6 +11,7 @@ import { useMap } from "../hooks/useMap";
 import { MAP_CONFIG } from "../config/map.config";
 import { BASE_COORDINATES_KEY } from "../utils/map.storage";
 import { loadMapStyleId, type MapStyleId } from "../features/map/baseMaps";
+import { Place } from "../features/places/place.types";
 
 export type GridSType = {
   lat: number;
@@ -23,7 +24,8 @@ type Coordinates = [lng: number, lat: number];
 interface MapContextType {
   gridSelected: GridSType | undefined;
   commitGridSelected: (grid: GridSType) => void;
-
+  placeSelected: Place | null;
+  setPlaceSelected: (place: Place | null) => void;
   // Base map style
   mapStyleId: MapStyleId;
   setMapStyleId: (id: MapStyleId) => void;
@@ -44,7 +46,7 @@ const MapContext = createContext<MapContextType | undefined>(undefined);
 
 export default function MapProvider({ children }: { children: ReactNode }) {
   const { gridSelected, commitGridSelected } = useMap();
-
+  const [placeSelected, setPlaceSelected] = useState<Place | null>(null);
   // ================= BASE MAP =================
   // Khởi tạo từ localStorage (chưa có thì loadMapStyleId tự ghi giá trị mặc định)
   const [mapStyleId, setMapStyleIdState] = useState<MapStyleId>(loadMapStyleId);
@@ -113,6 +115,10 @@ export default function MapProvider({ children }: { children: ReactNode }) {
       gridSelected,
       commitGridSelected,
 
+      // Places
+      placeSelected,
+      setPlaceSelected,
+
       mapStyleId,
       setMapStyleId,
 
@@ -128,6 +134,11 @@ export default function MapProvider({ children }: { children: ReactNode }) {
     [
       gridSelected,
       commitGridSelected,
+
+      // Places
+      placeSelected,
+      setPlaceSelected,
+
       mapStyleId,
       setMapStyleId,
       showAzimuth,
@@ -138,7 +149,6 @@ export default function MapProvider({ children }: { children: ReactNode }) {
       setBaseCoordinates,
     ],
   );
-
   return <MapContext.Provider value={value}>{children}</MapContext.Provider>;
 }
 

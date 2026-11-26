@@ -1,4 +1,8 @@
-import type { Map as MapLibreMap, GeoJSONSource } from "maplibre-gl";
+import type {
+  Map as MapLibreMap,
+  GeoJSONSource,
+  MapLayerMouseEvent,
+} from "maplibre-gl";
 
 import type { Feature, FeatureCollection, Point } from "geojson";
 import { Place } from "./place.types";
@@ -10,7 +14,10 @@ const LAYER = {
   name: "places-name",
   phone: "places-phone",
 } as const;
-
+const placeClickHandlers = new WeakMap<
+  MapLibreMap,
+  (event: MapLayerMouseEvent) => void
+>();
 /* =========================================
    SOURCE
 ========================================= */
@@ -60,7 +67,10 @@ export function togglePlaceLayers(map: MapLibreMap, visible: boolean) {
   });
 }
 
-export function addPlacesLayers(map: MapLibreMap) {
+export function addPlacesLayers(
+  map: MapLibreMap,
+  onPlaceClick?: (place: Place) => void,
+) {
   // Xóa layer cũ để áp dụng lại style từ đầu
   [LAYER.phone, LAYER.name, LAYER.point, LAYER.pulse].forEach((id) => {
     if (map.getLayer(id)) map.removeLayer(id);
@@ -100,5 +110,53 @@ export function addPlacesLayers(map: MapLibreMap) {
       "text-halo-width": 2,
       "text-halo-blur": 0.5,
     },
+  });
+  // Gỡ handler cũ nếu addPlacesLayers được gọi lại
+  const previousHandler = placeClickHandlers.get(map);
+
+  if (previousHandler) {
+    map.off("click", LAYER.point, previousHandler);
+    map.off("click", LAYER.name, previousHandler);
+  }
+
+  const handlePlaceClick = (event: MapLayerMouseEvent) => {
+    const feature = event.features?.[0];
+    if (!feature?.properties) return;
+
+    if (feature.geometry.type !== "Point") return;
+
+    const [lng, lat] = feature.geometry.coordinates;
+
+    const place: Place = {
+      id: feature.properties.id,
+      name: feature.properties.name,
+      phone: feature.properties.phone,
+      lng,
+      lat,
+    };
+
+    onPlaceClick?.(place);
+  };
+
+  placeClickHandlers.set(map, handlePlaceClick);
+
+  map.on("click", LAYER.point, handlePlaceClick);
+  map.on("click", LAYER.name, handlePlaceClick);
+
+  // Cursor khi hover marker/name
+  map.on("mouseenter", LAYER.point, () => {
+    map.getCanvas().style.cursor = "pointer";
+  });
+
+  map.on("mouseleave", LAYER.point, () => {
+    map.getCanvas().style.cursor = "";
+  });
+
+  map.on("mouseenter", LAYER.name, () => {
+    map.getCanvas().style.cursor = "pointer";
+  });
+
+  map.on("mouseleave", LAYER.name, () => {
+    map.getCanvas().style.cursor = "";
   });
 }

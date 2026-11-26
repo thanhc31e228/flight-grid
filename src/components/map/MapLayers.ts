@@ -1185,8 +1185,6 @@ export function initializeMapLayers(map: MapLibreMap) {
   addRouteLayers(map);
   setFireZoneLayer(map, baseCoordinates);
   addPlaces(map, DEFAULT_PLACES);
-  addPlacesLayers(map);
-
   const cleanupCursor = addCursorTracker(map);
 
   addAzimuthLayers(map, baseCoordinates, 40);

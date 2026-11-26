@@ -53,11 +53,11 @@ export default function AircraftInfoPanel({ aircraft }: Props) {
   return (
     <div
       className={`
-        pointer-events-none absolute bottom-5 right-0 z-[1000]
-        flex items-start
-        transition-transform duration-300 ease-in-out
-        ${isOpen ? "translate-x-0" : "translate-x-[266px]"}
-      `}
+    pointer-events-none
+    flex items-start
+    transition-transform duration-300 ease-in-out
+    ${isOpen ? "translate-x-0" : "translate-x-[266px]"}
+  `}
     >
       {/* Nút ẩn / hiện */}
       <button

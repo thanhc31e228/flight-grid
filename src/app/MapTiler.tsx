@@ -26,6 +26,7 @@ import LayerToggleMenu, {
 } from "../components/map/MapLayersMenu";
 import AircraftInfoPanel from "../components/controls/AircraftInfoPanel";
 import { calculateSpeed } from "../utils/calFunc";
+import PlaceInfoPanel from "../components/controls/PlaceInfoPanel";
 export default function MapTiler() {
   const {
     aircrafts,
@@ -39,7 +40,7 @@ export default function MapTiler() {
   // Máy bay đang được chọn
   // Danh sách tọa độ mặc định
   // Danh sách địa điểm
-  const { places } = usePlaceContext();
+  const { places, placeSelected, setPlaceSelected } = usePlaceContext();
 
   // Đóng/mở panel địa điểm
 
@@ -338,13 +339,25 @@ export default function MapTiler() {
     places: true,
     bearingRings: false,
   });
+  // ===== Đặt 2 hằng số này phía trên component (ngoài hàm) =====
+
+  // Bề mặt chung cho mọi khối nổi trên bản đồ: bo góc, viền, đổ bóng đồng nhất
+  const SURFACE =
+    "pointer-events-auto rounded-xl border border-slate-200 bg-white/95 shadow-lg shadow-slate-900/5 backdrop-blur-sm";
+
+  // Chiều rộng panel trái (dùng chung cho vỏ ngoài và nội dung bên trong)
+  const PANEL_WIDTH = "w-[300px] max-w-[85vw]";
+
+  // ===== Thay toàn bộ phần return cũ bằng đoạn này =====
+
   return (
-    <div className="map-container relative flex h-screen w-full flex-col overflow-hidden bg-slate-50">
-      {/* ================= THANH TỌA ĐỘ ================= */}
+    <div className="map-container flex h-screen w-full flex-col overflow-hidden bg-slate-50">
+      {/* ================= THANH TỌA ĐỘ (hàng riêng, không đè lên bản đồ) ================= */}
       <MeasurementBar onOpenSettings={handleOpenSetting} />
+
       {/* ================= VÙNG BẢN ĐỒ ================= */}
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        {/* ================= MAP ================= */}
+        {/* ---------- Lớp 1: bản đồ (nền) ---------- */}
         <div className="absolute inset-0 z-0">
           <MapView
             gridLabels={gridLabels}
@@ -354,202 +367,219 @@ export default function MapTiler() {
             onOpenGridContextMenu={handleOpenGridContextMenu}
           />
         </div>
-        {/* ================= CHỌN MÁY BAY ================= */}
-        <div
-          className="
-          absolute right-4 top-3 z-[1000]
-          flex items-center gap-2
-          rounded-xl border border-slate-200
-          bg-white/95 p-2.5 shadow-lg shadow-slate-900/5
-          backdrop-blur-sm
-          transition-all duration-300
-        "
-        >
-          <span className="whitespace-nowrap text-sm font-semibold text-slate-600">
-            Tốp:
-          </span>
 
-          <select
-            value={selectedAircraftId ?? ""}
-            onChange={(event) => handleSelectAircraft(event.target.value)}
-            disabled={aircrafts.length === 0}
-            className="
-            max-w-[180px] cursor-pointer
-            rounded-lg border border-slate-200
-            bg-white px-3 py-2
-            text-sm font-medium text-slate-700
-            outline-none transition
-            hover:border-blue-300
-            focus:border-blue-500 focus:ring-2 focus:ring-blue-100
-            disabled:cursor-not-allowed disabled:bg-slate-100
-            disabled:text-slate-400
-          "
-          >
-            {aircrafts.length === 0 ? (
-              <option value="">Chưa có tốp nào</option>
-            ) : (
-              aircrafts.map((aircraft) => (
-                <option key={aircraft.id} value={aircraft.id}>
-                  {aircraft.id}
-                </option>
-              ))
-            )}
-          </select>
-
-          {selectedAircraftId && (
-            <span
-              className="
-              h-3 w-3 shrink-0 rounded-full
-              ring-2 ring-white shadow-sm
-            "
-              style={{
-                backgroundColor:
-                  aircrafts.find(
-                    (aircraft) => aircraft.id === selectedAircraftId,
-                  )?.color ?? "#999",
-              }}
-            />
-          )}
-        </div>
-        {/* ================= PANEL THÔNG TIN MÁY BAY ================= */}
-        <AircraftInfoPanel aircraft={aircraftSelected} />
-        {/* ================= PANEL BÊN TRÁI ================= */}
-        <div
-          className={`
-          absolute inset-y-0 left-0 z-[999]
-          w-[300px] max-w-[90vw]
-          transition-transform duration-300 ease-in-out
-          ${isPanelOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
-        >
-          <MapControlPanel gridIndex={gridIndex} />
-
-          {/* Nút đóng panel */}
-          <button
-            type="button"
-            onClick={() => setIsPanelOpen(false)}
-            className="
-            absolute -right-10 top-3
-            flex h-9 w-9 items-center justify-center
-            rounded-r-xl border border-l-0 border-slate-200
-            bg-white text-slate-600
-            shadow-lg shadow-slate-900/5
-            transition-all duration-200
-            hover:bg-red-50 hover:text-red-600
-          "
-            title="Ẩn bảng điều khiển"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* ================= NÚT MỞ PANEL ================= */}
-        <button
-          type="button"
-          onClick={() => setIsPanelOpen(true)}
-          className={`
-          absolute left-3 top-3 z-[1000]
-          flex items-center gap-2
-          rounded-xl border border-slate-200
-          bg-white/95 px-4 py-2.5
-          text-sm font-semibold text-slate-700
-          shadow-lg shadow-slate-900/5
-          backdrop-blur-sm
-          transition-all duration-300
-          hover:border-blue-200 hover:bg-blue-50
-          hover:text-blue-600
-          active:scale-[0.98]
-          ${
-            isPanelOpen
-              ? "pointer-events-none -translate-x-4 opacity-0"
-              : "translate-x-0 opacity-100"
-          }
-        `}
-          title="Mở bảng điều khiển"
-        >
-          <span className="text-lg">☰</span>
-          <span>Bảng điều khiển</span>
-        </button>
-      </div>
-      <LayerToggleMenu
-        value={layers}
-        onChange={setLayers}
-        className={`
-            absolute bottom-6 z-[1000]
-            transition-all duration-300 ease-in-out
-            ${isPanelOpen ? "left-[316px]" : "left-4"}
+        {/* ---------- Lớp 2: toàn bộ UI nổi ----------
+          Dùng flex thay cho absolute từng khối → các khối tự xếp cạnh nhau,
+          không thể chồng lên nhau. Lớp này không bắt chuột, chỉ từng khối con mới bắt. */}
+        <div className="pointer-events-none absolute inset-0 z-[1000] flex p-3">
+          {/* ===== CỘT TRÁI: panel điều khiển (đẩy phần còn lại sang phải khi mở) ===== */}
+          <aside
+            aria-hidden={!isPanelOpen}
+            className={`
+            shrink-0 overflow-hidden
+            transition-[width,margin,visibility] duration-300 ease-in-out
+            ${isPanelOpen ? `mr-3 ${PANEL_WIDTH}` : "invisible mr-0 w-0"}
           `}
-      />
-
-      {/* ================= CONTEXT MENU ================= */}
-      {contextMenu && !isSettingsOpen && (
-        <div
-          className="
-          fixed z-[999999]
-          min-w-[180px]
-          overflow-hidden rounded-xl
-          border border-slate-200
-          bg-white p-1.5
-          shadow-2xl shadow-slate-900/15
-          animate-in fade-in zoom-in-95
-          duration-150
-        "
-          style={{
-            left: contextMenu.x,
-            top: contextMenu.y,
-          }}
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          <div
-            className="
-            border-b border-slate-100
-            px-3 py-2.5
-            text-sm font-semibold text-slate-800
-          "
           >
-            <span className="text-slate-400">Tọa độ: </span>
-            <span className="text-blue-600">
-              {contextMenu.cell.row}
-              {contextMenu.cell.col}
-            </span>
-          </div>
+            <div
+              className={`${SURFACE} flex h-full flex-col overflow-hidden ${PANEL_WIDTH}`}
+            >
+              {/* Tiêu đề + nút đóng nằm trong panel, không thò ra ngoài */}
+              <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-2.5">
+                <span className="text-sm font-semibold text-slate-700">
+                  Bảng điều khiển
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsPanelOpen(false)}
+                  title="Ẩn bảng điều khiển"
+                  className="
+                  flex h-7 w-7 items-center justify-center rounded-lg
+                  text-slate-500 transition-colors
+                  hover:bg-red-50 hover:text-red-600
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200
+                "
+                >
+                  ✕
+                </button>
+              </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              console.log("Selected cell:", contextMenu.cell);
+              {/* Nội dung panel cuộn riêng khi dài */}
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <MapControlPanel gridIndex={gridIndex} />
+              </div>
+            </div>
+          </aside>
+
+          {/* ===== KHU GIỮA: chia 2 hàng (trên / dưới) ===== */}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+            {/* ---- Hàng trên: nút mở panel (trái) | chọn tốp (phải) ---- */}
+            <div className="flex shrink-0 items-start justify-between gap-3">
+              {/* Chỉ hiện khi panel đang đóng → không bao giờ trùng với panel */}
+              {!isPanelOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setIsPanelOpen(true)}
+                  title="Mở bảng điều khiển"
+                  className={`
+                  ${SURFACE}
+                  flex items-center gap-2 px-4 py-2.5
+                  text-sm font-semibold text-slate-700
+                  transition-colors
+                  hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200
+                  active:scale-[0.98]
+                `}
+                >
+                  <span className="text-lg leading-none">☰</span>
+                  <span>Bảng điều khiển</span>
+                </button>
+              ) : (
+                <span />
+              )}
+
+              {/* Chọn tốp máy bay */}
+              <div className={`${SURFACE} flex min-w-0 items-center gap-2 p-2`}>
+                <span className="whitespace-nowrap pl-1 text-sm font-semibold text-slate-600">
+                  Tốp
+                </span>
+
+                <select
+                  value={selectedAircraftId ?? ""}
+                  onChange={(event) => handleSelectAircraft(event.target.value)}
+                  disabled={aircrafts.length === 0}
+                  className="
+                  min-w-0 max-w-[160px] cursor-pointer truncate
+                  rounded-lg border border-slate-200 bg-white
+                  px-3 py-1.5 text-sm font-medium text-slate-700
+                  outline-none transition
+                  hover:border-blue-300
+                  focus:border-blue-500 focus:ring-2 focus:ring-blue-100
+                  disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400
+                "
+                >
+                  {aircrafts.length === 0 ? (
+                    <option value="">Chưa có tốp nào</option>
+                  ) : (
+                    aircrafts.map((aircraft) => (
+                      <option key={aircraft.id} value={aircraft.id}>
+                        {aircraft.id}
+                      </option>
+                    ))
+                  )}
+                </select>
+
+                {selectedAircraftId && (
+                  <span
+                    className="mr-1 h-3 w-3 shrink-0 rounded-full shadow-sm ring-2 ring-white"
+                    style={{
+                      backgroundColor:
+                        aircrafts.find(
+                          (aircraft) => aircraft.id === selectedAircraftId,
+                        )?.color ?? "#999",
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* ---- Hàng dưới: menu lớp (trái) | các panel thông tin (phải) ----
+              min-h-0 + max-h-full: cột phải không bao giờ cao quá vùng còn lại,
+              nên không thể leo lên đè hàng trên. */}
+            <div className="flex min-h-0 flex-1 items-end justify-between gap-3">
+              {/* Menu lớp bản đồ: nằm trong luồng flex nên tự dịch theo panel trái,
+                không cần hard-code left-[316px] nữa */}
+              <div className="pointer-events-auto relative shrink-0">
+                <LayerToggleMenu value={layers} onChange={setLayers} />
+              </div>
+
+              <div className="pointer-events-none flex max-h-full min-h-0 min-w-0 max-w-full flex-col items-end gap-3 overflow-x-hidden overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:max-w-full">
+                <PlaceInfoPanel place={placeSelected} />
+                <AircraftInfoPanel aircraft={aircraftSelected} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= MENU CHUỘT PHẢI Ở Ô LƯỚI ================= */}
+      {contextMenu && !isSettingsOpen && (
+        <>
+          {/* Lớp nền trong suốt: bấm ra ngoài thì đóng menu */}
+          <div
+            className="fixed inset-0 z-[999998]"
+            onClick={() => setContextMenu(null)}
+            onContextMenu={(event) => {
+              event.preventDefault();
               setContextMenu(null);
             }}
-            className="
-            block w-full rounded-lg px-3 py-2.5
-            text-left text-sm font-medium text-slate-700
-            transition-colors
-            hover:bg-blue-50 hover:text-blue-600
-          "
-          >
-            <span className="mr-2">▦</span>
-            Chọn ô này
-          </button>
+          />
 
-          <button
-            type="button"
-            onClick={() => setContextMenu(null)}
+          <div
             className="
-            block w-full rounded-lg px-3 py-2.5
-            text-left text-sm text-slate-500
-            transition-colors hover:bg-slate-100
+            fixed z-[999999] w-[200px]
+            overflow-hidden rounded-xl border border-slate-200
+            bg-white p-1.5 shadow-2xl shadow-slate-900/15
+            animate-in fade-in zoom-in-95 duration-150
           "
+            style={{
+              // Kẹp vào trong màn hình để menu không bị cắt mép
+              left: Math.max(
+                8,
+                Math.min(contextMenu.x, window.innerWidth - 208),
+              ),
+              top: Math.max(
+                8,
+                Math.min(contextMenu.y, window.innerHeight - 150),
+              ),
+            }}
+            onContextMenu={(event) => event.preventDefault()}
           >
-            Đóng
-          </button>
-        </div>
+            <div className="border-b border-slate-100 px-3 py-2 text-sm font-semibold">
+              <span className="text-slate-400">Tọa độ: </span>
+              <span className="text-blue-600">
+                {contextMenu.cell.row}
+                {contextMenu.cell.col}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                console.log("Selected cell:", contextMenu.cell);
+                setContextMenu(null);
+              }}
+              className="
+              mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2
+              text-left text-sm font-medium text-slate-700
+              transition-colors hover:bg-blue-50 hover:text-blue-600
+            "
+            >
+              <span>▦</span>
+              Chọn ô này
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setContextMenu(null)}
+              className="
+              flex w-full items-center rounded-lg px-3 py-2
+              text-left text-sm text-slate-500
+              transition-colors hover:bg-slate-100
+            "
+            >
+              Đóng
+            </button>
+          </div>
+        </>
       )}
+
       {/* ================= MENU CHỐT ĐIỂM ĐO ================= */}
       {pick && !isSettingsOpen && (
         <>
           {/* Lớp nền bắt click bên ngoài để đóng menu */}
           <div
-            className="fixed inset-0 z-[999998] bg-transparent"
+            className="fixed inset-0 z-[999998]"
             onClick={closePick}
             onContextMenu={(event) => {
               event.preventDefault();
@@ -559,14 +589,10 @@ export default function MapTiler() {
 
           <div
             className="
-            fixed z-[999999]
-            w-[240px] max-w-[calc(100vw-16px)]
-            overflow-y-auto
-            rounded-xl border border-slate-200
-            bg-white p-2
-            shadow-2xl shadow-slate-900/15
-            animate-in fade-in zoom-in-95
-            duration-150
+            fixed z-[999999] w-[240px] max-w-[calc(100vw-16px)]
+            overflow-y-auto rounded-xl border border-slate-200
+            bg-white p-2 shadow-2xl shadow-slate-900/15
+            animate-in fade-in zoom-in-95 duration-150
           "
             style={{
               left: Math.max(
@@ -584,14 +610,13 @@ export default function MapTiler() {
             }}
           >
             {/* Thông tin đo */}
-            <div className="border-b border-slate-100 px-3 pb-2.5 pt-1 text-xs leading-6 text-slate-500">
+            <div className="space-y-0.5 border-b border-slate-100 px-3 pb-2.5 pt-1 text-xs leading-6 text-slate-500">
               <div className="flex items-center justify-between">
                 <span>Phương vị</span>
                 <span className="font-bold text-orange-600">
                   {pick.mil} ({pick.bearingDeg.toFixed(1)}°)
                 </span>
               </div>
-
               <div className="flex items-center justify-between">
                 <span>Cự ly</span>
                 <span className="font-bold text-slate-800">
@@ -609,74 +634,56 @@ export default function MapTiler() {
               />
             ) : (
               /* Bước 1: chọn phe */
-              <>
+              <div className="mt-1 flex flex-col gap-1">
                 <button
                   type="button"
                   onClick={() => setPendingSide("friendly")}
                   className="
-                  mt-1 flex w-full items-center gap-2
-                  rounded-lg px-3 py-2.5
+                  flex w-full items-center gap-2 rounded-lg px-3 py-2.5
                   text-left text-sm font-medium text-slate-700
-                  transition-colors
-                  hover:bg-blue-50
+                  transition-colors hover:bg-blue-50
                 "
-                  style={
-                    {
-                      "--friendly-color": SIDE_CONFIG.friendly.color,
-                    } as React.CSSProperties
-                  }
                 >
                   <span
                     className="h-2.5 w-2.5 rounded-full"
-                    style={{
-                      backgroundColor: SIDE_CONFIG.friendly.color,
-                    }}
+                    style={{ backgroundColor: SIDE_CONFIG.friendly.color }}
                   />
-                  Thêm top máy bay ta
+                  Thêm tốp máy bay ta
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPendingSide("enemy")}
                   className="
-                  mt-1 flex w-full items-center gap-2
-                  rounded-lg px-3 py-2.5
+                  flex w-full items-center gap-2 rounded-lg px-3 py-2.5
                   text-left text-sm font-medium text-slate-700
-                  transition-colors
-                  hover:bg-red-50
+                  transition-colors hover:bg-red-50
                 "
-                  style={
-                    {
-                      "--enemy-color": SIDE_CONFIG.enemy.color,
-                    } as React.CSSProperties
-                  }
                 >
                   <span
                     className="h-2.5 w-2.5 rounded-full"
-                    style={{
-                      backgroundColor: SIDE_CONFIG.enemy.color,
-                    }}
+                    style={{ backgroundColor: SIDE_CONFIG.enemy.color }}
                   />
-                  Thêm top máy bay địch
+                  Thêm tốp máy bay địch
                 </button>
 
                 <button
                   type="button"
                   onClick={closePick}
                   className="
-                  mt-1 block w-full rounded-lg
-                  px-3 py-2.5 text-left text-sm
-                  text-slate-500 transition-colors
-                  hover:bg-slate-100
+                  w-full rounded-lg px-3 py-2.5 text-left text-sm
+                  text-slate-500 transition-colors hover:bg-slate-100
                 "
                 >
                   Hủy
                 </button>
-              </>
+              </div>
             )}
           </div>
         </>
       )}
+
+      {/* ================= TRANG CÀI ĐẶT (phủ toàn màn hình) ================= */}
       {isSettingsOpen && (
         <div className="absolute inset-0 z-[2000]">
           <SettingsPage

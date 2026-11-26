@@ -37,6 +37,7 @@ import { useMapContext } from "../../context/MapContext";
 import { usePlaceContext } from "../../context/PlaceContext";
 import {
   addPlaces,
+  addPlacesLayers,
   togglePlaceLayers,
 } from "../../features/places/places.layers";
 import { setMeasurementTool } from "../MapTiler/utils/measurement.tool";
@@ -134,7 +135,8 @@ export default function MapView({
     });
   }, [mapStyleId]);
 
-  const { places, showPlace } = usePlaceContext();
+  const { places, showPlace, placeSelected, setPlaceSelected } =
+    usePlaceContext();
 
   useEffect(() => {
     const map = mapRef.current;
@@ -176,7 +178,10 @@ export default function MapView({
 
     updateLabelScale(); // áp dụng ngay lần đầu
     map.on("zoom", updateLabelScale);
-
+    addPlacesLayers(map, (place) => {
+      console.log("Địa điểm được click:", place);
+      setPlaceSelected(place);
+    });
     return () => {
       map.off("zoom", updateLabelScale);
     };
