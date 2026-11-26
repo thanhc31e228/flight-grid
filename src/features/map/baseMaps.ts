@@ -17,25 +17,6 @@ export function getMapStyleUrl(id: MapStyleId): string {
   return MAP_CONFIG.MAP_STYLES[id];
 }
 
-// Đọc style đã lưu
-// export function loadMapStyleId(): MapStyleId {
-//   try {
-//     const saved = localStorage.getItem(STORAGE_KEY) as MapStyleId | null;
-//     if (saved && saved in MAP_CONFIG.MAP_STYLES) return saved;
-//   } catch {
-//     // bỏ qua nếu localStorage không dùng được
-//   }
-//   return DEFAULT_MAP_STYLE;
-// }
-
-// export function saveMapStyleId(id: MapStyleId) {
-//   try {
-//     localStorage.setItem(STORAGE_KEY, id);
-//   } catch {
-//     // bỏ qua
-//   }
-// }
-
 // Khi đổi style: giữ lại các source/layer tự thêm (lưới, đường bay, vòng phương vị...)
 // Ở đây coi source "geojson" là của mình, còn style MapTiler chỉ có vector/raster
 export function keepCustomLayers(
