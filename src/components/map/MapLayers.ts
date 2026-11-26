@@ -35,7 +35,7 @@ const EMPTY_FEATURE_COLLECTION = {
   features: [],
 };
 
-const SOURCE = {
+export const SOURCE = {
   grid: "grid-source",
   gridLabel: "grid-label-source",
   route: "route-source",

@@ -30,7 +30,7 @@ export function registerWaypointHoverEvents(map: MapLibreMap) {
     //   formatGridId(feature.properties?.coordinateGridId) ?? "Waypoint",
     // ); // hiển thị ở điểm point khi hover vào
     const name = feature.properties?.isLast
-      ? `${feature.properties?.speed?.toFixed(2)} m/s |
+      ? `${feature.properties?.speed?.toFixed(2) ? feature.properties?.speed?.toFixed(2) + " m/s |" : ""}
           ${formatGridId(feature.properties?.coordinateGridId) ?? "Waypoint"}
         `
       : (formatGridId(feature.properties?.coordinateGridId) ?? "Waypoint"); // hiển thị ở điểm point khi hover vào

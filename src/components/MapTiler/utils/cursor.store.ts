@@ -3,6 +3,9 @@ import { useSyncExternalStore } from "react";
 export interface CursorCoords {
   lng: number;
   lat: number;
+  gridId: string;
+  distance: number;
+  azimuth: number;
 }
 
 let current: CursorCoords | null = null;

@@ -1,5 +1,6 @@
 import { Settings } from "lucide-react";
 import { useCursorCoords } from "../MapTiler/utils/cursor.store";
+import { formatGridId } from "../../utils/formatGridId";
 
 type Props = {
   onOpenSettings: () => void;
@@ -22,6 +23,12 @@ export default function MeasurementBar({ onOpenSettings }: Props) {
           <span className="font-semibold">Vĩ độ:</span>
           <span className="w-28 font-mono tabular-nums text-orange-700">
             {coords ? `${coords.lat.toFixed(6)}°` : "--"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">Tọa độ 5x5:</span>
+          <span className="w-28 font-mono tabular-nums text-orange-700">
+            {coords ? `${formatGridId(coords.gridId)}` : "--"}
           </span>
         </div>
       </div>

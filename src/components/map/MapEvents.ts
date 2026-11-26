@@ -18,7 +18,11 @@ import type {
 import { Point } from "../MapTiler/types/map.types";
 import { GridSType } from "../../context/MapContext";
 
-const GRID_LAYERS = ["grid-level-3-fill", "grid-level-2-fill", "grid-fill"];
+export const GRID_LAYERS = [
+  "grid-level-3-fill",
+  "grid-level-2-fill",
+  "grid-fill",
+];
 
 export function registerMapEvents(
   map: MapLibreMap,

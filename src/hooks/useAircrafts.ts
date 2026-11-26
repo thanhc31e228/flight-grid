@@ -111,10 +111,6 @@ export function useAircrafts() {
           );
 
           speed = distanceMeters / 30;
-
-          console.log(
-            `aircraft: ${aircraft.id}  | Speed: ${speed.toFixed(2)} m/s`,
-          );
         }
 
         return {
