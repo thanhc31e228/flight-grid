@@ -15,7 +15,6 @@ import { clearWaypointCaches } from "./waypoint.update";
 
 export function initializeMapLayers(map: MapLibreMap) {
   const baseCoordinates = getBaseCoordinates();
-
   addGridLayers(map);
   addRouteLayers(map);
   setFireZoneLayer(map, baseCoordinates);
@@ -25,7 +24,7 @@ export function initializeMapLayers(map: MapLibreMap) {
   addAzimuthLayers(map, baseCoordinates, 40);
 
   const cleanupRouteHover = addRouteHoverEvents(map);
-
+  // map.moveLayer("route-line", "azimuth-labels");
   return () => {
     cleanupRouteHover();
     cleanupCursor();
