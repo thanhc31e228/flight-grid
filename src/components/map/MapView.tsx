@@ -231,13 +231,18 @@ export default function MapView({
     const isNear = isAircraftNearPoint(
       [lastPoint.lng, lastPoint.lat], // Điểm cuối máy bay
       getBaseCoordinates(), // Vị trí mục tiêu
-      radiusM, // Ngưỡng 10 km
+      radiusM, // Ngưỡng vào trong vùng hỏa lực
     );
     if (isNear) {
       startWaypointPlaneBlink(mapRef.current);
     } else {
       stopWaypointPlaneBlink(mapRef.current);
     }
+    return () => {
+      if (mapRef.current) {
+        stopWaypointPlaneBlink(mapRef.current);
+      }
+    };
   }, [mapReady, aircraftSelected?.points, aircraftSelected]);
   // useEffect(() => {
   //   const map = mapRef.current;
