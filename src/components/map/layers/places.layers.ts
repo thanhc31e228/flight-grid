@@ -5,8 +5,7 @@ import type {
 } from "maplibre-gl";
 
 import type { Feature, FeatureCollection, Point } from "geojson";
-import { Place } from "./place.types";
-import { SOURCE } from "../../components/MapTiler/map.constants";
+import { SOURCE, Place } from "./index";
 
 const LAYER = {
   pulse: "places-pulse",
@@ -56,16 +55,6 @@ export function addPlaces(map: MapLibreMap, places: Place[]) {
 /* =========================================
    LAYERS
 ========================================= */
-/** Ẩn/hiện địa điểm được đánh dấu. */
-export function togglePlaceLayers(map: MapLibreMap, visible: boolean) {
-  const visibility = visible ? "visible" : "none";
-
-  Object.values(LAYER).forEach((id) => {
-    if (map.getLayer(id)) {
-      map.setLayoutProperty(id, "visibility", visibility);
-    }
-  });
-}
 
 export function addPlacesLayers(
   map: MapLibreMap,

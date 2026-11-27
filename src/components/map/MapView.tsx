@@ -13,16 +13,6 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import { MAP_CONFIG, MAP_GRID_CONFIG } from "../../config/map.config";
 
-import {
-  initializeMapLayers,
-  // pinAircraft,
-  setFireZoneLayer,
-  toggleAzimuthLayers,
-  togglePlaceLabel,
-  updateGridLabels,
-  updateWaypoints,
-} from "./MapLayers";
-
 import { registerMapEvents } from "./MapEvents";
 
 import { registerWaypointHoverEvents } from "./MapHoverEvents";
@@ -35,11 +25,7 @@ import { useAirCraftContext } from "../../context/MakerContext";
 import type { Place } from "../../features/places/place.types";
 import { useMapContext } from "../../context/MapContext";
 import { usePlaceContext } from "../../context/PlaceContext";
-import {
-  addPlaces,
-  addPlacesLayers,
-  togglePlaceLayers,
-} from "../../features/places/places.layers";
+import { addPlaces, addPlacesLayers, togglePlaceLayers } from "./layers";
 import { setMeasurementTool } from "../MapTiler/utils/measurement.tool";
 import {
   getMapStyleUrl,
@@ -47,6 +33,12 @@ import {
   loadMapStyleId,
   MapStyleId,
 } from "../../features/map/baseMaps";
+import { toggleAzimuthLayers } from "./layers/azimuth.layers";
+import { togglePlaceLabel } from "./layers/place-label.toggle";
+import { setFireZoneLayer } from "./layers/fire-zone.layer";
+import { updateWaypoints } from "./layers/waypoint.update";
+import { updateGridLabels } from "./layers/grid.layers";
+import { initializeMapLayers } from "./layers/initialize";
 
 // ======================================
 // TYPES
@@ -135,8 +127,7 @@ export default function MapView({
     });
   }, [mapStyleId]);
 
-  const { places, showPlace, placeSelected, setPlaceSelected } =
-    usePlaceContext();
+  const { places, showPlace, setPlaceSelected } = usePlaceContext();
 
   useEffect(() => {
     const map = mapRef.current;
