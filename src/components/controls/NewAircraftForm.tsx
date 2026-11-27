@@ -1,7 +1,9 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 
-import type { AircraftDetails, AircraftSide } from "./factory/aircraft.factory";
+import type { AircraftSide } from "./factory/aircraft.factory";
+import { useAirCraftContext } from "../../context/MakerContext";
 import { useMapContext } from "../../context/MapContext";
+import { usePick } from "../MapTiler/utils/pick.store";
 
 const SIDE_LABEL: Record<AircraftSide, string> = {
   friendly: "ta",
@@ -24,19 +26,21 @@ function normalizeTime(value: string): string {
 
 type Props = {
   side: AircraftSide;
-  onSubmit: (details: AircraftDetails, gridSelectedId: string) => void;
   onBack: () => void;
 };
 
-export default function NewAircraftForm({ side, onSubmit, onBack }: Props) {
+export default function NewAircraftForm({ side, onBack }: Props) {
+  const { addAircraft, setAircraftSelected } = useAirCraftContext();
+  const { gridSelected } = useMapContext();
+  const pick = usePick();
+
   const [form, setForm] = useState({
     id: "",
-    name: "",
     aircraftCode: "",
     altitude: "",
     appearanceTime: getCurrentTime(),
   });
-  const { gridSelected } = useMapContext();
+
   const change =
     (field: keyof typeof form) => (e: ChangeEvent<HTMLInputElement>) => {
       let value = e.target.value;
@@ -48,26 +52,61 @@ export default function NewAircraftForm({ side, onSubmit, onBack }: Props) {
       setForm((prev) => ({ ...prev, [field]: value }));
     };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const id = form.id.trim();
 
     if (!id) return;
 
+    // Kiểm tra prefix theo phe
+    const expectedPrefix = side === "enemy" ? "4" : "5";
+
+    if (!id.startsWith(expectedPrefix)) {
+      alert(
+        side === "enemy"
+          ? "ID máy bay địch phải bắt đầu bằng số 4!"
+          : "ID máy bay ta phải bắt đầu bằng số 5!",
+      );
+      return;
+    }
+
+    // Chuẩn hóa thời gian xuất hiện
     const appearanceTime = form.appearanceTime.trim()
       ? normalizeTime(form.appearanceTime)
       : getCurrentTime();
 
-    onSubmit(
-      {
-        id,
-        aircraftCode: form.aircraftCode.trim() || "chưa xác định",
-        altitude: form.altitude.trim() || "chưa xác định",
-        appearanceTime,
-      },
-      gridSelected?.id || "",
-    );
+    // Bắt buộc phải chọn điểm trên bản đồ trước khi thêm máy bay
+    if (!pick) {
+      alert("Vui lòng chọn điểm xuất hiện trên bản đồ!");
+      return;
+    }
+
+    // Thêm aircraft
+    const result = addAircraft({
+      id,
+      name: id,
+      aircraftCode: form.aircraftCode.trim() || "chưa xác định",
+      altitude: form.altitude.trim() || "chưa xác định",
+      appearanceTime,
+      points: [
+        {
+          lng: pick.lng,
+          lat: pick.lat,
+          appearanceTime,
+          coordinateGridId: gridSelected?.id || "",
+        },
+      ],
+    });
+    // ID trùng
+    if (!result) {
+      alert("ID máy bay đã tồn tại!");
+      return;
+    }
+    setAircraftSelected(result);
+
+    // Thành công → đóng form
+    onBack();
   };
 
   const inputClass =
@@ -78,6 +117,7 @@ export default function NewAircraftForm({ side, onSubmit, onBack }: Props) {
       <div className="text-sm font-semibold text-gray-800">
         Thông tin máy bay {SIDE_LABEL[side]}
       </div>
+
       <label className="text-xs text-gray-500">
         Số tốp
         <input
@@ -88,6 +128,7 @@ export default function NewAircraftForm({ side, onSubmit, onBack }: Props) {
           required
         />
       </label>
+
       <label className="text-xs text-gray-500">
         SL-KL (vd: 0122)
         <input

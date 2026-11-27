@@ -83,14 +83,17 @@ export default function GridRouteInput({ gridIndex }: Props) {
       const airCraft: AirCraft = {
         id: idTop,
         name: idTop,
-        color: generateRandomHexColor(),
         points: [point],
         aircraftCode,
         altitude,
         appearanceTime,
       };
 
-      addAircraft(airCraft);
+      const result = addAircraft(airCraft);
+      if (!result) {
+        alert("ID đã tồn tại!");
+        return;
+      }
     }
     // Có thời gian
     else if (lastLine.length === 10) {
@@ -340,29 +343,3 @@ export default function GridRouteInput({ gridIndex }: Props) {
     </div>
   );
 }
-
-let colorIndex = 0;
-
-const generateRandomHexColor = (): string => {
-  const goldenAngle = 137.508;
-  const hue = (colorIndex++ * goldenAngle) % 360;
-
-  return hslToHex(hue, 85, 32);
-};
-
-const hslToHex = (h: number, s: number, l: number): string => {
-  s /= 100;
-  l /= 100;
-
-  const k = (n: number) => (n + h / 30) % 12;
-  const a = s * Math.min(l, 1 - l);
-
-  const f = (n: number) =>
-    Math.round(
-      255 * (l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))),
-    )
-      .toString(16)
-      .padStart(2, "0");
-
-  return `#${f(0)}${f(8)}${f(4)}`;
-};

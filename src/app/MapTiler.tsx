@@ -12,9 +12,7 @@ import { useAirCraftContext } from "../context/MakerContext";
 import MeasurementBar from "../components/controls/MeasurementBar";
 import { setPick, usePick } from "../components/MapTiler/utils/pick.store";
 import {
-  createAircraft,
   SIDE_CONFIG,
-  type AircraftDetails,
   type AircraftSide,
 } from "../components/controls/factory/aircraft.factory";
 import NewAircraftForm from "../components/controls/NewAircraftForm";
@@ -34,7 +32,6 @@ export default function MapTiler() {
     setSelectedAircraftId,
     undoPoint,
     updateSpeed,
-    addAircraft,
     aircraftSelected,
   } = useAirCraftContext();
   // Máy bay đang được chọn
@@ -156,7 +153,6 @@ export default function MapTiler() {
     "12312",
     "123",
   ];
-
   const [labelInput, setLabelInput] = useState(DEFAULT_GRID_LABELS.join(" "));
 
   // Tự động chọn máy bay đầu tiên khi có danh sách
@@ -293,33 +289,6 @@ export default function MapTiler() {
   const closePick = () => {
     setPick(null);
     setPendingSide(null);
-  };
-
-  // Bấm "Thêm" trong form: tạo máy bay mới, điểm đầu chính là điểm vừa chốt
-  const handleCreateAircraft = (
-    details: AircraftDetails,
-    gridSelectedId: string,
-  ) => {
-    if (!pick || !pendingSide) return;
-
-    const aircraft = createAircraft(
-      aircrafts,
-      {
-        lng: pick.lng,
-        lat: pick.lat,
-        appearanceTime: details.appearanceTime,
-        coordinateGridId: gridSelectedId,
-      },
-      details,
-    );
-
-    if (!aircraft) {
-      window.alert("Đã đủ số lượng top máy bay của phe này (99).");
-      return;
-    }
-    addAircraft(aircraft);
-    setSelectedAircraftId(aircraft.id); // các click tiếp theo thêm waypoint cho top này
-    closePick();
   };
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -628,8 +597,8 @@ export default function MapTiler() {
               /* Bước 2: nhập thông tin máy bay */
               <NewAircraftForm
                 side={pendingSide}
-                onSubmit={handleCreateAircraft}
-                onBack={() => setPendingSide(null)}
+                // onSubmit={handleCreateAircraft}
+                onBack={closePick}
               />
             ) : (
               /* Bước 1: chọn phe */

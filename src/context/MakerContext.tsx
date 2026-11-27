@@ -2,7 +2,6 @@ import { createContext, ReactNode, useContext, useMemo } from "react";
 
 import { useAircrafts } from "../hooks/useAircrafts";
 import type { AirCraft, Point } from "../components/MapTiler/types/map.types";
-import { AircraftDetails } from "../components/controls/factory/aircraft.factory";
 
 interface AirCraftContextType {
   aircrafts: AirCraft[];
@@ -11,8 +10,8 @@ interface AirCraftContextType {
   setAircraftSelected: (aircraft: AirCraft | null) => void; // đổi dòng này
   getLastPoint: (aircaftId: string) => Point | undefined;
   setSelectedAircraftId: (id: string | null) => void;
-  addAircraft: (aircraft: AirCraft) => AirCraft;
-  updateAircraft: (aircraftId: string, details: AircraftDetails) => void;
+  addAircraft: (aircraft: AirCraft) => AirCraft | null;
+  updateAircraft: (aircraftId: string, details: AirCraft) => void;
   updateSpeed: (aircraftId: string, newSpeed: number) => void;
   removeAirCraft: (aircraftId: string) => number;
   addPoint: (aircraftId: string, point: Point) => number;

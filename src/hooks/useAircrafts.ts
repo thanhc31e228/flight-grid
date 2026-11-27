@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { AirCraft, Point } from "../components/MapTiler/types/map.types";
-import { AircraftDetails } from "../components/controls/factory/aircraft.factory";
 import distance from "@turf/distance";
 import { point as turfPoint } from "@turf/helpers";
 import { getAircraftColor } from "../utils/aircraft-color";
@@ -34,10 +33,23 @@ export function useAircrafts() {
 
   // Thêm máy bay
   const addAircraft = useCallback(
-    (aircraft: AirCraft) => {
+    (aircraft: AirCraft): AirCraft | null => {
+      // Kiểm tra ID trùng
+      const exists = aircraftsRef.current.some(
+        (item) => item.id === aircraft.id,
+      );
+
+      if (exists) {
+        return null;
+      }
+
+      // Gán màu theo prefix ID
       aircraft.color = getAircraftColor(aircraft.id);
+
+      // Thêm máy bay
       const updated = [...aircraftsRef.current, aircraft];
       commitAircrafts(updated);
+
       return aircraft;
     },
     [commitAircrafts],
@@ -55,7 +67,7 @@ export function useAircrafts() {
   );
   // Sửa thông tin máy bay (SL-KL, độ cao, thời gian)
   const updateAircraft = useCallback(
-    (aircraftId: string, details: AircraftDetails) => {
+    (aircraftId: string, details: AirCraft) => {
       const updated = aircraftsRef.current.map((aircraft) => {
         if (aircraft.id !== aircraftId) return aircraft;
 
