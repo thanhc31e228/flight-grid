@@ -3,6 +3,7 @@ import { AirCraft, Point } from "../components/MapTiler/types/map.types";
 import { AircraftDetails } from "../components/controls/factory/aircraft.factory";
 import distance from "@turf/distance";
 import { point as turfPoint } from "@turf/helpers";
+import { getAircraftColor } from "../utils/aircraft-color";
 
 export function useAircrafts() {
   // danh sach cac duong bay quan ly
@@ -34,6 +35,7 @@ export function useAircrafts() {
   // Thêm máy bay
   const addAircraft = useCallback(
     (aircraft: AirCraft) => {
+      aircraft.color = getAircraftColor(aircraft.id);
       const updated = [...aircraftsRef.current, aircraft];
       commitAircrafts(updated);
       return aircraft;

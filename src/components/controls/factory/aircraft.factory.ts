@@ -19,7 +19,6 @@ export type AircraftDetails = {
 
 export function createAircraft(
   aircrafts: AirCraft[],
-  side: AircraftSide,
   firstPoint: Point,
   details: AircraftDetails,
 ): AirCraft | null {
@@ -38,7 +37,6 @@ export function createAircraft(
   // });
   return {
     id,
-    color: SIDE_CONFIG[side].color,
     points: [firstPoint],
     aircraftCode: details.aircraftCode ?? DEFAULT_AIRCRAFT_CODE,
     altitude: details.altitude ?? DEFAULT_ALTITUDE,

@@ -4,6 +4,7 @@ import { EMPTY_FEATURE_COLLECTION, LAYER, SOURCE } from "./constants";
 import { routeHoverFilter, addWaypointLayers } from "./index";
 import { byZoom } from "./layer.utils";
 
+//  FILE CHỨA CÁC ĐƯỜNG LINE
 function addRouteLines(map: MapLibreMap) {
   map.addSource(SOURCE.route, {
     type: "geojson",
@@ -14,7 +15,7 @@ function addRouteLines(map: MapLibreMap) {
     "line-cap": "round",
     "line-join": "round",
   } as const;
-
+  // đường line máy bay
   map.addLayer({
     id: "route-line",
     type: "line",

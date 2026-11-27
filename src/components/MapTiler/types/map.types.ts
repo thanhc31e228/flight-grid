@@ -14,7 +14,7 @@ export type GridCell = {
 export type AirCraft = {
   id: string; //401
   name?: string; //401
-  color: string; // #23e3
+  color?: string; // #23e3
   points: Point[];
   aircraftCode?: string; // số lượng - kiểu loại (SK-KL): 0122
   altitude?: string; // Độ cao (hm) // vd 005

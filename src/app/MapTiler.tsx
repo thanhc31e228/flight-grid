@@ -304,7 +304,6 @@ export default function MapTiler() {
 
     const aircraft = createAircraft(
       aircrafts,
-      pendingSide,
       {
         lng: pick.lng,
         lat: pick.lat,
