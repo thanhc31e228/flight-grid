@@ -176,7 +176,7 @@ export default function MapView({
     return () => {
       map.off("zoom", updateLabelScale);
     };
-  }, [mapReady]);
+  }, [mapReady, setPlaceSelected]);
 
   // Cập nhật FireZone và Measurement theo tọa độ mới
   useEffect(() => {

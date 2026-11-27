@@ -78,7 +78,7 @@ function addRouteHoverLayer(map: MapLibreMap) {
       "line-join": "round",
     },
     paint: {
-      "line-color": "#10340be8",
+      "line-color": ["get", "color"],
       "line-width": byZoom(4, 2, 8, 2.5, 12, 3, 16, 4),
       "line-opacity": 1,
     },

@@ -71,7 +71,7 @@ export function addWaypointLayers(map: MapLibreMap) {
     layout: {
       "text-field": ["get", "appearanceTime"],
       "text-size": 8,
-      "text-offset": [0, 1.5],
+      "text-offset": [0, 0.5], // Giảm khoảng cách giữa label time với
       "text-anchor": "top",
       "text-allow-overlap": true,
     },
