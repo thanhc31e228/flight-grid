@@ -9,7 +9,7 @@ function formatAppearanceTime(value?: string) {
   return `${digits.slice(0, 2)}h${digits.slice(2, 4)}`;
 }
 
-// Đổi độ cao hm -> m. Ví dụ "005" -> "005 hm (500 m)"
+// Đổi độ cao hm -> m
 function formatAltitude(value?: string) {
   if (!value) return null;
 
@@ -48,15 +48,15 @@ export default function AircraftInfoPanel({ aircraft }: Props) {
   if (!aircraft) return null;
 
   return (
-    <div className="pointer-events-auto w-56 select-none rounded-md border border-slate-300 bg-white/80 text-slate-900 shadow-sm backdrop-blur-sm">
-      {/* Tiêu đề - bấm để ẩn / hiện */}
+    <div className="pointer-events-auto w-56 select-none overflow-hidden rounded-md border border-slate-300 bg-white/80 text-slate-900 shadow-sm backdrop-blur-sm">
+      {/* Tiêu đề */}
       <button
         type="button"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((prev) => !prev)}
         className="flex w-full items-center gap-2 px-3 py-2 text-left"
       >
-        {/* Icon máy bay SVG */}
+        {/* Icon máy bay */}
         <svg
           viewBox="0 0 24 24"
           className="h-5 w-5 shrink-0"
@@ -65,22 +65,22 @@ export default function AircraftInfoPanel({ aircraft }: Props) {
         >
           <path
             d="M12 1.5
-       L13.4 8
-       L22.1 11
-       L22.5 13
-       L13.7 11.7
-       L14.2 18.3
-       L17 20.2
-       L16.6 22
-       L12 20.8
-       L7.4 22
-       L7 20.2
-       L9.8 18.3
-       L10.3 11.7
-       L1.5 13
-       L1.9 11
-       L10.6 8
-       Z"
+            L13.4 8
+            L22.1 11
+            L22.5 13
+            L13.7 11.7
+            L14.2 18.3
+            L17 20.2
+            L16.6 22
+            L12 20.8
+            L7.4 22
+            L7 20.2
+            L9.8 18.3
+            L10.3 11.7
+            L1.5 13
+            L1.9 11
+            L10.6 8
+            Z"
           />
         </svg>
 
@@ -88,10 +88,11 @@ export default function AircraftInfoPanel({ aircraft }: Props) {
           Tốp {aircraft.name || aircraft.id}
         </span>
 
+        {/* Icon đóng mở */}
         <svg
           viewBox="0 0 20 20"
-          className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${
-            isOpen ? "rotate-180" : ""
+          className={`h-4 w-4 shrink-0 text-slate-500 transition-transform duration-300 ease-in-out ${
+            isOpen ? "rotate-180" : "rotate-0"
           }`}
           fill="none"
           stroke="currentColor"
@@ -103,20 +104,32 @@ export default function AircraftInfoPanel({ aircraft }: Props) {
         </svg>
       </button>
 
-      {/* Thông tin */}
-      {isOpen && (
-        <div className="space-y-1 border-t border-slate-200 px-3 py-2">
-          <Row label="Số hiệu" value={aircraft.id} />
-          <Row label="SL - KL" value={aircraft.aircraftCode} />
-          <Row label="Độ cao" value={formatAltitude(aircraft.altitude)} />
-          <Row
-            label="Xuất hiện"
-            value={formatAppearanceTime(aircraft.appearanceTime)}
-          />
-          <Row label="Tốc độ" value={formatSpeed(aircraft.speed)} />
-          <Row label="Số điểm" value={String(aircraft.points.length)} />
+      {/* Nội dung có animation */}
+      <div
+        aria-hidden={!isOpen}
+        className="grid transition-[grid-template-rows] duration-300 ease-in-out motion-reduce:transition-none"
+        style={{
+          gridTemplateRows: isOpen ? "1fr" : "0fr",
+        }}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div
+            className={`space-y-1 border-t border-slate-200 px-3 py-2 transition-all duration-300 ease-in-out motion-reduce:transition-none ${
+              isOpen ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
+            }`}
+          >
+            <Row label="Số hiệu" value={aircraft.id} />
+            <Row label="SL - KL" value={aircraft.aircraftCode} />
+            <Row label="Độ cao" value={formatAltitude(aircraft.altitude)} />
+            <Row
+              label="Xuất hiện"
+              value={formatAppearanceTime(aircraft.appearanceTime)}
+            />
+            <Row label="Tốc độ" value={formatSpeed(aircraft.speed)} />
+            <Row label="Số điểm" value={String(aircraft.points.length)} />
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
