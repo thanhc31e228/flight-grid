@@ -13,7 +13,6 @@ import { addRouteHoverEvents } from "./route.hover-events";
 import { addRouteLayers } from "./route.layers";
 import { clearWaypointCaches } from "./waypoint.update";
 import { MAP_CONFIG } from "../../../config/map.config";
-import { startWaypointPlaneBlink } from "./waypoint.layers";
 
 export function initializeMapLayers(map: MapLibreMap) {
   const baseCoordinates = getBaseCoordinates();
@@ -24,13 +23,13 @@ export function initializeMapLayers(map: MapLibreMap) {
   const cleanupCursor = addCursorTracker(map);
 
   addAzimuthLayers(map, baseCoordinates, 40);
-  const stopBlink = startWaypointPlaneBlink(map);
+  // const stopBlink = startWaypointPlaneBlink(map);
   const cleanupRouteHover = addRouteHoverEvents(map);
   // map.moveLayer("route-line", "azimuth-labels");
   return () => {
     cleanupRouteHover();
     cleanupCursor();
-    stopBlink();
+    // stopBlink();
     clearFirstWaypointLabels();
     clearWaypointCaches(map);
     resetHover(map);

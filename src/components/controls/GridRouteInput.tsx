@@ -4,7 +4,6 @@ import type { GridFeature } from "../../features/grid/grid.types";
 import { getGridCenter } from "../../features/grid/grid.geometry";
 import { AirCraft, Point } from "../MapTiler/types/map.types";
 import { useAirCraftContext } from "../../context/MakerContext";
-import { setFireZoneLayer } from "../map/layers";
 
 type Props = {
   gridIndex: Map<string, GridFeature>;
@@ -99,7 +98,7 @@ export default function GridRouteInput({ gridIndex }: Props) {
     // Có thời gian
     else if (lastLine.length === 10) {
       point.appearanceTime = lastLine.slice(-2);
-      const result = addPoint(idTop, point);
+      addPoint(idTop, point);
       // setFireZoneLayer
     }
     // Không có thời gian -> lấy thời gian của điểm trước
