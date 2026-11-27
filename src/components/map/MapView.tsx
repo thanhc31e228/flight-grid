@@ -40,6 +40,12 @@ import { updateWaypoints } from "./layers/waypoint.update";
 import { updateGridLabels } from "./layers/grid.layers";
 import { initializeMapLayers } from "./layers/initialize";
 import { getBaseCoordinates } from "../../utils/map.storage";
+import { isAircraftNearPoint } from "./layers/waypoint.alert";
+import {
+  startWaypointPlaneBlink,
+  stopWaypointPlaneBlink,
+} from "./layers/waypoint.animation";
+import { getFireZoneRadius } from "./layers/layer.utils";
 
 // ======================================
 // TYPES
@@ -212,6 +218,27 @@ export default function MapView({
       altitudeM,
     );
   }, [mapReady, aircraftSelected?.altitude, aircraftSelected?.id]);
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !aircraftSelected) return;
+
+    const lastPoint = aircraftSelected.points.at(-1);
+    if (!lastPoint) return;
+    const radiusM = getFireZoneRadius(
+      MAP_CONFIG.FIRE_RANGE_M,
+      Number(aircraftSelected?.altitude),
+    );
+
+    const isNear = isAircraftNearPoint(
+      [lastPoint.lng, lastPoint.lat], // Điểm cuối máy bay
+      getBaseCoordinates(), // Vị trí mục tiêu
+      radiusM, // Ngưỡng 10 km
+    );
+    if (isNear) {
+      startWaypointPlaneBlink(mapRef.current);
+    } else {
+      stopWaypointPlaneBlink(mapRef.current);
+    }
+  }, [mapReady, aircraftSelected?.points, aircraftSelected]);
   // useEffect(() => {
   //   const map = mapRef.current;
   //   if (!map || !mapReady || !selectedAircraftId) return;

@@ -1,6 +1,7 @@
 import circle from "@turf/circle";
 import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import type { FeatureCollection, Polygon } from "geojson";
+import { getFireZoneRadius } from "./layer.utils";
 
 const FIRE_ZONE_SOURCE = "base-fire-zone";
 
@@ -13,10 +14,10 @@ const EMPTY_FIRE_ZONE: FeatureCollection<Polygon> = {
 // Bán kính vùng hỏa lực trên mặt đất (m) = √(R² − h²)
 // range: cự ly bắn (m) - cạnh huyền
 // altitude: độ cao máy bay (m) - cạnh góc vuông
-export const getFireZoneRadius = (range: number, altitude: number): number => {
-  if (range <= 0 || altitude < 0 || altitude >= range) return 0; // ngoài tầm bắn
-  return Math.sqrt(range * range - altitude * altitude);
-};
+// export const getFireZoneRadius = (range: number, altitude: number): number => {
+//   if (range <= 0 || altitude < 0 || altitude >= range) return 0; // ngoài tầm bắn
+//   return Math.sqrt(range * range - altitude * altitude);
+// };
 
 // Vùng hỏa lực theo cự ly bắn và độ cao máy bay
 export function setFireZoneLayer(
