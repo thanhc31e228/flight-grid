@@ -40,6 +40,10 @@ interface MapContextType {
   // Base coordinates
   setBaseCoordinates: (coordinates: Coordinates) => void;
   baseCoordinates: Coordinates;
+
+  //range fire
+  rangeFire: number;
+  setRangeFire: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const MapContext = createContext<MapContextType | undefined>(undefined);
@@ -87,7 +91,8 @@ export default function MapProvider({ children }: { children: ReactNode }) {
       return [...MAP_CONFIG.BASE_COORDINATES] as Coordinates;
     },
   );
-
+  //================== RANGE FIRE========================
+  const [rangeFire, setRangeFire] = useState<number>(MAP_CONFIG.FIRE_RANGE_M);
   // ================= UPDATE COORDINATES =================
   const setBaseCoordinates = useCallback((coordinates: Coordinates) => {
     setBaseCoordinatesState(coordinates);
@@ -114,7 +119,8 @@ export default function MapProvider({ children }: { children: ReactNode }) {
     () => ({
       gridSelected,
       commitGridSelected,
-
+      rangeFire,
+      setRangeFire,
       // Places
       placeSelected,
       setPlaceSelected,
@@ -134,7 +140,8 @@ export default function MapProvider({ children }: { children: ReactNode }) {
     [
       gridSelected,
       commitGridSelected,
-
+      rangeFire,
+      setRangeFire,
       // Places
       placeSelected,
       setPlaceSelected,

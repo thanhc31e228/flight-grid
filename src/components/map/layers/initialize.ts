@@ -12,12 +12,13 @@ import { resetHover } from "./hover.state";
 import { addRouteHoverEvents } from "./route.hover-events";
 import { addRouteLayers } from "./route.layers";
 import { clearWaypointCaches } from "./waypoint.update";
+import { MAP_CONFIG } from "../../../config/map.config";
 
 export function initializeMapLayers(map: MapLibreMap) {
   const baseCoordinates = getBaseCoordinates();
   addGridLayers(map);
   addRouteLayers(map);
-  setFireZoneLayer(map, baseCoordinates);
+  setFireZoneLayer(map, baseCoordinates, MAP_CONFIG.FIRE_RANGE_M, 0);
   addPlaces(map, DEFAULT_PLACES);
   const cleanupCursor = addCursorTracker(map);
 

@@ -21,6 +21,7 @@ export const MAP_CONFIG = {
   },
   DEFAULT_MAP_STYLE: "streets",
   STORAGE_KEY: "map-base-style",
+  FIRE_RANGE_M: 3500,
 };
 
 // cấu hình lưới bản đồ
@@ -36,3 +37,4 @@ export const MAP_GRID_CONFIG = {
   ROUTE_RADIUS: 0.25,
   ROUTE_STEPS: 12,
 };
+// Cự ly bắn của pháo (m)

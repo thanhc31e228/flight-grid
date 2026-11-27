@@ -39,6 +39,7 @@ import { setFireZoneLayer } from "./layers/fire-zone.layer";
 import { updateWaypoints } from "./layers/waypoint.update";
 import { updateGridLabels } from "./layers/grid.layers";
 import { initializeMapLayers } from "./layers/initialize";
+import { getBaseCoordinates } from "../../utils/map.storage";
 
 // ======================================
 // TYPES
@@ -99,6 +100,7 @@ export default function MapView({
     addPoint,
     getLastPoint,
     setAircraftSelected,
+    aircraftSelected,
   } = useAirCraftContext();
 
   const {
@@ -186,7 +188,7 @@ export default function MapView({
     if (!map || !mapReady) return;
 
     // Cập nhật vùng FireZone theo tọa độ mới
-    setFireZoneLayer(map, baseCoordinates);
+    setFireZoneLayer(map, baseCoordinates, MAP_CONFIG.FIRE_RANGE_M, 100);
 
     // Khởi tạo Measurement theo tâm mới
     const cleanupMeasurement = setMeasurementTool(map, baseCoordinates);
@@ -195,6 +197,21 @@ export default function MapView({
       cleanupMeasurement();
     };
   }, [mapReady, baseCoordinates]);
+  // Cập nhật vùng hỏa lực theo độ cao tốp máy bay đang chọn
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+
+    // altitude lưu theo hm (có thể là string) -> ép sang number rồi đổi sang m
+    const altitudeHm = Number(aircraftSelected?.altitude);
+    const altitudeM = Number.isFinite(altitudeHm) ? altitudeHm * 100 : 0;
+
+    setFireZoneLayer(
+      mapRef.current,
+      getBaseCoordinates(),
+      MAP_CONFIG.FIRE_RANGE_M,
+      altitudeM,
+    );
+  }, [mapReady, aircraftSelected?.altitude, aircraftSelected?.id]);
   // useEffect(() => {
   //   const map = mapRef.current;
   //   if (!map || !mapReady || !selectedAircraftId) return;

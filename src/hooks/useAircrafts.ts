@@ -49,7 +49,6 @@ export function useAircrafts() {
       // Thêm máy bay
       const updated = [...aircraftsRef.current, aircraft];
       commitAircrafts(updated);
-
       return aircraft;
     },
     [commitAircrafts],
