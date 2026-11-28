@@ -12,17 +12,17 @@ export function addWaypointLayers(map: MapLibreMap) {
   });
 
   // Vạch ngang waypoint
-  map.addLayer({
-    id: "waypoint-ticks",
-    type: "line",
-    source: SOURCE.points,
-    layout: { "line-cap": "round" },
-    paint: {
-      "line-color": ["get", "color"],
-      "line-width": 2,
-      "line-opacity": 1,
-    },
-  });
+  // map.addLayer({
+  //   id: "waypoint-ticks",
+  //   type: "line",
+  //   source: SOURCE.points,
+  //   layout: { "line-cap": "round" },
+  //   paint: {
+  //     "line-color": ["get", "color"],
+  //     "line-width": 2,
+  //     "line-opacity": 1,
+  //   },
+  // });
   // Vòng lan cảnh báo 1
   map.addLayer({
     id: "waypoint-pulse-1",

@@ -14,7 +14,7 @@ export const MAP_CONFIG = {
     satellite: "https://api.maptiler.com/maps/satellite/style.json",
     hybrid: `https://api.maptiler.com/maps/hybrid/style.json`,
   },
-
+  ALTITUDE_UNIT_M: 100,
   ROUTE: {
     COLOR: "#ff2222",
     WIDTH: 2,

@@ -6,9 +6,9 @@ export function isAircraftNearPoint(
   targetPosition: Position,
   thresholdMeters: number,
 ): boolean {
-  const km = distance(aircraftPosition, targetPosition, {
+  const meters = distance(aircraftPosition, targetPosition, {
     units: "metres",
   });
 
-  return km <= thresholdMeters;
+  return meters <= thresholdMeters;
 }

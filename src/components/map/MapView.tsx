@@ -231,7 +231,6 @@ export default function MapView({
     updateLabelScale(); // áp dụng ngay lần đầu
     map.on("zoom", updateLabelScale);
     addPlacesLayers(map, (place) => {
-      console.log("Địa điểm được click:", place);
       setPlaceSelected(place);
     });
     return () => {
@@ -247,7 +246,7 @@ export default function MapView({
     if (!map || !mapReady) return;
 
     // Cập nhật vùng FireZone theo tọa độ mới
-    setFireZoneLayer(map, baseCoordinates, MAP_CONFIG.FIRE_RANGE_M, 8100);
+    setFireZoneLayer(map, baseCoordinates, MAP_CONFIG.FIRE_RANGE_M, 100);
 
     // Khởi tạo Measurement theo tâm mới
     const cleanupMeasurement = setMeasurementTool(map, baseCoordinates);
@@ -425,23 +424,30 @@ export default function MapView({
       setOriginalRouteVisible(map, true);
     };
   }, [mapReady, playbackKey, aircraftList]);
+  function parseAltitudeM(raw: unknown): number | null {
+    const n = parseFloat(String(raw ?? "").replace(",", "."));
+    if (!Number.isFinite(n)) return null;
+    return n * MAP_CONFIG.ALTITUDE_UNIT_M;
+  }
   useEffect(() => {
     const map = mapRef.current;
     if (!mapReady || !map) return;
+
+    const baseCoords = getBaseCoordinates();
 
     const nearIds = aircraftList
       .filter((aircraft) => {
         const lastPoint = aircraft.points.at(-1);
         if (!lastPoint) return false;
 
-        const radiusM = getFireZoneRadius(
-          MAP_CONFIG.FIRE_RANGE_M,
-          Number(aircraft.altitude),
-        );
+        const altitudeM = parseAltitudeM(aircraft.altitude);
+        if (altitudeM === null) return false;
+
+        const radiusM = getFireZoneRadius(MAP_CONFIG.FIRE_RANGE_M, altitudeM);
 
         return isAircraftNearPoint(
           [lastPoint.lng, lastPoint.lat],
-          getBaseCoordinates(),
+          baseCoords,
           radiusM,
         );
       })
@@ -449,7 +455,6 @@ export default function MapView({
 
     syncWaypointPlaneBlink(map, nearIds);
   }, [mapReady, aircraftList]);
-
   // Chỉ dừng animation khi component unmount
   useEffect(() => {
     return () => {
