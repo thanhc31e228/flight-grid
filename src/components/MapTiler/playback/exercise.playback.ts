@@ -29,7 +29,7 @@ export function createExercisePlayback(
   const segmentDuration = options.segmentDuration ?? DEFAULT_SEGMENT_DURATION;
   const resolvedEntries = resolveStartOffsets(entries, segmentDuration);
 
-  const tracks = entries
+  const tracks = resolvedEntries
     .map((entry) => createAircraftTrack(entry, segmentDuration))
     .filter((track): track is AircraftTrack => track !== null);
 
