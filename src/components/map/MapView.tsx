@@ -247,7 +247,7 @@ export default function MapView({
     if (!map || !mapReady) return;
 
     // Cập nhật vùng FireZone theo tọa độ mới
-    setFireZoneLayer(map, baseCoordinates, MAP_CONFIG.FIRE_RANGE_M, 100);
+    setFireZoneLayer(map, baseCoordinates, MAP_CONFIG.FIRE_RANGE_M, 8100);
 
     // Khởi tạo Measurement theo tâm mới
     const cleanupMeasurement = setMeasurementTool(map, baseCoordinates);
