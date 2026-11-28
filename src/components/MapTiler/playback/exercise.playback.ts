@@ -6,8 +6,10 @@ import {
   PlaybackController,
   PlaybackState,
 } from "./playback.types";
+import { PLAYBACK_SEGMENT_DURATION } from "./playback.utils";
 
-const DEFAULT_SEGMENT_DURATION = 10_000; // 10 giây / chặng
+// 30 giây / chặng ở tốc độ 1x (giữa 2 point liên tiếp)
+const DEFAULT_SEGMENT_DURATION = PLAYBACK_SEGMENT_DURATION;
 
 // Giới hạn delta mỗi frame: tab bị ẩn / lag xong quay lại sẽ không bị nhảy cóc
 const MAX_FRAME_DELTA = 100;

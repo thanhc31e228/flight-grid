@@ -32,7 +32,7 @@ export type AircraftProgress = Pick<
 export type PlaybackState = {
   status: PlaybackStatus;
   progress: number; // tiến độ cả bài tập
-  elapsedTime: number; // ms tính từ lúc máy bay đầu tiên cất cánh
+  elapsedTime: number; // ms tính từ lúc bấm Phát (mốc 0 = lúc bắt đầu ghi)
   totalTime: number;
   speedMultiplier: number;
   aircrafts: AircraftProgress[];
@@ -42,8 +42,8 @@ export type PlaybackState = {
 export type ExerciseEntry = {
   aircraft: AirCraft;
 
-  // Thời điểm xuất hiện (ms) tính từ lúc bài tập bắt đầu.
-  // Máy bay đầu tiên = 0, các máy bay sau = thời gian xuất hiện tương ứng.
+  // Thời điểm xuất hiện (ms) tính từ mốc 0 của bài tập (= lúc bấm "Bắt đầu ghi").
+  // Tự ghi khi click tạo máy bay lúc đang ghi, hoặc nhập tay "xuất hiện từ phút".
   startOffset?: number;
 
   // Thời điểm kết thúc (ms) tính từ lúc bài tập bắt đầu.

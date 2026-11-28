@@ -59,7 +59,16 @@ import {
   updatePlaybackFrames,
 } from "../MapTiler/playback/playback.layers";
 import { createExercisePlayback } from "../MapTiler/playback/exercise.playback";
-import { parseHHmm } from "../MapTiler/playback/playback.utils";
+import {
+  msToMinutes,
+  parseHHmm,
+  PLAYBACK_SEGMENT_DURATION,
+} from "../MapTiler/playback/playback.utils";
+import {
+  createExerciseRecorder,
+  ExerciseRecorder,
+  RecorderState,
+} from "../MapTiler/playback/exercise.recorder";
 
 // ======================================
 // TYPES
@@ -709,6 +718,40 @@ export default function MapView({
     (aircraft) => aircraft.points.length >= 2,
   );
   const [isPlaybackPanelOpen, setIsPlaybackPanelOpen] = useState(false);
+
+  // ============================================================================
+  // 2) STATE + WIRING (đặt cùng chỗ với các useState / useRef hiện có)
+  // ============================================================================
+
+  // Ô "Máy bay mới xuất hiện từ phút" (để trống = tự lấy theo đồng hồ ghi)
+  const [newAppearMinute, setNewAppearMinute] = useState("");
+
+  const [recState, setRecState] = useState<RecorderState>({
+    status: "idle",
+    elapsedTime: 0,
+    entries: [],
+    events: [],
+  });
+  const [recElapsed, setRecElapsed] = useState(0);
+
+  const recorderRef = useRef<ExerciseRecorder | null>(null);
+  if (!recorderRef.current) {
+    recorderRef.current = createExerciseRecorder({ onChange: setRecState });
+  }
+  const isRecording = recState.status === "recording";
+
+  // Đồng hồ ghi chạy mỗi 250ms khi đang ghi
+  useEffect(() => {
+    if (!isRecording) {
+      setRecElapsed(recState.elapsedTime);
+      return;
+    }
+    const id = setInterval(
+      () => setRecElapsed(recorderRef.current?.getElapsed() ?? 0),
+      250,
+    );
+    return () => clearInterval(id);
+  }, [isRecording, recState.elapsedTime]);
   return (
     <div className="relative h-full w-full overflow-hidden rounded-lg">
       <div
@@ -749,7 +792,7 @@ export default function MapView({
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                Bài tập bay · 10 giây / chặng
+                Bài tập bay · {PLAYBACK_SEGMENT_DURATION / 1000} giây / chặng
               </div>
 
               <div className="truncate text-sm font-semibold text-slate-800">
@@ -760,6 +803,86 @@ export default function MapView({
             <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
               {STATUS_LABEL[playbackState.status]}
             </span>
+          </div>
+
+          {/* ===== Ghi bài tập ===== */}
+          <div className="flex flex-col gap-1.5 rounded border border-slate-200 p-2">
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                disabled={playbackState.status === "playing"}
+                onClick={() =>
+                  isRecording
+                    ? recorderRef.current?.stop()
+                    : recorderRef.current?.start()
+                }
+                className={`rounded px-3 py-1.5 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-40 ${
+                  isRecording
+                    ? "bg-slate-700 hover:bg-slate-800"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                {isRecording ? "■ Dừng ghi" : "● Bắt đầu ghi"}
+              </button>
+
+              <span
+                className={`flex items-center gap-1.5 text-xs tabular-nums ${
+                  isRecording ? "font-semibold text-red-600" : "text-slate-500"
+                }`}
+              >
+                {isRecording && (
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-red-600" />
+                )}
+                {isRecording ? "REC" : "Đã ghi"}{" "}
+                {formatPlaybackTime(recElapsed)}
+              </span>
+            </div>
+
+            <label className="flex items-center justify-between gap-2 text-xs text-slate-600">
+              <span>Máy bay mới xuất hiện từ phút</span>
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                value={newAppearMinute}
+                onChange={(e) => setNewAppearMinute(e.target.value)}
+                placeholder={isRecording ? "tự động" : "0"}
+                className="w-20 rounded border border-slate-200 px-2 py-0.5 text-right text-xs outline-none focus:border-blue-400"
+              />
+            </label>
+
+            {/* Thời gian xuất hiện của từng máy bay (sửa được) */}
+            {recState.entries.length > 0 && (
+              <div className="flex max-h-28 flex-col gap-1 overflow-y-auto">
+                {recState.entries.map((entry) => (
+                  <div
+                    key={`${entry.aircraft.id}-${entry.startOffset ?? 0}`}
+                    className="flex items-center justify-between gap-2 text-xs text-slate-700"
+                  >
+                    <span className="min-w-0 truncate">
+                      {entry.aircraft.name ?? entry.aircraft.id}
+                    </span>
+
+                    <span className="flex shrink-0 items-center gap-1 text-slate-500">
+                      từ phút
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.5}
+                        defaultValue={msToMinutes(entry.startOffset ?? 0)}
+                        onBlur={(e) =>
+                          recorderRef.current?.setAppearAtMinute(
+                            String(entry.aircraft.id),
+                            Number(e.target.value) || 0,
+                          )
+                        }
+                        className="w-16 rounded border border-slate-200 px-1.5 py-0.5 text-right text-xs outline-none focus:border-blue-400"
+                      />
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Aircraft status */}
@@ -786,11 +909,11 @@ export default function MapView({
             </div>
           </div>
 
-          {/* Buttons */}
+          {/* Buttons: Play/Replay bị khóa khi đang ghi */}
           <div className="grid grid-cols-4 gap-1.5">
             <button
               type="button"
-              disabled={!hasPlaybackRoute}
+              disabled={!hasPlaybackRoute || isRecording}
               onClick={() => {
                 if (mapRef.current) {
                   setOriginalRouteVisible(mapRef.current, false);
@@ -835,7 +958,7 @@ export default function MapView({
 
             <button
               type="button"
-              disabled={!hasPlaybackRoute}
+              disabled={!hasPlaybackRoute || isRecording}
               onClick={() => {
                 if (mapRef.current) {
                   setOriginalRouteVisible(mapRef.current, false);
