@@ -7,7 +7,7 @@ import {
 type Coord = [number, number];
 
 // Hệ số làm mượt góc xoay icon (0..1, càng nhỏ càng mượt)
-const BEARING_SMOOTHING = 0.25;
+const BEARING_SMOOTHING = 0.9;
 
 // Tính hướng bay giữa 2 điểm (độ)
 function calculateBearing(from: Coord, to: Coord): number {
