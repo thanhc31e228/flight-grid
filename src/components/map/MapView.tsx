@@ -44,6 +44,7 @@ import { isAircraftNearPoint } from "./layers/waypoint.alert";
 import {
   startWaypointPlaneBlink,
   stopWaypointPlaneBlink,
+  syncWaypointPlaneBlink,
 } from "./layers/waypoint.animation";
 import { getFireZoneRadius } from "./layers/layer.utils";
 import type {
@@ -264,32 +265,8 @@ export default function MapView({
       altitudeM,
     );
   }, [mapReady, aircraftSelected?.altitude, aircraftSelected?.id]);
-  useEffect(() => {
-    if (!mapReady || !mapRef.current || !aircraftSelected) return;
+  // Đồng bộ nháy theo TẤT CẢ máy bay, không phụ thuộc máy bay đang chọn
 
-    const lastPoint = aircraftSelected.points.at(-1);
-    if (!lastPoint) return;
-    const radiusM = getFireZoneRadius(
-      MAP_CONFIG.FIRE_RANGE_M,
-      Number(aircraftSelected?.altitude),
-    );
-
-    const isNear = isAircraftNearPoint(
-      [lastPoint.lng, lastPoint.lat], // Điểm cuối máy bay
-      getBaseCoordinates(), // Vị trí mục tiêu
-      radiusM, // Ngưỡng vào trong vùng hỏa lực
-    );
-    if (isNear) {
-      startWaypointPlaneBlink(mapRef.current);
-    } else {
-      stopWaypointPlaneBlink(mapRef.current);
-    }
-    return () => {
-      if (mapRef.current) {
-        stopWaypointPlaneBlink(mapRef.current);
-      }
-    };
-  }, [mapReady, aircraftSelected?.points, aircraftSelected]);
   // useEffect(() => {
   //   const map = mapRef.current;
   //   if (!map || !mapReady || !selectedAircraftId) return;
@@ -442,6 +419,37 @@ export default function MapView({
       setOriginalRouteVisible(map, true);
     };
   }, [mapReady, playbackKey]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!mapReady || !map) return;
+
+    const nearIds = aircraftList
+      .filter((aircraft) => {
+        const lastPoint = aircraft.points.at(-1);
+        if (!lastPoint) return false;
+
+        const radiusM = getFireZoneRadius(
+          MAP_CONFIG.FIRE_RANGE_M,
+          Number(aircraft.altitude),
+        );
+
+        return isAircraftNearPoint(
+          [lastPoint.lng, lastPoint.lat],
+          getBaseCoordinates(),
+          radiusM,
+        );
+      })
+      .map((aircraft) => aircraft.id);
+
+    syncWaypointPlaneBlink(map, nearIds);
+  }, [mapReady, aircraftList]);
+
+  // Chỉ dừng animation khi component unmount
+  useEffect(() => {
+    return () => {
+      if (mapRef.current) stopWaypointPlaneBlink(mapRef.current);
+    };
+  }, []);
   // ======================================
   // LATEST VALUES REFS
   // ======================================
