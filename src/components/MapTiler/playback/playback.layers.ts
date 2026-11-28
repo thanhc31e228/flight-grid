@@ -41,7 +41,7 @@ export function addPlaybackLayer(map: MapLibreMap) {
       layout: { "line-cap": "round", "line-join": "round" },
       paint: {
         "line-color": ["get", "color"],
-        "line-width": 3.5,
+        "line-width": 2,
         "line-opacity": 0.95,
       },
     });
@@ -54,7 +54,7 @@ export function addPlaybackLayer(map: MapLibreMap) {
       source: AIRCRAFT_SOURCE,
       layout: {
         "icon-image": "waypoint-plane",
-        "icon-size": 0.7,
+        "icon-size": 0.4,
         "icon-rotate": ["get", "bearing"],
         "icon-rotation-alignment": "map",
         "icon-anchor": "center",
