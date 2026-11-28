@@ -146,6 +146,7 @@ export default function MapView({
     addPoint,
     getLastPoint,
     setAircraftSelected,
+    setSelectedAircraftId,
     aircraftSelected,
   } = useAirCraftContext();
 
@@ -174,6 +175,18 @@ export default function MapView({
       transformStyle: keepCustomLayers,
     });
   }, [mapStyleId]);
+  useEffect(() => {
+    const map = mapRef.current; // tên ref giữ map instance trong MapView
+    if (!map) return;
+    map.on("click", "points-layer", (e) => {
+      const feature = e.features?.[0];
+      if (!feature) return;
+      const properties = feature.properties;
+      if (properties?.aircraftId) {
+        setSelectedAircraftId(properties?.aircraftId);
+      }
+    });
+  }, [mapReady, setSelectedAircraftId]);
 
   const { places, showPlace, setPlaceSelected } = usePlaceContext();
 
