@@ -867,7 +867,8 @@ export default function MapView({
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                Bài tập bay · {PLAYBACK_SEGMENT_DURATION / 1000} giây / chặng
+                Bài tập
+                {/* {PLAYBACK_SEGMENT_DURATION / 1000} giây / chặng */}
               </div>
 
               <div className="truncate text-sm font-semibold text-slate-800">
@@ -912,7 +913,7 @@ export default function MapView({
                 {formatPlaybackTime(recElapsed)}
               </span>
             </div>
-
+            {/* 
             <label className="flex items-center justify-between gap-2 text-xs text-slate-600">
               <span>Máy bay mới xuất hiện từ phút</span>
               <input
@@ -927,7 +928,7 @@ export default function MapView({
                 placeholder={isRecording ? "tự động" : "0"}
                 className="w-20 rounded border border-slate-200 px-2 py-0.5 text-right text-xs outline-none focus:border-blue-400"
               />
-            </label>
+            </label> */}
 
             {/* Thời gian xuất hiện của từng máy bay (sửa được) */}
             {liveEntries.length > 0 && (
