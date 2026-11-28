@@ -6,7 +6,10 @@ import {
   PlaybackController,
   PlaybackState,
 } from "./playback.types";
-import { PLAYBACK_SEGMENT_DURATION } from "./playback.utils";
+import {
+  PLAYBACK_SEGMENT_DURATION,
+  resolveStartOffsets,
+} from "./playback.utils";
 
 // 30 giây / chặng ở tốc độ 1x (giữa 2 point liên tiếp)
 const DEFAULT_SEGMENT_DURATION = PLAYBACK_SEGMENT_DURATION;
@@ -24,6 +27,7 @@ export function createExercisePlayback(
   options: ExercisePlaybackOptions = {},
 ): PlaybackController {
   const segmentDuration = options.segmentDuration ?? DEFAULT_SEGMENT_DURATION;
+  const resolvedEntries = resolveStartOffsets(entries, segmentDuration);
 
   const tracks = entries
     .map((entry) => createAircraftTrack(entry, segmentDuration))

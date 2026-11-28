@@ -1,3 +1,5 @@
+import { ExerciseEntry } from "./playback.types";
+
 export function parseHHmm(value?: string): number {
   if (!value) return 0;
 
@@ -29,4 +31,51 @@ export function formatClock(ms: number): string {
   const mm = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
   const ss = String(totalSeconds % 60).padStart(2, "0");
   return `${mm}:${ss}`;
+}
+
+// Mốc thời gian (ms) khi máy bay bay tới point thứ n (n chặng x segmentDuration)
+export function pointToMs(pointIndex: number, segmentDuration: number): number {
+  return Math.max(0, Math.floor(pointIndex)) * segmentDuration;
+}
+
+// Đổi mọi appearAfter thành startOffset tuyệt đối. Hỗ trợ chuỗi: C chờ B, B chờ A.
+// Tham chiếu vòng hoặc máy bay không tồn tại thì giữ nguyên startOffset gốc.
+export function resolveStartOffsets(
+  entries: ExerciseEntry[],
+  segmentDuration: number,
+): ExerciseEntry[] {
+  const byId = new Map(entries.map((e) => [String(e.aircraft.id), e]));
+  const cache = new Map<string, number>();
+  const visiting = new Set<string>();
+
+  function resolve(entry: ExerciseEntry): number {
+    const id = String(entry.aircraft.id);
+    const cached = cache.get(id);
+    if (cached !== undefined) return cached;
+
+    let offset = Math.max(0, entry.startOffset ?? 0);
+    const rule = entry.appearAfter;
+
+    if (rule) {
+      const refId = String(rule.aircraftId);
+      const ref = byId.get(refId);
+
+      if (ref && refId !== id && !visiting.has(refId)) {
+        visiting.add(id);
+        const refStart = resolve(ref);
+        visiting.delete(id);
+
+        // Không vượt quá điểm cuối của máy bay tham chiếu
+        const lastIndex = Math.max(0, ref.aircraft.points.length - 1);
+        const k = Math.min(Math.max(0, Math.floor(rule.pointIndex)), lastIndex);
+
+        offset = refStart + pointToMs(k, segmentDuration) + (rule.delay ?? 0);
+      }
+    }
+
+    cache.set(id, offset);
+    return offset;
+  }
+
+  return entries.map((e) => ({ ...e, startOffset: resolve(e) }));
 }

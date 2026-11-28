@@ -54,6 +54,16 @@ export type ExerciseEntry = {
   // Đường đã bo góc (chính là đường đang vẽ trên map).
   // Không truyền thì bay thẳng giữa các waypoint.
   path?: [number, number][];
+
+  // Xuất hiện khi máy bay khác bay tới point thứ pointIndex.
+  // Có field này thì nó ghi đè startOffset.
+  // pointIndex tính theo số chặng đã bay: 3 chặng x 30s = 1p30s.
+  appearAfter?: {
+    aircraftId: string;
+    pointIndex: number;
+    // ms cộng thêm (tùy chọn), mặc định 0
+    delay?: number;
+  };
 };
 
 export type ExercisePlaybackOptions = {

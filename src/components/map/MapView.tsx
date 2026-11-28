@@ -60,9 +60,10 @@ import {
 } from "../MapTiler/playback/playback.layers";
 import { createExercisePlayback } from "../MapTiler/playback/exercise.playback";
 import {
+  formatClock,
   msToMinutes,
-  parseHHmm,
   PLAYBACK_SEGMENT_DURATION,
+  resolveStartOffsets,
 } from "../MapTiler/playback/playback.utils";
 import {
   createExerciseRecorder,
@@ -281,7 +282,119 @@ export default function MapView({
   // Context là nguồn dữ liệu chính.
   // Props chỉ là phương án dự phòng.
   const aircraftList = contextAircrafts ?? propAircrafts;
+  // ======================================
+  // RECORDER + LỊCH XUẤT HIỆN
+  // ======================================
 
+  const [newAppearMinute, setNewAppearMinute] = useState("");
+  const newAppearMinuteRef = useRef("");
+
+  const [recState, setRecState] = useState<RecorderState>({
+    status: "idle",
+    elapsedTime: 0,
+    entries: [],
+    events: [],
+  });
+  const [recElapsed, setRecElapsed] = useState(0);
+
+  const recorderRef = useRef<ExerciseRecorder | null>(null);
+  if (!recorderRef.current) {
+    recorderRef.current = createExerciseRecorder({ onChange: setRecState });
+  }
+  const isRecording = recState.status === "recording";
+
+  useEffect(() => {
+    if (!isRecording) {
+      setRecElapsed(recState.elapsedTime);
+      return;
+    }
+    const id = setInterval(
+      () => setRecElapsed(recorderRef.current?.getElapsed() ?? 0),
+      250,
+    );
+    return () => clearInterval(id);
+  }, [isRecording, recState.elapsedTime]);
+
+  // Máy bay mới xuất hiện trong aircraftList -> đăng ký vào recorder
+  // (đang ghi: tự lấy theo đồng hồ ghi; có nhập phút: dùng số đó; còn lại: 0)
+  const knownIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const recorder = recorderRef.current;
+    if (!recorder) return;
+
+    const known = knownIdsRef.current;
+    const currentIds = new Set(aircraftList.map((a) => String(a.id)));
+    let usedManualMinute = false;
+
+    for (const aircraft of aircraftList) {
+      const id = String(aircraft.id);
+      if (known.has(id)) continue;
+      known.add(id);
+
+      const raw = newAppearMinuteRef.current.trim();
+      const minute = raw === "" ? undefined : Number(raw);
+      const hasMinute = minute !== undefined && Number.isFinite(minute);
+      if (hasMinute) usedManualMinute = true;
+
+      recorder.addAircraft(aircraft, {
+        appearAtMinute: hasMinute ? minute : undefined,
+      });
+    }
+
+    for (const id of Array.from(known)) {
+      if (!currentIds.has(id)) {
+        known.delete(id);
+        recorder.removeAircraft(id);
+      }
+    }
+
+    // Dùng xong thì xóa để máy bay sau không bị dính giá trị cũ
+    if (usedManualMinute) {
+      newAppearMinuteRef.current = "";
+      setNewAppearMinute("");
+    }
+  }, [aircraftList]);
+
+  // Entry của recorder giữ bản aircraft cũ (lúc mới tạo, ít point).
+  // resolveStartOffsets cần số point MỚI NHẤT để kẹp pointIndex,
+  // nên luôn ghép lại aircraft mới từ aircraftList.
+  const liveEntries = useMemo<ExerciseEntry[]>(() => {
+    const byId = new Map(aircraftList.map((a) => [String(a.id), a]));
+    return recState.entries.map((e) => ({
+      ...e,
+      aircraft: byId.get(String(e.aircraft.id)) ?? e.aircraft,
+    }));
+  }, [recState.entries, aircraftList]);
+
+  // Thời điểm xuất hiện thật sự (ms) của từng máy bay, dùng để hiển thị
+  const resolvedStarts = useMemo(
+    () =>
+      new Map(
+        resolveStartOffsets(liveEntries, PLAYBACK_SEGMENT_DURATION).map((e) => [
+          String(e.aircraft.id),
+          e.startOffset ?? 0,
+        ]),
+      ),
+    [liveEntries],
+  );
+
+  // Khóa để playback dựng lại khi lịch xuất hiện đổi
+  const scheduleKey = useMemo(
+    () =>
+      recState.entries
+        .map((e) =>
+          [
+            e.aircraft.id,
+            e.startOffset ?? 0,
+            e.appearAfter
+              ? `${e.appearAfter.aircraftId}:${e.appearAfter.pointIndex}:${e.appearAfter.delay ?? 0}`
+              : "",
+          ].join("|"),
+        )
+        .join("||"),
+    [recState.entries],
+  );
   // ======================================
   // AIRCRAFT PLAYBACK - MULTIPLE AIRCRAFT
   // Tất cả máy bay chạy trong cùng một timeline.
@@ -289,33 +402,6 @@ export default function MapView({
   // ======================================
 
   // HHmm -> offset tương đối tính từ máy bay xuất hiện sớm nhất
-  function getAircraftStartOffsets(aircrafts: AirCraft[]) {
-    const validAircraft = aircrafts.filter(
-      (aircraft) => aircraft.points.length > 0,
-    );
-
-    if (validAircraft.length === 0) return new Map<string, number>();
-
-    const times = validAircraft.map((aircraft) => ({
-      id: String(aircraft.id),
-      time: parseHHmm(aircraft.appearanceTime),
-    }));
-
-    const earliest = Math.min(...times.map((item) => item.time));
-
-    return new Map(
-      times.map((item) => {
-        // Hỗ trợ trường hợp thời gian qua ngày mới
-        let diff = item.time - earliest;
-
-        if (diff < 0) {
-          diff += 24 * 60 * 60;
-        }
-
-        return [item.id, diff * 1000];
-      }),
-    );
-  }
 
   // Khóa playback chỉ đổi khi dữ liệu bài tập thực sự thay đổi
   const playbackKey = useMemo(() => {
@@ -328,7 +414,6 @@ export default function MapView({
         return [
           aircraft.id,
           aircraft.color,
-          aircraft.appearanceTime,
           aircraft.points.length,
           points,
         ].join("|");
@@ -338,10 +423,8 @@ export default function MapView({
 
   useEffect(() => {
     const map = mapRef.current;
-
     if (!map || !mapReady) return;
 
-    // Dọn playback trước đó
     playbackRef.current?.stop();
     playbackRef.current = null;
 
@@ -349,9 +432,13 @@ export default function MapView({
     clearPlaybackTrail(map);
     setOriginalRouteVisible(map, true);
 
-    // Tính thời gian xuất hiện tương đối của từng máy bay
-    const startOffsets = getAircraftStartOffsets(aircraftList);
-
+    // Lịch xuất hiện lấy từ recorder, aircraft lấy bản mới nhất từ aircraftList
+    const scheduleById = new Map(
+      (recorderRef.current?.getEntries() ?? []).map((e) => [
+        String(e.aircraft.id),
+        e,
+      ]),
+    );
     // Tạo ExerciseEntry cho TẤT CẢ máy bay
     const entries: ExerciseEntry[] = aircraftList
       .filter((aircraft) => aircraft.points.length > 0)
@@ -365,13 +452,15 @@ export default function MapView({
               ) as [number, number][])
             : undefined;
 
+        const schedule = scheduleById.get(String(aircraft.id));
+
         return {
           aircraft,
           path,
-          startOffset: startOffsets.get(String(aircraft.id)) ?? 0,
+          startOffset: schedule?.startOffset ?? 0,
+          appearAfter: schedule?.appearAfter,
         };
       });
-
     if (entries.length === 0) {
       setPlaybackState({
         status: "idle",
@@ -387,7 +476,7 @@ export default function MapView({
 
     // Tạo bộ điều khiển bài tập nhiều máy bay
     const controller = createExercisePlayback(entries, {
-      segmentDuration: 10_000,
+      segmentDuration: PLAYBACK_SEGMENT_DURATION, // 30s/chặng, thay cho 10_000
       speedMultiplier: 1,
 
       // Mỗi frame cập nhật toàn bộ máy bay và trail
@@ -738,39 +827,6 @@ export default function MapView({
   );
   const [isPlaybackPanelOpen, setIsPlaybackPanelOpen] = useState(false);
 
-  // ============================================================================
-  // 2) STATE + WIRING (đặt cùng chỗ với các useState / useRef hiện có)
-  // ============================================================================
-
-  // Ô "Máy bay mới xuất hiện từ phút" (để trống = tự lấy theo đồng hồ ghi)
-  const [newAppearMinute, setNewAppearMinute] = useState("");
-
-  const [recState, setRecState] = useState<RecorderState>({
-    status: "idle",
-    elapsedTime: 0,
-    entries: [],
-    events: [],
-  });
-  const [recElapsed, setRecElapsed] = useState(0);
-
-  const recorderRef = useRef<ExerciseRecorder | null>(null);
-  if (!recorderRef.current) {
-    recorderRef.current = createExerciseRecorder({ onChange: setRecState });
-  }
-  const isRecording = recState.status === "recording";
-
-  // Đồng hồ ghi chạy mỗi 250ms khi đang ghi
-  useEffect(() => {
-    if (!isRecording) {
-      setRecElapsed(recState.elapsedTime);
-      return;
-    }
-    const id = setInterval(
-      () => setRecElapsed(recorderRef.current?.getElapsed() ?? 0),
-      250,
-    );
-    return () => clearInterval(id);
-  }, [isRecording, recState.elapsedTime]);
   return (
     <div className="relative h-full w-full overflow-hidden rounded-lg">
       <div
@@ -864,42 +920,38 @@ export default function MapView({
                 min={0}
                 step={0.5}
                 value={newAppearMinute}
-                onChange={(e) => setNewAppearMinute(e.target.value)}
+                onChange={(e) => {
+                  newAppearMinuteRef.current = e.target.value;
+                  setNewAppearMinute(e.target.value);
+                }}
                 placeholder={isRecording ? "tự động" : "0"}
                 className="w-20 rounded border border-slate-200 px-2 py-0.5 text-right text-xs outline-none focus:border-blue-400"
               />
             </label>
 
             {/* Thời gian xuất hiện của từng máy bay (sửa được) */}
-            {recState.entries.length > 0 && (
-              <div className="flex max-h-28 flex-col gap-1 overflow-y-auto">
-                {recState.entries.map((entry) => (
-                  <div
-                    key={`${entry.aircraft.id}-${entry.startOffset ?? 0}`}
-                    className="flex items-center justify-between gap-2 text-xs text-slate-700"
-                  >
-                    <span className="min-w-0 truncate">
-                      {entry.aircraft.name ?? entry.aircraft.id}
-                    </span>
-
-                    <span className="flex shrink-0 items-center gap-1 text-slate-500">
-                      từ phút
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.5}
-                        defaultValue={msToMinutes(entry.startOffset ?? 0)}
-                        onBlur={(e) =>
-                          recorderRef.current?.setAppearAtMinute(
-                            String(entry.aircraft.id),
-                            Number(e.target.value) || 0,
-                          )
-                        }
-                        className="w-16 rounded border border-slate-200 px-1.5 py-0.5 text-right text-xs outline-none focus:border-blue-400"
-                      />
-                    </span>
-                  </div>
-                ))}
+            {liveEntries.length > 0 && (
+              <div className="flex max-h-40 flex-col gap-1 overflow-y-auto">
+                {liveEntries.map((entry) => {
+                  const id = String(entry.aircraft.id);
+                  return (
+                    <AppearRow
+                      key={id}
+                      entry={entry}
+                      label={entry.aircraft.name ?? id}
+                      resolvedMs={resolvedStarts.get(id) ?? 0}
+                      others={liveEntries
+                        .filter((e) => String(e.aircraft.id) !== id)
+                        .map((e) => ({
+                          id: String(e.aircraft.id),
+                          label: e.aircraft.name ?? String(e.aircraft.id),
+                        }))}
+                      onChange={(patch) =>
+                        recorderRef.current?.updateEntry(id, patch)
+                      }
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1107,4 +1159,111 @@ function updateAircraftRoutes(map: MapLibreMap, aircrafts: AirCraft[]) {
       })),
     ),
   });
+}
+type AppearRowProps = {
+  entry: ExerciseEntry;
+  label: string;
+  resolvedMs: number;
+  others: { id: string; label: string }[];
+  onChange: (patch: Partial<Omit<ExerciseEntry, "aircraft">>) => void;
+};
+
+function AppearRow({
+  entry,
+  label,
+  resolvedMs,
+  others,
+  onChange,
+}: AppearRowProps) {
+  const rule = entry.appearAfter;
+  const mode = rule ? "after" : "minute";
+
+  return (
+    <div className="flex flex-col gap-1 rounded bg-slate-50 p-1.5 text-xs text-slate-700">
+      <div className="flex items-center justify-between gap-2">
+        <span className="min-w-0 truncate font-medium">{label}</span>
+        <span className="shrink-0 tabular-nums text-slate-500">
+          xuất hiện {formatClock(resolvedMs)}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <select
+          value={mode}
+          onChange={(e) => {
+            if (e.target.value === "after" && others.length > 0) {
+              onChange({
+                appearAfter: { aircraftId: others[0].id, pointIndex: 1 },
+              });
+            } else {
+              // Về nhập tay: giữ nguyên thời điểm đang có
+              onChange({ appearAfter: undefined, startOffset: resolvedMs });
+            }
+          }}
+          className="rounded border border-slate-200 bg-white px-1 py-0.5 text-xs outline-none focus:border-blue-400"
+        >
+          <option value="minute">Từ phút</option>
+          <option value="after" disabled={others.length === 0}>
+            Sau máy bay
+          </option>
+        </select>
+
+        {rule ? (
+          <>
+            <select
+              value={rule.aircraftId}
+              onChange={(e) =>
+                onChange({
+                  appearAfter: { ...rule, aircraftId: e.target.value },
+                })
+              }
+              className="min-w-0 flex-1 rounded border border-slate-200 bg-white px-1 py-0.5 text-xs outline-none focus:border-blue-400"
+            >
+              {others.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+
+            <span className="shrink-0 text-slate-500">bay</span>
+            <input
+              key={rule.pointIndex}
+              type="number"
+              min={0}
+              step={1}
+              defaultValue={rule.pointIndex}
+              onBlur={(e) =>
+                onChange({
+                  appearAfter: {
+                    ...rule,
+                    pointIndex: Math.max(
+                      0,
+                      Math.floor(Number(e.target.value) || 0),
+                    ),
+                  },
+                })
+              }
+              className="w-12 rounded border border-slate-200 px-1 py-0.5 text-right text-xs outline-none focus:border-blue-400"
+            />
+            <span className="shrink-0 text-slate-500">chặng</span>
+          </>
+        ) : (
+          <input
+            key={entry.startOffset ?? 0}
+            type="number"
+            min={0}
+            step={0.5}
+            defaultValue={msToMinutes(entry.startOffset ?? 0)}
+            onBlur={(e) =>
+              onChange({
+                startOffset: Math.round((Number(e.target.value) || 0) * 60_000),
+              })
+            }
+            className="w-16 rounded border border-slate-200 px-1.5 py-0.5 text-right text-xs outline-none focus:border-blue-400"
+          />
+        )}
+      </div>
+    </div>
+  );
 }

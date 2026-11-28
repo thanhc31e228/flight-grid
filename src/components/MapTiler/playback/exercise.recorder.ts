@@ -30,6 +30,7 @@ export type AddAircraftOptions = {
   appearAtMinute?: number;
   // Đường đã bo góc (nếu có), truyền thẳng vào ExerciseEntry.path
   path?: [number, number][];
+  appearAfter?: ExerciseEntry["appearAfter"];
 };
 
 export type ExerciseRecorderOptions = {
@@ -146,6 +147,7 @@ export function createExerciseRecorder(
       aircraft,
       startOffset,
       ...(opts.path ? { path: opts.path } : {}),
+      ...(opts.appearAfter ? { appearAfter: opts.appearAfter } : {}),
     };
 
     const index = entries.findIndex((e) => sameId(e, String(aircraft.id)));
