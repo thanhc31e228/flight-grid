@@ -85,4 +85,6 @@ export type PlaybackController = {
   replay: () => void;
   setSpeed: (speed: number) => void;
   getState: () => PlaybackState;
+  /** Nhảy tới vị trí progress (0..1), giữ nguyên trạng thái playing/paused */
+  seekTo: (progress: number) => void;
 };

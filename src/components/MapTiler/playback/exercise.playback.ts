@@ -185,7 +185,32 @@ export function createExercisePlayback(
 
     play();
   }
+  function seekTo(progress: number) {
+    if (tracks.length === 0 || totalTime === 0) return;
 
+    const ratio = Math.min(1, Math.max(0, progress));
+
+    // Kéo tới cuối = hoàn thành (finish() tự đặt elapsed, vẽ frame cuối, gọi onComplete)
+    if (ratio >= 1) {
+      cancelFrame();
+      finish();
+      return;
+    }
+
+    elapsedTime = ratio * totalTime;
+    previousFrameTime = null; // tick rAF sau không cộng delta cũ
+
+    // Giống play(): reset track rồi vẽ lại từ elapsedTime mới
+    resetTracks();
+    emitFrame();
+
+    // idle / completed -> paused để nút "Tiếp tục" gọi resume() chạy tiếp từ vị trí này
+    if (status === "idle" || status === "completed") {
+      status = "paused";
+    }
+
+    emitState();
+  }
   function setSpeed(speed: number) {
     if (speed <= 0) return;
 
@@ -197,6 +222,7 @@ export function createExercisePlayback(
     play,
     pause,
     resume,
+    seekTo,
     stop,
     replay,
     setSpeed,

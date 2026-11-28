@@ -826,7 +826,83 @@ export default function MapView({
     (aircraft) => aircraft.points.length >= 2,
   );
   const [isPlaybackPanelOpen, setIsPlaybackPanelOpen] = useState(false);
+  // ===== SEEK TRÊN THANH PROGRESS =====
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const wasPlayingRef = useRef(false);
+  // null = không kéo; số = vị trí đang kéo (0..1)
+  const [scrubProgress, setScrubProgress] = useState<number | null>(null);
 
+  const canSeek =
+    hasPlaybackRoute &&
+    !isRecording &&
+    playbackAircraftCount > 0 &&
+    playbackState.totalTime > 0;
+
+  const displayProgress = Math.max(
+    0,
+    Math.min(1, scrubProgress ?? playbackState.progress),
+  );
+
+  const ratioFromClientX = (clientX: number) => {
+    const el = progressBarRef.current;
+    if (!el) return 0;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0) return 0;
+    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+  };
+
+  const seekTo = (ratio: number) => {
+    if (mapRef.current) setOriginalRouteVisible(mapRef.current, false);
+    playbackRef.current?.seekTo(ratio);
+  };
+
+  const handleScrubStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!canSeek) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    // Đang chạy thì tạm dừng trong lúc kéo, thả ra sẽ chạy tiếp
+    wasPlayingRef.current = playbackState.status === "playing";
+    if (wasPlayingRef.current) playbackRef.current?.pause();
+
+    const ratio = ratioFromClientX(e.clientX);
+    setScrubProgress(ratio);
+    seekTo(ratio);
+  };
+
+  const handleScrubMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (scrubProgress === null) return;
+    const ratio = ratioFromClientX(e.clientX);
+    setScrubProgress(ratio);
+    seekTo(ratio);
+  };
+
+  const handleScrubEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (scrubProgress === null) return;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    setScrubProgress(null);
+
+    if (wasPlayingRef.current) playbackRef.current?.resume();
+    wasPlayingRef.current = false;
+  };
+
+  // Bàn phím: ← → tua 5 giây, Home/End về đầu/cuối
+  const handleScrubKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!canSeek) return;
+    const total = playbackState.totalTime;
+    const step = 5000 / total;
+    let next: number | null = null;
+
+    if (e.key === "ArrowRight") next = playbackState.progress + step;
+    else if (e.key === "ArrowLeft") next = playbackState.progress - step;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = 1;
+
+    if (next === null) return;
+    e.preventDefault();
+    seekTo(Math.min(1, Math.max(0, next)));
+  };
   return (
     <div className="relative h-full w-full overflow-hidden rounded-lg">
       <div
@@ -1069,13 +1145,44 @@ export default function MapView({
             </span>
           </div>
 
-          {/* Progress */}
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+          {/* Progress (kéo / bấm để tua) */}
+          <div
+            ref={progressBarRef}
+            role="slider"
+            tabIndex={canSeek ? 0 : -1}
+            aria-label="Tua bài tập"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(displayProgress * 100)}
+            aria-disabled={!canSeek}
+            onPointerDown={handleScrubStart}
+            onPointerMove={handleScrubMove}
+            onPointerUp={handleScrubEnd}
+            onPointerCancel={handleScrubEnd}
+            onKeyDown={handleScrubKey}
+            className={`group relative flex h-4 w-full touch-none select-none items-center ${
+              canSeek ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+            }`}
+          >
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+              <div
+                className={`h-full rounded-full bg-blue-600 ${
+                  scrubProgress === null ? "transition-[width]" : ""
+                }`}
+                style={{ width: `${displayProgress * 100}%` }}
+              />
+            </div>
+
+            {/* Núm kéo */}
             <div
-              className="h-full rounded-full bg-blue-600 transition-[width]"
-              style={{
-                width: `${Math.max(0, Math.min(1, playbackState.progress)) * 100}%`,
-              }}
+              className={`pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600 bg-white shadow transition-opacity ${
+                canSeek
+                  ? scrubProgress !== null
+                    ? "opacity-100"
+                    : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
+                  : "opacity-0"
+              }`}
+              style={{ left: `${displayProgress * 100}%` }}
             />
           </div>
         </div>
