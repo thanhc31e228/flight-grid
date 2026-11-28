@@ -1,20 +1,10 @@
-import type { AirCraft } from "../types/map.types";
-
-import type {
-  PlaybackController,
-  PlaybackOptions,
-  PlaybackState,
+import {
+  AircraftFrame,
+  AircraftPlaybackStatus,
+  ExerciseEntry,
 } from "./playback.types";
 
 type Coord = [number, number];
-
-const DEFAULT_SEGMENT_DURATION = 10_000; // 10 giây / chặng
-
-// Giới hạn delta mỗi frame: tab bị ẩn / lag xong quay lại sẽ không bị nhảy cóc
-const MAX_FRAME_DELTA = 100;
-
-// Chỉ đẩy state ra UI ~10 lần/giây (vị trí máy bay vẫn cập nhật mỗi frame)
-const STATE_EMIT_INTERVAL = 100;
 
 // Hệ số làm mượt góc xoay icon (0..1, càng nhỏ càng mượt)
 const BEARING_SMOOTHING = 0.25;
@@ -118,60 +108,85 @@ function buildTimeline(
   return { coords, times };
 }
 
-export function createAircraftPlayback(
-  aircraft: AirCraft,
-  options: PlaybackOptions = {},
-): PlaybackController {
+// Một máy bay trong bài tập: nhận thời gian của bài tập -> trả về frame
+export type AircraftTrack = {
+  id: string;
+  // Mốc kết thúc của máy bay (ms, tính từ lúc bài tập bắt đầu)
+  endTime: number;
+  sample: (elapsed: number) => AircraftFrame;
+  reset: () => void;
+};
+
+export function createAircraftTrack(
+  entry: ExerciseEntry,
+  segmentDuration: number,
+): AircraftTrack | null {
+  const { aircraft } = entry;
   const points = aircraft.points;
 
-  const segmentDuration = options.segmentDuration ?? DEFAULT_SEGMENT_DURATION;
-  const totalTime = Math.max(0, points.length - 1) * segmentDuration;
+  if (points.length === 0) return null;
+
+  const id = String(aircraft.id);
+  const color = aircraft.color ?? "red";
+
+  const startOffset = Math.max(0, entry.startOffset ?? 0);
+  const endOffset =
+    entry.endOffset === undefined
+      ? null
+      : Math.max(entry.endOffset, startOffset);
+
+  const duration = Math.max(0, points.length - 1) * segmentDuration;
+  const endTime = endOffset ?? startOffset + duration;
 
   const timeline =
     points.length >= 2
       ? buildTimeline(
           points.map((p) => [p.lng, p.lat] as Coord),
-          options.path,
+          entry.path,
           segmentDuration,
         )
       : { coords: [] as Coord[], times: [] as number[] };
 
-  let speedMultiplier = options.speedMultiplier ?? 1;
+  // Frame "chưa xuất hiện" dùng chung, không cần tạo mới mỗi frame
+  const waitingFrame: AircraftFrame = {
+    id,
+    color,
+    status: "waiting",
+    visible: false,
+    position: null,
+    bearing: 0,
+    trail: [],
+    currentPointIndex: 0,
+    progress: 0,
+  };
 
-  let status: PlaybackState["status"] = "idle";
-  let currentPointIndex = 0;
-  let elapsedTime = 0;
-
-  let frameId: number | null = null;
-  let previousFrameTime: number | null = null;
-  let lastStateEmit = 0;
   let displayBearing: number | null = null;
 
-  function getState(): PlaybackState {
-    return {
-      status,
-      currentPointIndex,
-      progress: totalTime === 0 ? 0 : Math.min(elapsedTime / totalTime, 1),
-      elapsedTime,
-      totalTime,
-      speedMultiplier,
-    };
-  }
+  // Sau khi bay xong, frame không đổi nữa -> cache lại, không tính lại mỗi frame
+  let frozenShown: AircraftFrame | null = null;
+  let frozenHidden: AircraftFrame | null = null;
 
-  function emitState() {
-    options.onStateChange?.(getState());
-  }
-
-  function emitPosition() {
-    if (points.length === 0) return;
-
+  // t: thời gian bay của riêng máy bay này (0..duration)
+  function build(
+    t: number,
+    status: AircraftPlaybackStatus,
+    visible: boolean,
+  ): AircraftFrame {
     if (points.length === 1) {
-      options.onPositionChange?.(points[0], 0, []);
-      return;
+      return {
+        id,
+        color,
+        status,
+        visible,
+        position: points[0],
+        bearing: 0,
+        trail: [],
+        currentPointIndex: 0,
+        progress: 1,
+      };
     }
 
     const { coords, times } = timeline;
-    const t = Math.min(elapsedTime, totalTime);
 
     const k = findIndex(times, t);
     const from = coords[k];
@@ -195,8 +210,8 @@ export function createAircraftPlayback(
           : lerpAngle(displayBearing, target, BEARING_SMOOTHING);
     }
 
-    currentPointIndex =
-      t >= totalTime
+    const currentPointIndex =
+      t >= duration
         ? points.length - 1
         : Math.min(Math.floor(t / segmentDuration), points.length - 1);
 
@@ -204,139 +219,44 @@ export function createAircraftPlayback(
     const trail = coords.slice(0, k + 1);
     trail.push(position);
 
-    options.onPositionChange?.(
-      { lng: position[0], lat: position[1] },
-      displayBearing ?? 0,
+    return {
+      id,
+      color,
+      status,
+      visible,
+      position: { lng: position[0], lat: position[1] },
+      bearing: displayBearing ?? 0,
       trail,
-    );
+      currentPointIndex,
+      progress: duration === 0 ? 1 : Math.min(t / duration, 1),
+    };
   }
 
-  function finish() {
-    elapsedTime = totalTime;
-    currentPointIndex = Math.max(0, points.length - 1);
+  function sample(elapsed: number): AircraftFrame {
+    // Chưa đến giờ xuất hiện
+    if (elapsed < startOffset) return waitingFrame;
 
-    status = "completed";
-    frameId = null;
-    previousFrameTime = null;
+    // Quá thời gian kết thúc: ẩn máy bay, giữ nguyên vệt bay
+    const ended = endOffset !== null && elapsed >= endOffset;
+    const visible = !ended;
 
-    emitPosition();
-    emitState();
+    const localTime = Math.min(elapsed, endOffset ?? Infinity) - startOffset;
+    const t = Math.min(Math.max(localTime, 0), duration);
+    const done = ended || t >= duration;
 
-    options.onComplete?.();
+    if (done) {
+      if (visible) return (frozenShown ??= build(t, "completed", true));
+      return (frozenHidden ??= build(t, "completed", false));
+    }
+
+    return build(t, "flying", true);
   }
 
-  function animate(now: number) {
-    if (status !== "playing") return;
-
-    if (previousFrameTime === null) {
-      previousFrameTime = now;
-    }
-
-    const delta = Math.min(now - previousFrameTime, MAX_FRAME_DELTA);
-    previousFrameTime = now;
-
-    elapsedTime += delta * speedMultiplier;
-
-    if (elapsedTime >= totalTime) {
-      finish();
-      return;
-    }
-
-    emitPosition();
-
-    if (now - lastStateEmit >= STATE_EMIT_INTERVAL) {
-      lastStateEmit = now;
-      emitState();
-    }
-
-    frameId = requestAnimationFrame(animate);
-  }
-
-  function cancelFrame() {
-    if (frameId !== null) {
-      cancelAnimationFrame(frameId);
-      frameId = null;
-    }
-
-    previousFrameTime = null;
-  }
-
-  function play() {
-    if (points.length === 0 || status === "playing") return;
-
-    elapsedTime = 0;
-    currentPointIndex = 0;
+  function reset() {
     displayBearing = null;
-
-    if (points.length === 1) {
-      status = "completed";
-      emitPosition();
-      emitState();
-      options.onComplete?.();
-      return;
-    }
-
-    status = "playing";
-    emitPosition();
-    emitState();
-
-    frameId = requestAnimationFrame(animate);
+    frozenShown = null;
+    frozenHidden = null;
   }
 
-  function pause() {
-    if (status !== "playing") return;
-
-    status = "paused";
-    cancelFrame();
-    emitState();
-  }
-
-  function resume() {
-    if (status !== "paused") return;
-
-    status = "playing";
-    previousFrameTime = null;
-    emitState();
-
-    frameId = requestAnimationFrame(animate);
-  }
-
-  function stop() {
-    cancelFrame();
-
-    elapsedTime = 0;
-    currentPointIndex = 0;
-    displayBearing = null;
-    status = "idle";
-
-    // Không emitPosition ở đây: để nơi gọi tự dọn máy bay / trail
-    emitState();
-  }
-
-  function replay() {
-    cancelFrame();
-
-    elapsedTime = 0;
-    currentPointIndex = 0;
-    status = "idle";
-
-    play();
-  }
-
-  function setSpeed(speed: number) {
-    if (speed <= 0) return;
-
-    speedMultiplier = speed;
-    emitState();
-  }
-
-  return {
-    play,
-    pause,
-    resume,
-    stop,
-    replay,
-    setSpeed,
-    getState,
-  };
+  return { id, endTime, sample, reset };
 }

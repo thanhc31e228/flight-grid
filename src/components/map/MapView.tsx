@@ -47,19 +47,19 @@ import {
 } from "./layers/waypoint.animation";
 import { getFireZoneRadius } from "./layers/layer.utils";
 import type {
+  ExerciseEntry,
   PlaybackController,
   PlaybackState,
 } from "../MapTiler/playback/playback.types";
 import {
   addPlaybackLayer,
   clearPlaybackAircraft,
-  updatePlaybackAircraft,
-  updatePlaybackTrail,
   clearPlaybackTrail,
   setOriginalRouteVisible,
-  setWaypointMarkersVisible,
+  updatePlaybackFrames,
 } from "../MapTiler/playback/playback.layers";
-import { createAircraftPlayback } from "../MapTiler/playback/aircraft.playback";
+import { createExercisePlayback } from "../MapTiler/playback/exercise.playback";
+import { parseHHmm } from "../MapTiler/playback/playback.utils";
 
 // ======================================
 // TYPES
@@ -124,15 +124,15 @@ export default function MapView({
 
   // Playback bài tập cho aircraft đang được chọn
   const playbackRef = useRef<PlaybackController | null>(null);
+
   const [playbackState, setPlaybackState] = useState<PlaybackState>({
     status: "idle",
-    currentPointIndex: 0,
     progress: 0,
     elapsedTime: 0,
     totalTime: 0,
     speedMultiplier: 1,
+    aircrafts: [],
   });
-
   // ======================================
   // CONTEXT
   // ======================================
@@ -292,62 +292,127 @@ export default function MapView({
   const aircraftList = contextAircrafts ?? propAircrafts;
 
   // ======================================
-  // AIRCRAFT PLAYBACK
-  // Mỗi chặng giữa hai waypoint chạy 10 giây ở tốc độ 1x.
-  // Bay theo đúng đường bo góc đang vẽ trên map.
-  // Chạy xong: ẩn đường gốc, chỉ giữ lại đường đã đi (trail).
+  // AIRCRAFT PLAYBACK - MULTIPLE AIRCRAFT
+  // Tất cả máy bay chạy trong cùng một timeline.
+  // Mỗi máy bay có path riêng, startOffset riêng.
   // ======================================
 
-  // Khóa đại diện cho aircraft đang chọn: chỉ đổi khi id / màu / tọa độ đổi thật sự,
-  // tránh playback bị khởi động lại khi context tạo object mới mà dữ liệu không đổi.
-  const playbackKey = useMemo(() => {
-    if (!aircraftSelected) return "";
-    const coords = aircraftSelected.points
-      .map((p) => `${p.lng},${p.lat}`)
-      .join(";");
-    return `${aircraftSelected.id}|${aircraftSelected.color ?? ""}|${coords}`;
-  }, [aircraftSelected]);
+  // HHmm -> offset tương đối tính từ máy bay xuất hiện sớm nhất
+  function getAircraftStartOffsets(aircrafts: AirCraft[]) {
+    const validAircraft = aircrafts.filter(
+      (aircraft) => aircraft.points.length > 0,
+    );
 
-  const aircraftSelectedRef = useRef(aircraftSelected);
-  useEffect(() => {
-    aircraftSelectedRef.current = aircraftSelected;
-  }, [aircraftSelected]);
+    if (validAircraft.length === 0) return new Map<string, number>();
+
+    const times = validAircraft.map((aircraft) => ({
+      id: String(aircraft.id),
+      time: parseHHmm(aircraft.appearanceTime),
+    }));
+
+    const earliest = Math.min(...times.map((item) => item.time));
+
+    return new Map(
+      times.map((item) => {
+        // Hỗ trợ trường hợp thời gian qua ngày mới
+        let diff = item.time - earliest;
+
+        if (diff < 0) {
+          diff += 24 * 60 * 60;
+        }
+
+        return [item.id, diff * 1000];
+      }),
+    );
+  }
+
+  // Khóa playback chỉ đổi khi dữ liệu bài tập thực sự thay đổi
+  const playbackKey = useMemo(() => {
+    return aircraftList
+      .map((aircraft) => {
+        const points = aircraft.points
+          .map((p) => `${p.lng},${p.lat}`)
+          .join(";");
+
+        return [
+          aircraft.id,
+          aircraft.color,
+          aircraft.appearanceTime,
+          aircraft.points.length,
+          points,
+        ].join("|");
+      })
+      .join("||");
+  }, [aircraftList]);
 
   useEffect(() => {
     const map = mapRef.current;
-    const aircraft = aircraftSelectedRef.current;
-    if (!map || !mapReady || !aircraft) return;
 
-    const color = aircraft.color ?? "#22c55e";
+    if (!map || !mapReady) return;
 
-    // Dọn playback cũ
+    // Dọn playback trước đó
     playbackRef.current?.stop();
+    playbackRef.current = null;
+
     clearPlaybackAircraft(map);
     clearPlaybackTrail(map);
     setOriginalRouteVisible(map, true);
 
-    // Đường đã bo góc - cùng đường với layer route trên map
-    const path =
-      aircraft.points.length >= 2
-        ? (createRoundedRoute(
-            aircraft.points,
-            MAP_GRID_CONFIG.ROUTE_RADIUS,
-            MAP_GRID_CONFIG.ROUTE_STEPS,
-          ) as [number, number][])
-        : undefined;
+    // Tính thời gian xuất hiện tương đối của từng máy bay
+    const startOffsets = getAircraftStartOffsets(aircraftList);
 
-    const controller = createAircraftPlayback(aircraft, {
+    // Tạo ExerciseEntry cho TẤT CẢ máy bay
+    const entries: ExerciseEntry[] = aircraftList
+      .filter((aircraft) => aircraft.points.length > 0)
+      .map((aircraft) => {
+        const path =
+          aircraft.points.length >= 2
+            ? (createRoundedRoute(
+                aircraft.points,
+                MAP_GRID_CONFIG.ROUTE_RADIUS,
+                MAP_GRID_CONFIG.ROUTE_STEPS,
+              ) as [number, number][])
+            : undefined;
+
+        return {
+          aircraft,
+          path,
+          startOffset: startOffsets.get(String(aircraft.id)) ?? 0,
+        };
+      });
+
+    if (entries.length === 0) {
+      setPlaybackState({
+        status: "idle",
+        progress: 0,
+        elapsedTime: 0,
+        totalTime: 0,
+        speedMultiplier: 1,
+        aircrafts: [],
+      });
+
+      return;
+    }
+
+    // Tạo bộ điều khiển bài tập nhiều máy bay
+    const controller = createExercisePlayback(entries, {
       segmentDuration: 10_000,
       speedMultiplier: 1,
-      path,
-      onPositionChange: (position, bearing, trail) => {
-        updatePlaybackAircraft(map, position.lng, position.lat, bearing, color);
-        updatePlaybackTrail(map, trail, color);
+
+      // Mỗi frame cập nhật toàn bộ máy bay và trail
+      onFrame: (frames) => {
+        updatePlaybackFrames(map, frames);
       },
-      onStateChange: setPlaybackState,
+
+      onStateChange: (state) => {
+        setPlaybackState(state);
+      },
+
       onComplete: () => {
-        // Xong: bỏ máy bay playback, giữ đường đã đi,
-        // KHÔNG hiện lại đường gốc.
+        // Khi hoàn thành:
+        // - Ẩn tất cả máy bay playback
+        // - Giữ lại toàn bộ trail
+        // - Ẩn đường bay gốc
         clearPlaybackAircraft(map);
         setOriginalRouteVisible(map, false);
       },
@@ -358,23 +423,16 @@ export default function MapView({
 
     return () => {
       controller.stop();
-      if (playbackRef.current === controller) playbackRef.current = null;
+
+      if (playbackRef.current === controller) {
+        playbackRef.current = null;
+      }
+
       clearPlaybackAircraft(map);
       clearPlaybackTrail(map);
       setOriginalRouteVisible(map, true);
     };
   }, [mapReady, playbackKey]);
-  // Trong lúc phát (đang chạy / tạm dừng): ẩn vạch ở các điểm giữa
-  // và máy bay ở điểm cuối, chỉ giữ điểm đầu. Hết phát / Stop thì hiện lại.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady) return;
-
-    const isPlaybackActive =
-      playbackState.status === "playing" || playbackState.status === "paused";
-
-    setWaypointMarkersVisible(map, !isPlaybackActive);
-  }, [mapReady, playbackState.status]);
   // ======================================
   // LATEST VALUES REFS
   // ======================================
@@ -633,7 +691,24 @@ export default function MapView({
     const seconds = totalSeconds % 60;
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
+  const playbackAircraftCount = playbackState.aircrafts.length;
 
+  const flyingCount = playbackState.aircrafts.filter(
+    (aircraft) => aircraft.status === "flying",
+  ).length;
+
+  const waitingCount = playbackState.aircrafts.filter(
+    (aircraft) => aircraft.status === "waiting",
+  ).length;
+
+  const completedCount = playbackState.aircrafts.filter(
+    (aircraft) => aircraft.status === "completed",
+  ).length;
+
+  const hasPlaybackRoute = aircraftList.some(
+    (aircraft) => aircraft.points.length >= 2,
+  );
+  const [isPlaybackPanelOpen, setIsPlaybackPanelOpen] = useState(false);
   return (
     <div className="relative h-full w-full overflow-hidden rounded-lg">
       <div
@@ -646,113 +721,170 @@ export default function MapView({
         }}
       />
 
-      {/* Playback controls overlay */}
       {/* Playback controls: đặt giữa phía dưới để không đè panel trái / hàng nút phía trên */}
-      <div className="pointer-events-auto absolute bottom-4 left-1/2 z-10 flex w-[340px] max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-col gap-2 rounded-lg border border-slate-200 bg-white/95 p-2.5 shadow-lg backdrop-blur-sm">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-              Bài tập · 10 giây / chặng
+      {/* Playback controls - multi aircraft */}
+      {/* ======================================
+    PLAYBACK TOGGLE BUTTON
+====================================== */}
+      <button
+        type="button"
+        onClick={() => setIsPlaybackPanelOpen((prev) => !prev)}
+        className="pointer-events-auto absolute bottom-4 left-1/2 z-20 -translate-x-1/2 flex items-center gap-2 rounded-full border border-slate-300 bg-white/95 px-4 py-2 shadow-lg backdrop-blur-sm transition hover:bg-slate-50"
+      >
+        <span className="text-xs font-semibold text-slate-700">
+          {isPlaybackPanelOpen ? "Ẩn " : "Tạo bài tập"}
+        </span>
+
+        <span className="text-xs text-slate-500">
+          {isPlaybackPanelOpen ? "▲" : "▼"}
+        </span>
+      </button>
+
+      {/* ======================================
+    PLAYBACK PANEL
+====================================== */}
+      {isPlaybackPanelOpen && (
+        <div className="pointer-events-auto absolute bottom-16 left-1/2 z-10 flex w-[360px] max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-col gap-2 rounded-lg border border-slate-200 bg-white/95 p-2.5 shadow-lg backdrop-blur-sm">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Bài tập bay · 10 giây / chặng
+              </div>
+
+              <div className="truncate text-sm font-semibold text-slate-800">
+                {playbackAircraftCount} máy bay
+              </div>
             </div>
-            <div className="truncate text-sm font-semibold text-slate-800">
-              {aircraftSelected?.id ?? "Chưa chọn máy bay"}
+
+            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+              {STATUS_LABEL[playbackState.status]}
+            </span>
+          </div>
+
+          {/* Aircraft status */}
+          <div className="grid grid-cols-3 gap-1.5">
+            <div className="rounded bg-emerald-50 px-2 py-1 text-center">
+              <div className="text-[10px] text-emerald-600">Đang bay</div>
+              <div className="text-sm font-semibold text-emerald-700">
+                {flyingCount}
+              </div>
+            </div>
+
+            <div className="rounded bg-amber-50 px-2 py-1 text-center">
+              <div className="text-[10px] text-amber-600">Chờ</div>
+              <div className="text-sm font-semibold text-amber-700">
+                {waitingCount}
+              </div>
+            </div>
+
+            <div className="rounded bg-slate-100 px-2 py-1 text-center">
+              <div className="text-[10px] text-slate-500">Hoàn thành</div>
+              <div className="text-sm font-semibold text-slate-700">
+                {completedCount}
+              </div>
             </div>
           </div>
-          <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-            {STATUS_LABEL[playbackState.status]}
-          </span>
-        </div>
 
-        <div className="grid grid-cols-4 gap-1.5">
-          <button
-            type="button"
-            disabled={!aircraftSelected || aircraftSelected.points.length < 2}
-            onClick={() => {
-              if (mapRef.current)
-                setOriginalRouteVisible(mapRef.current, false);
-              if (playbackState.status === "paused")
-                playbackRef.current?.resume();
-              else playbackRef.current?.play();
-            }}
-            className="rounded bg-emerald-600 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {playbackState.status === "paused" ? "Tiếp tục" : "Play"}
-          </button>
-          <button
-            type="button"
-            disabled={playbackState.status !== "playing"}
-            onClick={() => playbackRef.current?.pause()}
-            className="rounded bg-amber-500 py-1.5 text-xs font-medium text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Pause
-          </button>
-          <button
-            type="button"
-            disabled={!aircraftSelected || aircraftSelected.points.length < 1}
-            onClick={() => {
-              playbackRef.current?.stop();
-              if (mapRef.current) {
-                clearPlaybackAircraft(mapRef.current);
-                clearPlaybackTrail(mapRef.current);
-                setOriginalRouteVisible(mapRef.current, true);
+          {/* Buttons */}
+          <div className="grid grid-cols-4 gap-1.5">
+            <button
+              type="button"
+              disabled={!hasPlaybackRoute}
+              onClick={() => {
+                if (mapRef.current) {
+                  setOriginalRouteVisible(mapRef.current, false);
+                }
+
+                if (playbackState.status === "paused") {
+                  playbackRef.current?.resume();
+                } else {
+                  playbackRef.current?.play();
+                }
+              }}
+              className="rounded bg-emerald-600 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {playbackState.status === "paused" ? "Tiếp tục" : "Play"}
+            </button>
+
+            <button
+              type="button"
+              disabled={playbackState.status !== "playing"}
+              onClick={() => playbackRef.current?.pause()}
+              className="rounded bg-amber-500 py-1.5 text-xs font-medium text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Pause
+            </button>
+
+            <button
+              type="button"
+              disabled={playbackAircraftCount === 0}
+              onClick={() => {
+                playbackRef.current?.stop();
+
+                if (mapRef.current) {
+                  clearPlaybackAircraft(mapRef.current);
+                  clearPlaybackTrail(mapRef.current);
+                  setOriginalRouteVisible(mapRef.current, true);
+                }
+              }}
+              className="rounded bg-slate-600 py-1.5 text-xs font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Stop
+            </button>
+
+            <button
+              type="button"
+              disabled={!hasPlaybackRoute}
+              onClick={() => {
+                if (mapRef.current) {
+                  setOriginalRouteVisible(mapRef.current, false);
+                }
+
+                playbackRef.current?.replay();
+              }}
+              className="rounded bg-blue-600 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Replay
+            </button>
+          </div>
+
+          {/* Time + speed */}
+          <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
+            <span className="tabular-nums">
+              {formatPlaybackTime(playbackState.elapsedTime)}
+            </span>
+
+            <select
+              aria-label="Playback speed"
+              value={playbackState.speedMultiplier}
+              onChange={(event) =>
+                playbackRef.current?.setSpeed(Number(event.target.value))
               }
-            }}
-            className="rounded bg-slate-600 py-1.5 text-xs font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Stop
-          </button>
-          <button
-            type="button"
-            disabled={!aircraftSelected || aircraftSelected.points.length < 2}
-            onClick={() => {
-              if (mapRef.current)
-                setOriginalRouteVisible(mapRef.current, false);
-              playbackRef.current?.replay();
-            }}
-            className="rounded bg-blue-600 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Replay
-          </button>
-        </div>
+              className="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs outline-none focus:border-blue-400"
+            >
+              <option value={1}>1x</option>
+              <option value={2}>2x</option>
+              <option value={5}>5x</option>
+              <option value={10}>10x</option>
+            </select>
 
-        <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
-          <span className="tabular-nums">
-            P
-            {Math.min(
-              playbackState.currentPointIndex + 1,
-              aircraftSelected?.points.length ?? 0,
-            )}
-            {" / "}
-            {aircraftSelected?.points.length ?? 0}
-          </span>
-          <select
-            aria-label="Playback speed"
-            value={playbackState.speedMultiplier}
-            onChange={(event) =>
-              playbackRef.current?.setSpeed(Number(event.target.value))
-            }
-            className="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs outline-none focus:border-blue-400"
-          >
-            <option value={1}>1x</option>
-            <option value={2}>2x</option>
-            <option value={5}>5x</option>
-            <option value={10}>10x</option>
-          </select>
-          <span className="tabular-nums">
-            {formatPlaybackTime(playbackState.elapsedTime)} /{" "}
-            {formatPlaybackTime(playbackState.totalTime)}
-          </span>
-        </div>
+            <span className="tabular-nums">
+              {formatPlaybackTime(playbackState.totalTime)}
+            </span>
+          </div>
 
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-          <div
-            className="h-full rounded-full bg-blue-600"
-            style={{
-              width: `${Math.max(0, Math.min(1, playbackState.progress)) * 100}%`,
-            }}
-          />
+          {/* Progress */}
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+            <div
+              className="h-full rounded-full bg-blue-600 transition-[width]"
+              style={{
+                width: `${Math.max(0, Math.min(1, playbackState.progress)) * 100}%`,
+              }}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

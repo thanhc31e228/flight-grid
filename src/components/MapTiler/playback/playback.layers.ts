@@ -1,5 +1,7 @@
 import type { Map as MapLibreMap, GeoJSONSource } from "maplibre-gl";
 
+import type { AircraftFrame } from "./playback.types";
+
 const AIRCRAFT_SOURCE = "aircraft-playback-source";
 const AIRCRAFT_LAYER = "aircraft-playback-layer";
 const TRAIL_SOURCE = "aircraft-playback-trail-source";
@@ -10,7 +12,7 @@ const ORIGINAL_ROUTE_LAYERS = [
   "route-line-hitbox",
 ];
 
-function emptyLineData() {
+function emptyCollection() {
   return {
     type: "FeatureCollection" as const,
     features: [] as GeoJSON.Feature[],
@@ -21,15 +23,12 @@ export function addPlaybackLayer(map: MapLibreMap) {
   if (!map.getSource(AIRCRAFT_SOURCE)) {
     map.addSource(AIRCRAFT_SOURCE, {
       type: "geojson",
-      data: {
-        type: "FeatureCollection",
-        features: [],
-      },
+      data: emptyCollection(),
     });
   }
 
   if (!map.getSource(TRAIL_SOURCE)) {
-    map.addSource(TRAIL_SOURCE, { type: "geojson", data: emptyLineData() });
+    map.addSource(TRAIL_SOURCE, { type: "geojson", data: emptyCollection() });
   }
 
   // Trail layer goes below the playback aircraft symbol.
@@ -66,60 +65,62 @@ export function addPlaybackLayer(map: MapLibreMap) {
   }
 }
 
-export function updatePlaybackAircraft(
+// Vẽ TẤT CẢ máy bay + vệt bay của frame hiện tại: mỗi source chỉ setData 1 lần / frame.
+// Mỗi máy bay là 1 feature riêng, màu lấy từ chính máy bay đó.
+export function updatePlaybackFrames(
   map: MapLibreMap,
-  lng: number,
-  lat: number,
-  bearing: number,
-  color: string,
+  frames: AircraftFrame[],
 ) {
-  const source = map.getSource(AIRCRAFT_SOURCE) as GeoJSONSource | undefined;
-  if (!source) return;
+  const aircraftSource = map.getSource(AIRCRAFT_SOURCE) as
+    | GeoJSONSource
+    | undefined;
+  const trailSource = map.getSource(TRAIL_SOURCE) as GeoJSONSource | undefined;
+  if (!aircraftSource || !trailSource) return;
 
-  source.setData({
-    type: "FeatureCollection",
-    features: [
-      {
+  const aircraftFeatures: GeoJSON.Feature[] = [];
+  const trailFeatures: GeoJSON.Feature[] = [];
+
+  for (const frame of frames) {
+    // Chưa xuất hiện / đã kết thúc thì không vẽ icon (vệt bay vẫn giữ)
+    if (frame.visible && frame.position) {
+      aircraftFeatures.push({
         type: "Feature",
-        properties: { bearing, color },
-        geometry: { type: "Point", coordinates: [lng, lat] },
-      },
-    ],
-  });
-}
-
-export function updatePlaybackTrail(
-  map: MapLibreMap,
-  coordinates: [number, number][],
-  color: string,
-) {
-  const source = map.getSource(TRAIL_SOURCE) as GeoJSONSource | undefined;
-  if (!source) return;
-
-  source.setData(
-    coordinates.length < 2
-      ? emptyLineData()
-      : {
-          type: "FeatureCollection",
-          features: [
-            {
-              type: "Feature",
-              properties: { color },
-              geometry: { type: "LineString", coordinates },
-            },
-          ],
+        properties: {
+          id: frame.id,
+          bearing: frame.bearing,
+          color: frame.color,
         },
-  );
+        geometry: {
+          type: "Point",
+          coordinates: [frame.position.lng, frame.position.lat],
+        },
+      });
+    }
+
+    if (frame.trail.length >= 2) {
+      trailFeatures.push({
+        type: "Feature",
+        properties: { id: frame.id, color: frame.color },
+        geometry: { type: "LineString", coordinates: frame.trail },
+      });
+    }
+  }
+
+  aircraftSource.setData({
+    type: "FeatureCollection",
+    features: aircraftFeatures,
+  });
+  trailSource.setData({ type: "FeatureCollection", features: trailFeatures });
 }
 
 export function clearPlaybackAircraft(map: MapLibreMap) {
   const source = map.getSource(AIRCRAFT_SOURCE) as GeoJSONSource | undefined;
-  source?.setData({ type: "FeatureCollection", features: [] });
+  source?.setData(emptyCollection());
 }
 
 export function clearPlaybackTrail(map: MapLibreMap) {
   const source = map.getSource(TRAIL_SOURCE) as GeoJSONSource | undefined;
-  source?.setData(emptyLineData());
+  source?.setData(emptyCollection());
 }
 
 export function setOriginalRouteVisible(map: MapLibreMap, visible: boolean) {
