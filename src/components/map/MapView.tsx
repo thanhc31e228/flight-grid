@@ -42,7 +42,6 @@ import { initializeMapLayers } from "./layers/initialize";
 import { getBaseCoordinates } from "../../utils/map.storage";
 import { isAircraftNearPoint } from "./layers/waypoint.alert";
 import {
-  startWaypointPlaneBlink,
   stopWaypointPlaneBlink,
   syncWaypointPlaneBlink,
 } from "./layers/waypoint.animation";
@@ -103,12 +102,6 @@ const STATUS_LABEL: Record<PlaybackState["status"], string> = {
   completed: "Hoàn thành",
 };
 
-const formatPlaybackTime = (milliseconds: number) => {
-  const totalSeconds = Math.floor(milliseconds / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-};
 setWorkerUrl(
   new URL(
     "maplibre-gl/dist/maplibre-gl-worker.mjs",
@@ -418,7 +411,7 @@ export default function MapView({
       clearPlaybackTrail(map);
       setOriginalRouteVisible(map, true);
     };
-  }, [mapReady, playbackKey]);
+  }, [mapReady, playbackKey, aircraftList]);
   useEffect(() => {
     const map = mapRef.current;
     if (!mapReady || !map) return;
